@@ -14,15 +14,5 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-
-#include "kickpass_config.h"
-
-int main(int argc, char **argv)
-{
-
-	printf("KickPass version %d.%d\n", KickPass_VERSION_MAJOR, KickPass_VERSION_MINOR);
-
-	return EXIT_SUCCESS;
-}
+#define KickPass_VERSION_MAJOR @KickPass_VERSION_MAJOR@
+#define KickPass_VERSION_MINOR @KickPass_VERSION_MINOR@

@@ -16,4 +16,15 @@
 
 cmake_minimum_required(VERSION 2.6)
 project(KickPass)
+
+set (KickPass_VERSION_MAJOR 0)
+set (KickPass_VERSION_MINOR 0)
+
+configure_file(
+	"${PROJECT_SOURCE_DIR}/src/kickpass_config.h.in"
+	"${PROJECT_BINARY_DIR}/src/kickpass_config.h"
+)
+
+include_directories("${PROJECT_BINARY_DIR}/src/")
+
 add_executable(kickpass src/main.c)
