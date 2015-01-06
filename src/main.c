@@ -16,6 +16,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <gpgme.h>
 
 #include "kickpass_config.h"
 
@@ -23,6 +24,7 @@ int main(int argc, char **argv)
 {
 
 	printf("KickPass version %d.%d\n", KickPass_VERSION_MAJOR, KickPass_VERSION_MINOR);
+	printf("GPGME version %s\n", gpgme_check_version(NULL));
 
 	return EXIT_SUCCESS;
 }

@@ -14,29 +14,10 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 
-# Configure cmake
-cmake_minimum_required(VERSION 2.6)
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build)
+include(FindPackageHandleStandardArgs)
 
-# Configure project
-project(KickPass)
+find_path(GPGME_INCLUDE_DIRS NAMES gpgme.h)
+find_library(GPGME_LIBRARIES NAMES gpgme)
 
-set (KickPass_VERSION_MAJOR 0)
-set (KickPass_VERSION_MINOR 0)
-
-configure_file(
-	"${PROJECT_SOURCE_DIR}/src/kickpass_config.h.in"
-	"${PROJECT_BINARY_DIR}/src/kickpass_config.h"
-)
-
-include_directories("${PROJECT_BINARY_DIR}/src/")
-
-add_executable(kickpass src/main.c)
-
-# Configure dependencies
-find_package(GPGME REQUIRED)
-include_directories(${GPGME_INCLUDE_DIRS})
-set(LIBS ${LIBS} ${GPGME_LIBRARIES})
-
-# Link all dependencies
-target_link_libraries(kickpass ${LIBS})
+find_package_handle_standard_args(GPGME
+	REQUIRED_VARS GPGME_INCLUDE_DIRS GPGME_LIBRARIES)
