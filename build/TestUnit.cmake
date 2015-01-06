@@ -14,37 +14,23 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 
-# Configure cmake
-cmake_minimum_required(VERSION 2.6)
-set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build)
+find_package(Check)
 
-# Configure project
-project(KickPass)
+if (CHECK_FOUND)
+	macro(TEST_UNIT)
+		set(oneValueArgs NAME FILE)
+		set(multiValueArgs LIBS)
+		cmake_parse_arguments(TEST_UNIT "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-set (KickPass_VERSION_MAJOR 0)
-set (KickPass_VERSION_MINOR 0)
-
-configure_file(
-	"${PROJECT_SOURCE_DIR}/src/kickpass_config.h.in"
-	"${PROJECT_BINARY_DIR}/src/kickpass_config.h"
-)
-
-include_directories("${PROJECT_BINARY_DIR}/src/")
-
-add_executable(kickpass
-	src/error.c
-	src/main.c
-	src/storage.c
-)
-
-# Configure dependencies
-find_package(GPGME REQUIRED)
-include_directories(${GPGME_INCLUDE_DIRS})
-set(LIBS ${LIBS} ${GPGME_LIBRARIES})
-
-# Link all dependencies
-target_link_libraries(kickpass ${LIBS})
-
-# Tests
-enable_testing()
-add_subdirectory(test)
+		add_executable(test-${TEST_UNIT_NAME} ${TEST_UNIT_FILE})
+		target_link_libraries(test-${TEST_UNIT_NAME} ${CHECK_LIBRARIES})
+		target_link_libraries(test-${TEST_UNIT_NAME} ${TEST_UNIT_LIBS})
+		set_property(TARGET test-${TEST_UNIT_NAME} APPEND PROPERTY INCLUDE_DIRECTORIES ${CHECK_INCLUDE_DIRS})
+		add_test(NAME test-${TEST_UNIT_NAME}
+			COMMAND test-${TEST_UNIT_NAME})
+	endmacro(TEST_UNIT)
+else()
+	message(WARNING "Check not found. Skipping tests !")
+	macro(TEST_UNIT)
+	endmacro(TEST_UNIT)
+endif()

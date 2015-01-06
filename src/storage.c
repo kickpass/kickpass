@@ -14,7 +14,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#define KP_SUCCESS  0
-#define KP_NYI     -1
+#include "error.h"
 
-void error(char *msg);
+int
+kp_storage_init(void)
+{
+	return KP_NYI;
+}

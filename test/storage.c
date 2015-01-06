@@ -14,7 +14,34 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#define KP_SUCCESS  0
-#define KP_NYI     -1
+#include <check.h>
 
-void error(char *msg);
+#include "../src/storage.c"
+
+START_TEST(test_storage_should_init)
+{
+	int ret;
+
+	ret = kp_storage_init();
+
+	ck_assert_int_eq(ret, KP_SUCCESS);
+}
+END_TEST
+
+int
+main(int argc, char **argv)
+{
+	int number_failed;
+
+	Suite *suite = suite_create("storage_test_suite");
+	TCase *tcase = tcase_create("case");
+	tcase_add_test(tcase, test_storage_should_init);
+	suite_add_tcase(suite, tcase);
+
+	SRunner *runner = srunner_create(suite);
+	srunner_run_all(runner, CK_VERBOSE);
+	number_failed = srunner_ntests_failed(runner);
+	srunner_free(runner);
+
+	return number_failed;
+}
