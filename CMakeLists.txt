@@ -31,7 +31,9 @@ configure_file(
 
 include_directories("${PROJECT_BINARY_DIR}/src/")
 
-add_executable(kickpass src/main.c)
+add_executable(kickpass
+	src/main.c
+	src/error.c)
 
 # Configure dependencies
 find_package(GPGME REQUIRED)

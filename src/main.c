@@ -14,17 +14,51 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <getopt.h>
+#include <gpgme.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <gpgme.h>
 
+#include "error.h"
 #include "kickpass_config.h"
 
-int main(int argc, char **argv)
+static int parse_opt(int argc, char **argv);
+static int show_version(void);
+
+int
+main(int argc, char **argv)
 {
 
+	if (parse_opt(argc, argv) != 0) error("cannot parse command line arguments");
+
+	return EXIT_SUCCESS;
+}
+
+static int
+parse_opt(int argc, char **argv)
+{
+	int opt;
+	static struct option longopts[] = {
+		{ "version", no_argument, NULL, 'v' },
+		{ NULL,      0,           NULL, 0   },
+	};
+
+	while ((opt = getopt_long(argc, argv, "v", longopts, NULL)) != -1) {
+		switch (opt) {
+		case 'v':
+			show_version();
+			exit(EXIT_SUCCESS);
+		}
+	}
+
+	return KP_SUCCESS;
+}
+
+static int
+show_version(void)
+{
 	printf("KickPass version %d.%d\n", KickPass_VERSION_MAJOR, KickPass_VERSION_MINOR);
 	printf("GPGME version %s\n", gpgme_check_version(NULL));
 
-	return EXIT_SUCCESS;
+	return KP_SUCCESS;
 }
