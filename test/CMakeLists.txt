@@ -16,4 +16,4 @@
 
 include(TestUnit)
 
-TEST_UNIT(NAME storage FILE storage.c)
+TEST_UNIT(NAME storage FILE storage.c LIBS ${LIBS})

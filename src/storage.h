@@ -15,3 +15,6 @@
  */
 
 int kp_storage_init(void);
+
+extern const char *kp_storage_engine;
+extern const char *kp_storage_version;

@@ -21,6 +21,7 @@
 
 #include "error.h"
 #include "kickpass_config.h"
+#include "storage.h"
 
 static int parse_opt(int argc, char **argv);
 static int show_version(void);
@@ -57,8 +58,9 @@ parse_opt(int argc, char **argv)
 static int
 show_version(void)
 {
+	kp_storage_init();
 	printf("KickPass version %d.%d\n", KickPass_VERSION_MAJOR, KickPass_VERSION_MINOR);
-	printf("GPGME version %s\n", gpgme_check_version(NULL));
+	printf("storage engine %s %s\n", kp_storage_engine, kp_storage_version);
 
 	return KP_SUCCESS;
 }

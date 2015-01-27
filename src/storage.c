@@ -15,9 +15,24 @@
  */
 
 #include "error.h"
+#include "storage.h"
+
+#include <gpgme.h>
+#include <locale.h>
+
+const char *kp_storage_engine = "gpg";
+const char *kp_storage_version;
 
 int
 kp_storage_init(void)
 {
-	return KP_NYI;
+	setlocale(LC_ALL, "");
+
+	kp_storage_version = gpgme_check_version(NULL);
+
+	gpgme_set_locale (NULL, LC_CTYPE, setlocale(LC_CTYPE, NULL));
+#ifdef LC_MESSAGES
+	gpgme_set_locale(NULL, LC_MESSAGES, setlocale(LC_MESSAGES, NULL));
+#endif
+	return KP_SUCCESS;
 }
