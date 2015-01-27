@@ -16,15 +16,49 @@
 
 #include <check.h>
 
+#include "check_improved.h"
+
 #include "../src/storage.c"
 
 START_TEST(test_storage_should_init)
 {
-	int ret;
+	/* Given */
+	int ret = KP_SUCCESS;
+	struct kp_storage_ctx *ctx;
 
-	ret = kp_storage_init();
+	/* When */
+	ret &= kp_storage_init(&ctx);
 
+	/* Then */
 	ck_assert_int_eq(ret, KP_SUCCESS);
+	ck_assert_ptr_ne(ctx, NULL);
+
+	/* Cleanup */
+	kp_storage_fini(ctx);
+}
+END_TEST
+
+START_TEST(test_storage_should_provide_engine_and_version)
+{
+	/* Given */
+	char engine[10];
+	char version[10];
+	int ret = KP_SUCCESS;
+	struct kp_storage_ctx *ctx;
+
+	ret = kp_storage_init(&ctx);
+
+	/* When */
+	ret &= kp_storage_get_engine(ctx, engine, sizeof(engine));
+	ret &= kp_storage_get_version(ctx, version, sizeof(version));
+
+	/* Then */
+	ck_assert_int_eq(ret, KP_SUCCESS);
+	ck_assert_str_eq(engine, "gpg");
+	ck_assert_int_gt(strlen(version), 0);
+
+	/* Cleanup */
+	kp_storage_fini(ctx);
 }
 END_TEST
 
@@ -36,6 +70,7 @@ main(int argc, char **argv)
 	Suite *suite = suite_create("storage_test_suite");
 	TCase *tcase = tcase_create("case");
 	tcase_add_test(tcase, test_storage_should_init);
+	tcase_add_test(tcase, test_storage_should_provide_engine_and_version);
 	suite_add_tcase(suite, tcase);
 
 	SRunner *runner = srunner_create(suite);

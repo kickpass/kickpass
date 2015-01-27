@@ -14,7 +14,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-int kp_storage_init(void);
+/**
+ * Abstract kickpass storage context
+ */
+struct kp_storage_ctx;
 
-extern const char *kp_storage_engine;
-extern const char *kp_storage_version;
+kp_error_t kp_storage_init(struct kp_storage_ctx **ctx);
+kp_error_t kp_storage_fini(struct kp_storage_ctx *ctx);
+
+kp_error_t kp_storage_get_engine(struct kp_storage_ctx *ctx, char *engine, size_t dstsize);
+kp_error_t kp_storage_get_version(struct kp_storage_ctx *ctx, char *version, size_t dstsize);

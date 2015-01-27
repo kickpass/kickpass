@@ -58,9 +58,15 @@ parse_opt(int argc, char **argv)
 static int
 show_version(void)
 {
-	kp_storage_init();
+	struct kp_storage_ctx *ctx;
+	char storage_engine[10], storage_version[10];
+
 	printf("KickPass version %d.%d\n", KickPass_VERSION_MAJOR, KickPass_VERSION_MINOR);
-	printf("storage engine %s %s\n", kp_storage_engine, kp_storage_version);
+
+	kp_storage_init(&ctx);
+	kp_storage_get_engine(ctx, storage_engine, sizeof(storage_engine));
+	kp_storage_get_version(ctx, storage_version, sizeof(storage_version));
+	printf("storage engine %s %s\n", storage_engine, storage_version);
 
 	return KP_SUCCESS;
 }

@@ -14,7 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#define KP_SUCCESS  0
-#define KP_NYI     -1
+#define KP_SUCCESS         0
+#define KP_NYI            -1
+#define KP_MEMORY_ERROR   -2
+#define KP_USER_ERROR     -3
+
+typedef int kp_error_t;
 
 void error(char *msg);
