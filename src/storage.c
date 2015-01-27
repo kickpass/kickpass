@@ -25,6 +25,7 @@ struct kp_storage_ctx
 {
 	const char *engine;
 	const char *version;
+	gpgme_ctx_t gpgme_ctx;
 };
 
 static const char *kp_storage_engine = "gpg";
@@ -32,10 +33,11 @@ static const char *kp_storage_engine = "gpg";
 kp_error_t
 kp_storage_init(struct kp_storage_ctx **ctx)
 {
+	gpgme_error_t ret;
 	setlocale(LC_ALL, "");
 
 	*ctx = malloc(sizeof(struct kp_storage_ctx));
-	if (!*ctx) return KP_MEMORY_ERROR;
+	if (!*ctx) return KP_ENOMEM;
 
 	(*ctx)->engine = kp_storage_engine;
 	(*ctx)->version = gpgme_check_version(NULL);
@@ -45,28 +47,37 @@ kp_storage_init(struct kp_storage_ctx **ctx)
 	gpgme_set_locale(NULL, LC_MESSAGES, setlocale(LC_MESSAGES, NULL));
 #endif
 
-	/* gpgme_new */
+	switch (gpgme_new(&(*ctx)->gpgme_ctx)) {
+	case GPG_ERR_NO_ERROR:
+		break;
+	case GPG_ERR_ENOMEM:
+		return KP_ENOMEM;
+	default:
+		return KP_EINTERNAL;
+	}
+
 	return KP_SUCCESS;
 }
 
 kp_error_t
 kp_storage_fini(struct kp_storage_ctx *ctx)
 {
+	gpgme_release(ctx->gpgme_ctx);
 	free(ctx);
 }
 
 kp_error_t
 kp_storage_get_engine(struct kp_storage_ctx *ctx, char *engine, size_t dstsize)
 {
-	if (ctx == NULL || engine == NULL) return KP_USER_ERROR;
-	if (strlcpy(engine, ctx->engine, dstsize) >= dstsize) return KP_MEMORY_ERROR;
+	if (ctx == NULL || engine == NULL) return KP_EINPUT;
+	if (strlcpy(engine, ctx->engine, dstsize) >= dstsize) return KP_ENOMEM;
 	return KP_SUCCESS;
 }
 
 kp_error_t
 kp_storage_get_version(struct kp_storage_ctx *ctx, char *version, size_t dstsize)
 {
-	if (ctx == NULL || version == NULL) return KP_USER_ERROR;
-	if (strlcpy(version, ctx->version, dstsize) >= dstsize) return KP_MEMORY_ERROR;
+	if (ctx == NULL || version == NULL) return KP_EINPUT;
+	if (strlcpy(version, ctx->version, dstsize) >= dstsize) return KP_ENOMEM;
 	return KP_SUCCESS;
 }

@@ -14,12 +14,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#define KP_SUCCESS         0
-#define KP_NYI            -1
-#define KP_ENOMEM         -2
-#define KP_EINPUT         -3
-#define KP_EINTERNAL      -4
-
-typedef int kp_error_t;
-
-void error(char *msg);
+/* Pointer comparsion macros with improved output compared to fail_unless(). */
+/* OP may be any comparion operator. */
+#define _ck_assert_ptr(X, OP, Y) do { \
+  void *_ck_x = (X); \
+  void *_ck_y = (Y); \
+  ck_assert_msg(_ck_x OP _ck_y, "Assertion '"#X#OP#Y"' failed: "#X"==%p, "#Y"==%p", _ck_x, _ck_y); \
+} while (0)
+#define ck_assert_ptr_eq(X, Y) _ck_assert_ptr(X, ==, Y) 
+#define ck_assert_ptr_ne(X, Y) _ck_assert_ptr(X, !=, Y) 
+#define ck_assert_ptr_lt(X, Y) _ck_assert_ptr(X, <, Y)
+#define ck_assert_ptr_le(X, Y) _ck_assert_ptr(X, <=, Y)
+#define ck_assert_ptr_gt(X, Y) _ck_assert_ptr(X, >, Y)
+#define ck_assert_ptr_ge(X, Y) _ck_assert_ptr(X, >=, Y)
