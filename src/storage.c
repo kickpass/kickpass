@@ -81,3 +81,9 @@ kp_storage_get_version(struct kp_storage_ctx *ctx, char *version, size_t dstsize
 	if (strlcpy(version, ctx->version, dstsize) >= dstsize) return KP_ENOMEM;
 	return KP_SUCCESS;
 }
+
+kp_error_t
+kp_storage_save(struct kp_storage_ctx *ctx, const char *inpath, const char *outpath)
+{
+	return KP_NYI;
+}

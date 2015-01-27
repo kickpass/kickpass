@@ -27,7 +27,7 @@ START_TEST(test_storage_should_init)
 	struct kp_storage_ctx *ctx;
 
 	/* When */
-	ret &= kp_storage_init(&ctx);
+	ret |= kp_storage_init(&ctx);
 
 	/* Then */
 	ck_assert_int_eq(ret, KP_SUCCESS);
@@ -49,13 +49,34 @@ START_TEST(test_storage_should_provide_engine_and_version)
 	ret = kp_storage_init(&ctx);
 
 	/* When */
-	ret &= kp_storage_get_engine(ctx, engine, sizeof(engine));
-	ret &= kp_storage_get_version(ctx, version, sizeof(version));
+	ret |= kp_storage_get_engine(ctx, engine, sizeof(engine));
+	ret |= kp_storage_get_version(ctx, version, sizeof(version));
 
 	/* Then */
 	ck_assert_int_eq(ret, KP_SUCCESS);
 	ck_assert_str_eq(engine, "gpg");
 	ck_assert_int_gt(strlen(version), 0);
+
+	/* Cleanup */
+	kp_storage_fini(ctx);
+}
+END_TEST
+
+START_TEST(test_storage_save_should_be_successful)
+{
+	/* Given */
+	char engine[10];
+	char version[10];
+	int ret = KP_SUCCESS;
+	struct kp_storage_ctx *ctx;
+
+	ret = kp_storage_init(&ctx);
+
+	/* When */
+	ret |= kp_storage_save(ctx, "intest", "outtest");
+
+	/* Then */
+	ck_assert_int_eq(ret, KP_SUCCESS);
 
 	/* Cleanup */
 	kp_storage_fini(ctx);
@@ -71,6 +92,7 @@ main(int argc, char **argv)
 	TCase *tcase = tcase_create("case");
 	tcase_add_test(tcase, test_storage_should_init);
 	tcase_add_test(tcase, test_storage_should_provide_engine_and_version);
+	tcase_add_test(tcase, test_storage_save_should_be_successful);
 	suite_add_tcase(suite, tcase);
 
 	SRunner *runner = srunner_create(suite);
