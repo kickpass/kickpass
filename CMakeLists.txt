@@ -21,8 +21,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build)
 # Configure project
 project(KickPass C)
 
-set (KickPass_VERSION_MAJOR 0)
-set (KickPass_VERSION_MINOR 0)
+set(KickPass_VERSION_MAJOR 0)
+set(KickPass_VERSION_MINOR 1)
+set(KickPass_VERSION_PATCH 0)
 
 configure_file(
 	"${PROJECT_SOURCE_DIR}/src/kickpass_config.h.in"

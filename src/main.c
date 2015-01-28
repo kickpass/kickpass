@@ -61,7 +61,10 @@ show_version(void)
 	struct kp_storage_ctx *ctx;
 	char storage_engine[10], storage_version[10];
 
-	printf("KickPass version %d.%d\n", KickPass_VERSION_MAJOR, KickPass_VERSION_MINOR);
+	printf("KickPass version %d.%d.%d\n",
+			KICKPASS_VERSION_MAJOR,
+			KICKPASS_VERSION_MINOR,
+			KICKPASS_VERSION_PATCH);
 
 	kp_storage_init(&ctx);
 	kp_storage_get_engine(ctx, storage_engine, sizeof(storage_engine));
