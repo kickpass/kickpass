@@ -19,7 +19,7 @@ cmake_minimum_required(VERSION 2.6)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build)
 
 # Configure project
-project(KickPass)
+project(KickPass C)
 
 set (KickPass_VERSION_MAJOR 0)
 set (KickPass_VERSION_MINOR 0)
@@ -45,6 +45,17 @@ set(LIBS ${LIBS} ${GPGME_LIBRARIES})
 # Link all dependencies
 target_link_libraries(kickpass ${LIBS})
 
+# Configure build
+set(BUILD "Release" CACHE STRING "Selected build type")
+if(NOT ("$ENV{BUILD}" STREQUAL ""))
+	set(CMAKE_BUILD_TYPE $ENV{BUILD})
+else()
+	set(CMAKE_BUILD_TYPE ${BUILD})
+endif()
+
+message(STATUS "Build configuration (BUILD): ${CMAKE_BUILD_TYPE}")
+
 # Tests
 enable_testing()
 add_subdirectory(test)
+
