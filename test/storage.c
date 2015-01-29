@@ -15,10 +15,18 @@
  */
 
 #include <check.h>
+#include <gpgme.h>
 
 #include "check_improved.h"
 
 #include "../src/storage.c"
+
+gpgme_error_t gpgme_passphrase_cb(void *hook, const char *uid_hint, const char *passphrase_info, int prev_was_bad, int fd)
+{
+	const char passwd[] = "test\n";
+	gpgme_io_write(fd, passwd, sizeof(passwd)-1);
+	return 0;
+}
 
 START_TEST(test_storage_should_init)
 {
@@ -69,17 +77,29 @@ START_TEST(test_storage_save_should_be_successful)
 	char version[10];
 	int ret = KP_SUCCESS;
 	struct kp_storage_ctx *ctx;
+	gpgme_data_t plain, cipher;
+	char plaintext[] = "test";
+	char ciphertext[144] = { 0 };
+#define CIPHER_HEADER "-----BEGIN PGP MESSAGE-----"
 
 	ret = kp_storage_init(&ctx);
+	gpgme_data_new_from_mem(&plain, plaintext, sizeof(plaintext), 1);
+	gpgme_data_new_from_mem(&cipher, ciphertext, sizeof(ciphertext), 0);
+	gpgme_set_passphrase_cb(ctx->gpgme_ctx, gpgme_passphrase_cb, NULL);
 
 	/* When */
-	ret |= kp_storage_save(ctx, "intest", "outtest");
+	ret |= kp_storage_save(ctx, plain, cipher);
 
 	/* Then */
 	ck_assert_int_eq(ret, KP_SUCCESS);
+	ck_assert_int_eq(gpgme_data_seek(cipher, 0, SEEK_CUR), sizeof(ciphertext));
+	gpgme_data_seek(cipher, 0, SEEK_SET);
+	gpgme_data_read(cipher, ciphertext, strlen(CIPHER_HEADER));
+	ck_assert_str_eq(ciphertext, CIPHER_HEADER);
 
 	/* Cleanup */
 	kp_storage_fini(ctx);
+#undef CIPHER_HEADER
 }
 END_TEST
 

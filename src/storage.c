@@ -56,6 +56,8 @@ kp_storage_init(struct kp_storage_ctx **ctx)
 		return KP_EINTERNAL;
 	}
 
+	gpgme_set_armor((*ctx)->gpgme_ctx, 1);
+
 	return KP_SUCCESS;
 }
 
@@ -83,28 +85,18 @@ kp_storage_get_version(struct kp_storage_ctx *ctx, char *version, size_t dstsize
 }
 
 kp_error_t
-kp_storage_save(struct kp_storage_ctx *ctx, const char *inpath, const char *outpath)
+kp_storage_save(struct kp_storage_ctx *ctx, gpgme_data_t plain, gpgme_data_t cipher)
 {
 	gpgme_error_t ret;
-	gpgme_data_t plain, cipher;
-	gpgme_key_t recp[2] = { NULL, NULL };
 	gpgme_user_id_t uid;
 
-	ret = gpgme_op_keylist_start(ctx->gpgme_ctx, NULL, 0);
-	while((ret = gpgme_op_keylist_next(ctx->gpgme_ctx, &recp[0]))
-			!= gpgme_err_make(GPG_ERR_SOURCE_GPGME, GPG_ERR_EOF)) {
-		uid = recp[0]->uids;
-		do {
-			printf("%s\n", uid->uid);
-		} while((uid = uid->next));
-	}
-
-	ret = gpgme_op_encrypt(ctx->gpgme_ctx, recp, GPGME_ENCRYPT_NO_ENCRYPT_TO, plain, cipher);
+	ret = gpgme_op_encrypt(ctx->gpgme_ctx, NULL, GPGME_ENCRYPT_NO_ENCRYPT_TO, plain, cipher);
 
 	switch(ret) {
 	case GPG_ERR_NO_ERROR:
 		break;
 	default:
+		printf("Internal error: %s\n", gpgme_strerror(ret));
 		return KP_EINTERNAL;
 	}
 
