@@ -39,7 +39,7 @@ add_executable(kickpass
 )
 
 # Configure portability
-include(build/compat/linux.cmake)
+include(build/compat/bsd.cmake)
 
 # Configure dependencies
 find_package(GPGME REQUIRED)

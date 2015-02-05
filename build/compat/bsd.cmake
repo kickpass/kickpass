@@ -14,7 +14,9 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 
-find_package(BSD REQUIRED)
-include_directories(${BSD_INCLUDE_DIRS}/bsd)
-set(LIBS ${LIBS} ${BSD_LIBRARIES})
-add_definitions(-DLIBBSD_OVERLAY)
+if (NOT "${CMAKE_HOST_SYSTEM_NAME}" MATCHES "BSD$")
+	find_package(BSD REQUIRED)
+	include_directories(${BSD_INCLUDE_DIRS}/bsd)
+	set(LIBS ${LIBS} ${BSD_LIBRARIES})
+	add_definitions(-DLIBBSD_OVERLAY)
+endif()
