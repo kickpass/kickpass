@@ -38,6 +38,9 @@ add_executable(kickpass
 	src/storage.c
 )
 
+# Configure portability
+include(build/compat/linux.cmake)
+
 # Configure dependencies
 find_package(GPGME REQUIRED)
 include_directories(${GPGME_INCLUDE_DIRS})
