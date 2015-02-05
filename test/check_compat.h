@@ -14,6 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#ifndef _ck_assert_ptr
 /* Pointer comparsion macros with improved output compared to fail_unless(). */
 /* OP may be any comparion operator. */
 #define _ck_assert_ptr(X, OP, Y) do { \
@@ -27,3 +28,4 @@
 #define ck_assert_ptr_le(X, Y) _ck_assert_ptr(X, <=, Y)
 #define ck_assert_ptr_gt(X, Y) _ck_assert_ptr(X, >, Y)
 #define ck_assert_ptr_ge(X, Y) _ck_assert_ptr(X, >=, Y)
+#endif

@@ -17,7 +17,7 @@
 #include <check.h>
 #include <gpgme.h>
 
-#include "check_improved.h"
+#include "check_compat.h"
 
 #include "../src/storage.c"
 
