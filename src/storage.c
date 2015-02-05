@@ -89,9 +89,26 @@ kp_error_t
 kp_storage_save(struct kp_storage_ctx *ctx, gpgme_data_t plain, gpgme_data_t cipher)
 {
 	gpgme_error_t ret;
-	gpgme_user_id_t uid;
 
 	ret = gpgme_op_encrypt(ctx->gpgme_ctx, NULL, GPGME_ENCRYPT_NO_ENCRYPT_TO, plain, cipher);
+
+	switch(ret) {
+	case GPG_ERR_NO_ERROR:
+		break;
+	default:
+		printf("Internal error: %s\n", gpgme_strerror(ret));
+		return KP_EINTERNAL;
+	}
+
+	return KP_SUCCESS;
+}
+
+kp_error_t
+kp_storage_open(struct kp_storage_ctx *ctx, gpgme_data_t cipher, gpgme_data_t plain)
+{
+	gpgme_error_t ret;
+
+	ret = gpgme_op_decrypt(ctx->gpgme_ctx, cipher, plain);
 
 	switch(ret) {
 	case GPG_ERR_NO_ERROR:
