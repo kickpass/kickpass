@@ -59,6 +59,8 @@ endif()
 
 message(STATUS "Build configuration (BUILD): ${CMAKE_BUILD_TYPE}")
 
+set(CMAKE_C_FLAGS_DEBUG "-Wall")
+
 # Tests
 enable_testing()
 add_subdirectory(test)

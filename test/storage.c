@@ -73,8 +73,6 @@ END_TEST
 START_TEST(test_storage_save_should_be_successful)
 {
 	/* Given */
-	char engine[10];
-	char version[10];
 	int ret = KP_SUCCESS;
 	struct kp_storage_ctx *ctx;
 	gpgme_data_t plain, cipher;
@@ -105,8 +103,6 @@ END_TEST
 START_TEST(test_storage_open_should_be_successful)
 {
 	/* Given */
-	char engine[10];
-	char version[10];
 	int ret = KP_SUCCESS;
 	struct kp_storage_ctx *ctx;
 	gpgme_data_t plain, cipher;

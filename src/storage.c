@@ -34,7 +34,6 @@ static const char *kp_storage_engine = "gpg";
 kp_error_t
 kp_storage_init(struct kp_storage_ctx **ctx)
 {
-	gpgme_error_t ret;
 	setlocale(LC_ALL, "");
 
 	*ctx = malloc(sizeof(struct kp_storage_ctx));
@@ -67,6 +66,8 @@ kp_storage_fini(struct kp_storage_ctx *ctx)
 {
 	gpgme_release(ctx->gpgme_ctx);
 	free(ctx);
+
+	return KP_SUCCESS;
 }
 
 kp_error_t
