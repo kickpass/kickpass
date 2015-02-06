@@ -22,10 +22,32 @@
   void *_ck_y = (Y); \
   ck_assert_msg(_ck_x OP _ck_y, "Assertion '"#X#OP#Y"' failed: "#X"==%p, "#Y"==%p", _ck_x, _ck_y); \
 } while (0)
-#define ck_assert_ptr_eq(X, Y) _ck_assert_ptr(X, ==, Y) 
-#define ck_assert_ptr_ne(X, Y) _ck_assert_ptr(X, !=, Y) 
-#define ck_assert_ptr_lt(X, Y) _ck_assert_ptr(X, <, Y)
-#define ck_assert_ptr_le(X, Y) _ck_assert_ptr(X, <=, Y)
-#define ck_assert_ptr_gt(X, Y) _ck_assert_ptr(X, >, Y)
-#define ck_assert_ptr_ge(X, Y) _ck_assert_ptr(X, >=, Y)
 #endif
+
+#ifndef ck_assert_ptr_eq
+#define ck_assert_ptr_eq(X, Y) _ck_assert_ptr(X, ==, Y)
+#endif /* ck_assert_ptr_eq */
+
+#ifndef ck_assert_ptr_ne
+#define ck_assert_ptr_ne(X, Y) _ck_assert_ptr(X, !=, Y)
+#endif /* ck_assert_ptr_ne */
+
+#ifndef ck_assert_ptr_lt
+#define ck_assert_ptr_lt(X, Y) _ck_assert_ptr(X, <, Y)
+#endif /* ck_assert_ptr_lt */
+
+#ifndef ck_assert_ptr_le
+#define ck_assert_ptr_le(X, Y) _ck_assert_ptr(X, <=, Y)
+#endif /* ck_assert_ptr_le */
+
+#ifndef ck_assert_ptr_gt
+#define ck_assert_ptr_gt(X, Y) _ck_assert_ptr(X, >, Y)
+#endif /* ck_assert_ptr_gt */
+
+#ifndef ck_assert_ptr_ge
+#define ck_assert_ptr_ge(X, Y) _ck_assert_ptr(X, >=, Y)
+#endif /* ck_assert_ptr_ge */
+
+#ifndef ck_assert_int_gt
+#define ck_assert_int_gt(X, Y) _ck_assert_int(X, >, Y)
+#endif /* ck_assert_int_gt */
