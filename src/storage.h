@@ -14,6 +14,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#ifndef KP_STORAGE_H
+#define KP_STORAGE_H
+
 /**
  * Abstract kickpass storage context
  */
@@ -27,3 +30,5 @@ kp_error_t kp_storage_get_version(struct kp_storage_ctx *ctx, char *version, siz
 
 kp_error_t kp_storage_set_path(struct kp_storage_ctx *ctx, char *path);
 kp_error_t kp_storage_get_path(struct kp_storage_ctx *ctx, char *path, size_t size);
+
+#endif /* KP_STORAGE_H */
