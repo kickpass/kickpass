@@ -63,7 +63,7 @@ endif()
 
 message(STATUS "Build configuration (BUILD): ${CMAKE_BUILD_TYPE}")
 
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Werror")
 
 # Tests
 enable_testing()
