@@ -16,8 +16,16 @@
 
 #include <stdlib.h>
 
+#include "log.h"
+
 void
-error(char *msg)
+error(char *fmt, ...)
 {
+	va_list ap;
+
+	va_start(ap, fmt);
+	kp_vlog(kp_log_fatal, fmt, ap);
+	va_start(ap, fmt);
+
 	exit(EXIT_FAILURE);
 }

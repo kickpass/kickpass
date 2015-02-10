@@ -14,6 +14,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#ifndef KP_ERROR_H
+#define KP_ERROR_H
+
+/* errno > 0 are system error */
 #define KP_SUCCESS         0
 #define KP_NYI            -1
 #define KP_ENOMEM         -2
@@ -22,4 +26,6 @@
 
 typedef int kp_error_t;
 
-void error(char *msg);
+void error(char *fmt, ...);
+
+#endif /* KP_ERROR_H */

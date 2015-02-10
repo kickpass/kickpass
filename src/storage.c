@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "error.h"
+#include "log.h"
 #include "storage.h"
 
 #define KP_PATH ".kickpass"
@@ -47,7 +48,7 @@ kp_storage_init(struct kp_storage_ctx **ctx)
 	(*ctx)->version = gpgme_check_version(NULL);
 	strlcpy((*ctx)->path, "", PATH_MAX);
 
-	gpgme_set_locale (NULL, LC_CTYPE, setlocale(LC_CTYPE, NULL));
+	gpgme_set_locale(NULL, LC_CTYPE, setlocale(LC_CTYPE, NULL));
 #ifdef LC_MESSAGES
 	gpgme_set_locale(NULL, LC_MESSAGES, setlocale(LC_MESSAGES, NULL));
 #endif
@@ -102,7 +103,7 @@ kp_storage_save(struct kp_storage_ctx *ctx, gpgme_data_t plain, gpgme_data_t cip
 	case GPG_ERR_NO_ERROR:
 		break;
 	default:
-		printf("Internal error: %s\n", gpgme_strerror(ret));
+		LOGE("internal error: %s", gpgme_strerror(ret));
 		return KP_EINTERNAL;
 	}
 
@@ -120,7 +121,7 @@ kp_storage_open(struct kp_storage_ctx *ctx, gpgme_data_t cipher, gpgme_data_t pl
 	case GPG_ERR_NO_ERROR:
 		break;
 	default:
-		printf("Internal error: %s\n", gpgme_strerror(ret));
+		LOGE("internal error: %s", gpgme_strerror(ret));
 		return KP_EINTERNAL;
 	}
 
@@ -142,7 +143,7 @@ kp_storage_get_path(struct kp_storage_ctx *ctx, char *path, size_t dstsize)
 
 		home = getenv("HOME");
 		if (!home) {
-			printf("Cannot find $HOME environment variable\n");
+			LOGE("cannot find $HOME environment variable");
 			return KP_EINPUT;
 		}
 
