@@ -36,6 +36,8 @@ add_executable(kickpass
 	src/error.c
 	src/main.c
 	src/storage.c
+	src/editor.c
+	# commands
 	src/init.c
 	src/create.c
 )

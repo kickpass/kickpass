@@ -23,6 +23,7 @@
 #include "error.h"
 #include "log.h"
 #include "storage.h"
+#include "editor.h"
 
 kp_error_t
 kp_cmd_create(int argc, char **argv)
@@ -44,7 +45,17 @@ kp_cmd_create(int argc, char **argv)
 		goto out;
 	}
 
-	strlcat(path, argv[optind], PATH_MAX);
+	if (strlcat(path, "/", PATH_MAX) >= PATH_MAX) {
+		LOGE("memory error");
+		ret = KP_ENOMEM;
+		goto out;
+	}
+
+	if (strlcat(path, argv[optind], PATH_MAX) >= PATH_MAX) {
+		LOGE("memory error");
+		ret = KP_ENOMEM;
+		goto out;
+	}
 
 	if (stat(path, &stats) == 0) {
 		LOGW("safe already exists");
@@ -52,7 +63,10 @@ kp_cmd_create(int argc, char **argv)
 		goto out;
 	}
 
-
+	if ((ret = kp_editor_open(path)) != KP_SUCCESS) {
+		LOGE("cannot read safe");
+		goto out;
+	}
 
 out:
 	ret = kp_storage_fini(ctx);

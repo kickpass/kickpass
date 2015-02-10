@@ -54,7 +54,11 @@ kp_vlog(enum kp_log_lvl lvl, char *fmt, va_list ap)
 	printf("%-5s %s\n", kp_log_lvl[lvl], log);
 }
 
-static inline void __attribute__((format(printf, 2, 3)))
+static inline void
+kp_log(enum kp_log_lvl lvl, char *fmt, ...)
+__attribute__((format(printf, 2, 3)));
+
+static inline void
 kp_log(enum kp_log_lvl lvl, char *fmt, ...)
 {
 	va_list ap;
