@@ -18,24 +18,41 @@
 #include <gpgme.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "error.h"
+#include "init.h"
 #include "kickpass_config.h"
+#include "log.h"
 #include "storage.h"
 
-static int parse_opt(int argc, char **argv);
-static int show_version(void);
+static kp_error_t parse_opt(int argc, char **argv);
+static int        cmd_cmp(const void *k, const void *e);
+static kp_error_t parse_cmd(int argc, char **argv);
+static kp_error_t show_version(void);
+
+struct cmd {
+	const char *name;
+	kp_error_t (*cmd)(int argc, char **argv);
+};
+
+#define CMD_COUNT (sizeof(cmds)/sizeof(cmds[0]))
+
+static const struct cmd cmds[] = {
+	{ "init", kp_cmd_init },
+};
 
 int
 main(int argc, char **argv)
 {
 
-	if (parse_opt(argc, argv) != 0) error("cannot parse command line arguments");
+	if (parse_opt(argc, argv) != KP_SUCCESS) error("cannot parse command line arguments");
+	if (parse_cmd(argc, argv) != KP_SUCCESS) error("cannot parse command");
 
 	return EXIT_SUCCESS;
 }
 
-static int
+static kp_error_t
 parse_opt(int argc, char **argv)
 {
 	int opt;
@@ -56,6 +73,32 @@ parse_opt(int argc, char **argv)
 }
 
 static int
+cmd_cmp(const void *k, const void *e)
+{
+	return strcmp(k, ((struct cmd *)e)->name);
+}
+
+static kp_error_t
+parse_cmd(int argc, char **argv)
+{
+	const struct cmd *cmd;
+
+	if (optind >= argc) {
+		LOGE("missing command");
+		return KP_EINPUT;
+	}
+
+	cmd = bsearch(argv[optind], cmds, CMD_COUNT, sizeof(struct cmd), cmd_cmp);
+
+	if (!cmd) {
+		LOGE("unknown command %s", argv[0]);
+		return KP_EINPUT;
+	}
+
+	return cmd->cmd(argc, argv);
+}
+
+static kp_error_t
 show_version(void)
 {
 	struct kp_storage_ctx *ctx;
