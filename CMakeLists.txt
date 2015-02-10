@@ -37,6 +37,7 @@ add_executable(kickpass
 	src/main.c
 	src/storage.c
 	src/init.c
+	src/create.c
 )
 
 # Configure portability

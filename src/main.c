@@ -27,6 +27,7 @@
 
 /* commands */
 #include "init.h"
+#include "create.h"
 
 static kp_error_t parse_opt(int argc, char **argv);
 static int        cmd_cmp(const void *k, const void *e);
@@ -43,6 +44,11 @@ struct cmd {
 static struct cmd cmds[] = {
 	/* kp_cmd_init */
 	{ "init",   kp_cmd_init },
+
+	/* kp_cmd_create */
+	{ "create", kp_cmd_create },
+	{ "new",    kp_cmd_create },
+	{ "insert", kp_cmd_create },
 };
 
 int

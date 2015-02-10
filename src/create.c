@@ -15,8 +15,8 @@
  */
 
 #include <errno.h>
+#include <getopt.h>
 #include <limits.h>
-#include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
 
@@ -25,12 +25,17 @@
 #include "storage.h"
 
 kp_error_t
-kp_cmd_init(int argc, char **argv)
+kp_cmd_create(int argc, char **argv)
 {
 	kp_error_t ret = KP_SUCCESS;
 	char path[PATH_MAX];
 	struct kp_storage_ctx *ctx;
 	struct stat stats;
+
+	if (argc - optind != 1) {
+		LOGE("missing safe name");
+		return KP_EINPUT;
+	}
 
 	ret = kp_storage_init(&ctx);
 	if (ret != KP_SUCCESS) return ret;
@@ -41,18 +46,15 @@ kp_cmd_init(int argc, char **argv)
 		goto out;
 	}
 
+	strlcat(path, argv[optind], PATH_MAX);
+
 	if (stat(path, &stats) == 0) {
-		LOGW("workspace already exists");
+		LOGW("safe already exists");
 		ret = KP_EINPUT;
 		goto out;
-	} else if (errno & ENOENT) {
-		LOGI("creating workspace %s", path);
-		mkdir(path, 0700);
-	} else {
-		LOGE("invalid workspace %s: %s (%d)", path, strerror(errno), errno);
-		ret = errno;
-		goto out;
 	}
+
+
 
 out:
 	ret = kp_storage_fini(ctx);
