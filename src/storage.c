@@ -15,6 +15,7 @@
  */
 
 #include <gpgme.h>
+#include <limits.h>
 #include <locale.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,10 +23,13 @@
 #include "error.h"
 #include "storage.h"
 
+#define KP_PATH ".kickpass"
+
 struct kp_storage_ctx
 {
 	const char *engine;
 	const char *version;
+	char        path[PATH_MAX];
 	gpgme_ctx_t gpgme_ctx;
 };
 
@@ -41,6 +45,7 @@ kp_storage_init(struct kp_storage_ctx **ctx)
 
 	(*ctx)->engine = kp_storage_engine;
 	(*ctx)->version = gpgme_check_version(NULL);
+	strlcpy((*ctx)->path, "", PATH_MAX);
 
 	gpgme_set_locale (NULL, LC_CTYPE, setlocale(LC_CTYPE, NULL));
 #ifdef LC_MESSAGES
@@ -119,5 +124,32 @@ kp_storage_open(struct kp_storage_ctx *ctx, gpgme_data_t cipher, gpgme_data_t pl
 		return KP_EINTERNAL;
 	}
 
+	return KP_SUCCESS;
+}
+
+kp_error_t
+kp_storage_set_path(struct kp_storage_ctx *ctx, char *path)
+{
+	if (strlcpy(ctx->path, path, PATH_MAX) >= PATH_MAX) return KP_EINPUT;
+	return KP_SUCCESS;
+}
+
+kp_error_t
+kp_storage_get_path(struct kp_storage_ctx *ctx, char *path, size_t dstsize)
+{
+	if (strlen(ctx->path) == 0) {
+		const char *home;
+
+		home = getenv("HOME");
+		if (!home) {
+			printf("Cannot find $HOME environment variable\n");
+			return KP_EINPUT;
+		}
+
+		if (strlcpy(ctx->path, home, PATH_MAX) >= PATH_MAX) return KP_ENOMEM;
+		if (strlcat(ctx->path, "/" KP_PATH, PATH_MAX) >= PATH_MAX) return KP_ENOMEM;
+	}
+
+	if (strlcpy(path, ctx->path, dstsize) >= dstsize) return KP_ENOMEM;
 	return KP_SUCCESS;
 }

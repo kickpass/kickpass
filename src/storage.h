@@ -24,3 +24,6 @@ kp_error_t kp_storage_fini(struct kp_storage_ctx *ctx);
 
 kp_error_t kp_storage_get_engine(struct kp_storage_ctx *ctx, char *engine, size_t dstsize);
 kp_error_t kp_storage_get_version(struct kp_storage_ctx *ctx, char *version, size_t dstsize);
+
+kp_error_t kp_storage_set_path(struct kp_storage_ctx *ctx, char *path);
+kp_error_t kp_storage_get_path(struct kp_storage_ctx *ctx, char *path, size_t size);

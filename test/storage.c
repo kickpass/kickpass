@@ -136,6 +136,51 @@ START_TEST(test_storage_open_should_be_successful)
 }
 END_TEST
 
+START_TEST(test_storage_should_construct_default_path)
+{
+	/* Given */
+	int ret = KP_SUCCESS;
+	char path[PATH_MAX];
+	struct kp_storage_ctx *ctx;
+
+	ret = kp_storage_init(&ctx);
+
+	/* When */
+	ret |= kp_storage_get_path(ctx, path, PATH_MAX);
+
+	/* Then */
+	ck_assert_int_eq(ret, KP_SUCCESS);
+	ck_assert_int_gt(strlen(path), 0);
+	ck_assert_str_eq(&path[strlen(path)-strlen(".kickpass")], ".kickpass");
+
+	/* Cleanup */
+	kp_storage_fini(ctx);
+}
+END_TEST
+
+START_TEST(test_storage_should_set_path)
+{
+	/* Given */
+	int ret = KP_SUCCESS;
+	char path[PATH_MAX];
+	struct kp_storage_ctx *ctx;
+
+	ret = kp_storage_init(&ctx);
+
+	/* When */
+	ret |= kp_storage_set_path(ctx, "test");
+
+	/* Then */
+	ck_assert_int_eq(ret, KP_SUCCESS);
+	kp_storage_get_path(ctx, path, PATH_MAX);
+	ck_assert_int_gt(strlen(path), 0);
+	ck_assert_str_eq(path, "test");
+
+	/* Cleanup */
+	kp_storage_fini(ctx);
+}
+END_TEST
+
 int
 main(int argc, char **argv)
 {
@@ -147,6 +192,8 @@ main(int argc, char **argv)
 	tcase_add_test(tcase, test_storage_should_provide_engine_and_version);
 	tcase_add_test(tcase, test_storage_save_should_be_successful);
 	tcase_add_test(tcase, test_storage_open_should_be_successful);
+	tcase_add_test(tcase, test_storage_should_construct_default_path);
+	tcase_add_test(tcase, test_storage_should_set_path);
 	suite_add_tcase(suite, tcase);
 
 	SRunner *runner = srunner_create(suite);
