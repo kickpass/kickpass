@@ -21,14 +21,16 @@
 #include <string.h>
 
 #include "error.h"
-#include "init.h"
 #include "kickpass_config.h"
 #include "log.h"
 #include "storage.h"
 
+/* commands */
+#include "init.h"
+
 static kp_error_t parse_opt(int argc, char **argv);
 static int        cmd_cmp(const void *k, const void *e);
-static kp_error_t parse_cmd(int argc, char **argv);
+static kp_error_t command(int argc, char **argv);
 static kp_error_t show_version(void);
 
 struct cmd {
@@ -38,8 +40,9 @@ struct cmd {
 
 #define CMD_COUNT (sizeof(cmds)/sizeof(cmds[0]))
 
-static const struct cmd cmds[] = {
-	{ "init", kp_cmd_init },
+static struct cmd cmds[] = {
+	/* kp_cmd_init */
+	{ "init",   kp_cmd_init },
 };
 
 int
@@ -47,9 +50,12 @@ main(int argc, char **argv)
 {
 
 	if (parse_opt(argc, argv) != KP_SUCCESS) error("cannot parse command line arguments");
-	if (parse_cmd(argc, argv) != KP_SUCCESS) error("cannot parse command");
 
-	return EXIT_SUCCESS;
+	if (command(argc, argv) != KP_SUCCESS) {
+		return EXIT_FAILURE;
+	} else {
+		return EXIT_SUCCESS;
+	}
 }
 
 static kp_error_t
@@ -79,7 +85,7 @@ cmd_cmp(const void *k, const void *e)
 }
 
 static kp_error_t
-parse_cmd(int argc, char **argv)
+command(int argc, char **argv)
 {
 	const struct cmd *cmd;
 
@@ -88,7 +94,10 @@ parse_cmd(int argc, char **argv)
 		return KP_EINPUT;
 	}
 
+	qsort(cmds, CMD_COUNT, sizeof(struct cmd), cmd_cmp);
 	cmd = bsearch(argv[optind], cmds, CMD_COUNT, sizeof(struct cmd), cmd_cmp);
+
+	optind++;
 
 	if (!cmd) {
 		LOGE("unknown command %s", argv[0]);
