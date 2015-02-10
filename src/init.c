@@ -46,7 +46,7 @@ kp_cmd_init(int argc, char **argv)
 		LOGI("creating workspace %s", path);
 		mkdir(path, 0700);
 	} else {
-		LOGE("invalid workspace %s: %s (%d)", path, errno, strerror(errno));
+		LOGE("invalid workspace %s: %s (%d)", path, strerror(errno), errno);
 		ret = errno;
 		goto out;
 	}
