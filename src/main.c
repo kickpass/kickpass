@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "command.h"
 #include "error.h"
 #include "kickpass_config.h"
 #include "log.h"
@@ -33,22 +34,23 @@ static kp_error_t parse_opt(int argc, char **argv);
 static int        cmd_cmp(const void *k, const void *e);
 static kp_error_t command(int argc, char **argv);
 static kp_error_t show_version(void);
+static kp_error_t usage(void);
 
 struct cmd {
-	const char *name;
-	kp_error_t (*cmd)(int argc, char **argv);
+	const char    *name;
+	struct kp_cmd *cmd;
 };
 
 #define CMD_COUNT (sizeof(cmds)/sizeof(cmds[0]))
 
 static struct cmd cmds[] = {
 	/* kp_cmd_init */
-	{ "init",   kp_cmd_init },
+	{ "init",   &kp_cmd_init },
 
 	/* kp_cmd_create */
-	{ "create", kp_cmd_create },
-	{ "new",    kp_cmd_create },
-	{ "insert", kp_cmd_create },
+	{ "create", &kp_cmd_create },
+	{ "new",    &kp_cmd_create },
+	{ "insert", &kp_cmd_create },
 };
 
 int
@@ -70,13 +72,17 @@ parse_opt(int argc, char **argv)
 	int opt;
 	static struct option longopts[] = {
 		{ "version", no_argument, NULL, 'v' },
+		{ "help",    no_argument, NULL, 'h' },
 		{ NULL,      0,           NULL, 0   },
 	};
 
-	while ((opt = getopt_long(argc, argv, "v", longopts, NULL)) != -1) {
+	while ((opt = getopt_long(argc, argv, "vh", longopts, NULL)) != -1) {
 		switch (opt) {
 		case 'v':
 			show_version();
+			exit(EXIT_SUCCESS);
+		case 'h':
+			usage();
 			exit(EXIT_SUCCESS);
 		}
 	}
@@ -110,7 +116,7 @@ command(int argc, char **argv)
 		return KP_EINPUT;
 	}
 
-	return cmd->cmd(argc, argv);
+	return cmd->cmd->main(argc, argv);
 }
 
 static kp_error_t
@@ -128,6 +134,27 @@ show_version(void)
 	kp_storage_get_engine(ctx, storage_engine, sizeof(storage_engine));
 	kp_storage_get_version(ctx, storage_version, sizeof(storage_version));
 	printf("storage engine %s %s\n", storage_engine, storage_version);
+
+	return KP_SUCCESS;
+}
+
+static kp_error_t
+usage(void)
+{
+	int i;
+	char usage[] =
+		"usage: kickpass [-hv] <command> [<args>]\n"
+		"\n"
+		"options:\n"
+		"    -h, --help     Display this help\n"
+		"    -v, --version  Show kickass version\n"
+		"\n"
+		"commands:\n";
+	printf(usage);
+	for (i = 0; i < CMD_COUNT; i++) {
+		if (cmds[i-1].cmd == cmds[i].cmd) continue;
+		if (cmds[i].cmd->usage) cmds[i].cmd->usage();
+	}
 
 	return KP_SUCCESS;
 }

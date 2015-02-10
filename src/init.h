@@ -17,6 +17,8 @@
 #ifndef KP_INIT_H
 #define KP_INIT_H
 
-kp_error_t kp_cmd_init(int argc, char **argv);
+#include "command.h"
+
+extern struct kp_cmd kp_cmd_init;
 
 #endif /* KP_INIT_H */

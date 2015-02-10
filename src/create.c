@@ -20,13 +20,23 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include "command.h"
+#include "create.h"
+#include "editor.h"
 #include "error.h"
 #include "log.h"
 #include "storage.h"
-#include "editor.h"
+
+static kp_error_t create(int argc, char **argv);
+static kp_error_t usage(void);
+
+struct kp_cmd kp_cmd_create = {
+	.main  = create,
+	.usage = usage,
+};
 
 kp_error_t
-kp_cmd_create(int argc, char **argv)
+create(int argc, char **argv)
 {
 	kp_error_t ret = KP_SUCCESS;
 	char path[PATH_MAX];
@@ -71,4 +81,11 @@ kp_cmd_create(int argc, char **argv)
 out:
 	ret = kp_storage_fini(ctx);
 	return ret;
+}
+
+kp_error_t
+usage(void)
+{
+	printf("    %-10s%s\n", "create", "Create a new password safe");
+	return KP_SUCCESS;
 }

@@ -20,12 +20,22 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include "command.h"
 #include "error.h"
+#include "init.h"
 #include "log.h"
 #include "storage.h"
 
+static kp_error_t init(int argc, char **argv);
+static kp_error_t usage(void);
+
+struct kp_cmd kp_cmd_init = {
+	.main  = init,
+	.usage = usage,
+};
+
 kp_error_t
-kp_cmd_init(int argc, char **argv)
+init(int argc, char **argv)
 {
 	kp_error_t ret = KP_SUCCESS;
 	char path[PATH_MAX];
@@ -55,4 +65,11 @@ kp_cmd_init(int argc, char **argv)
 out:
 	ret = kp_storage_fini(ctx);
 	return ret;
+}
+
+kp_error_t
+usage(void)
+{
+	printf("    %-10s%s\n", "init", "Initialize a new password safe directory");
+	return KP_SUCCESS;
 }

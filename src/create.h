@@ -17,6 +17,8 @@
 #ifndef KP_CREATE_H
 #define KP_CREATE_H
 
-kp_error_t kp_cmd_create(int argc, char **argv);
+#include "command.h"
+
+extern struct kp_cmd kp_cmd_create;
 
 #endif /* KP_CREATE_H */
