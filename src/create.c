@@ -37,11 +37,9 @@ kp_cmd_create(int argc, char **argv)
 		return KP_EINPUT;
 	}
 
-	ret = kp_storage_init(&ctx);
-	if (ret != KP_SUCCESS) return ret;
+	if ((ret = kp_storage_init(&ctx)) != KP_SUCCESS) return ret;
 
-	ret = kp_storage_get_path(ctx, path, PATH_MAX);
-	if (ret != KP_SUCCESS) {
+	if ((ret = kp_storage_get_path(ctx, path, PATH_MAX)) != KP_SUCCESS) {
 		LOGE("cannot get storage path");
 		goto out;
 	}
