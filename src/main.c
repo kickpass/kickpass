@@ -32,6 +32,7 @@
 
 static kp_error_t parse_opt(int argc, char **argv);
 static int        cmd_cmp(const void *k, const void *e);
+static int        cmd_sort(const void *a, const void *b);
 static kp_error_t command(int argc, char **argv);
 static kp_error_t show_version(void);
 static kp_error_t usage(void);
@@ -96,6 +97,12 @@ cmd_cmp(const void *k, const void *e)
 	return strcmp(k, ((struct cmd *)e)->name);
 }
 
+static int
+cmd_sort(const void *a, const void *b)
+{
+	return strcmp(((struct cmd *)a)->name, ((struct cmd *)b)->name);
+}
+
 static kp_error_t
 command(int argc, char **argv)
 {
@@ -106,15 +113,15 @@ command(int argc, char **argv)
 		return KP_EINPUT;
 	}
 
-	qsort(cmds, CMD_COUNT, sizeof(struct cmd), cmd_cmp);
+	qsort(cmds, CMD_COUNT, sizeof(struct cmd), cmd_sort);
 	cmd = bsearch(argv[optind], cmds, CMD_COUNT, sizeof(struct cmd), cmd_cmp);
 
-	optind++;
-
 	if (!cmd) {
-		LOGE("unknown command %s", argv[0]);
+		LOGE("unknown command %s", argv[optind]);
 		return KP_EINPUT;
 	}
+
+	optind++;
 
 	return cmd->cmd->main(argc, argv);
 }
