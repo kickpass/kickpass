@@ -73,7 +73,7 @@ create(int argc, char **argv)
 		goto out;
 	}
 
-	if ((ret = kp_editor_open(path)) != KP_SUCCESS) {
+	if ((ret = kp_editor_new(ctx)) != KP_SUCCESS) {
 		LOGE("cannot read safe");
 		goto out;
 	}

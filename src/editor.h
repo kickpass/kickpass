@@ -17,6 +17,9 @@
 #ifndef KP_EDITOR_H
 #define KP_EDITOR_H
 
+#include "storage.h"
+
 kp_error_t kp_editor_open(const char *path);
+kp_error_t kp_editor_new(struct kp_storage_ctx *ctx);
 
 #endif /* KP_EDITOR_H */
