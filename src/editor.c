@@ -14,8 +14,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <unistd.h>
+#include <stdlib.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
 #include "error.h"
 #include "log.h"
@@ -23,11 +24,16 @@
 kp_error_t
 kp_editor_open(const char *path)
 {
+	const char *editor;
 	pid_t pid;
+
+	editor = getenv("EDITOR");
+	if (editor == NULL) editor = "vi";
+
 	pid = fork();
 
 	if (pid == 0) {
-		execlp("editor", "editor", path, NULL);
+		execlp(editor, editor, path, NULL);
 	} else {
 		wait(NULL);
 	}
