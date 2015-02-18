@@ -25,6 +25,7 @@
 #include "editor.h"
 #include "error.h"
 #include "log.h"
+#include "safe.h"
 #include "storage.h"
 
 static kp_error_t create(int argc, char **argv);
@@ -41,7 +42,7 @@ create(int argc, char **argv)
 	kp_error_t ret = KP_SUCCESS;
 	char path[PATH_MAX];
 	struct kp_storage_ctx *ctx;
-	struct stat stats;
+	struct kp_safe safe;
 
 	if (argc - optind != 1) {
 		LOGE("missing safe name");
@@ -67,14 +68,8 @@ create(int argc, char **argv)
 		goto out;
 	}
 
-	if (stat(path, &stats) == 0) {
-		LOGW("safe already exists");
-		ret = KP_EINPUT;
-		goto out;
-	}
-
-	if ((ret = kp_editor_new(ctx)) != KP_SUCCESS) {
-		LOGE("cannot read safe");
+	if ((ret = kp_safe_create(ctx, path, &safe)) != KP_SUCCESS) {
+		LOGE("cannot create safe");
 		goto out;
 	}
 

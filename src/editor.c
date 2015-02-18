@@ -22,12 +22,10 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "editor.h"
 #include "error.h"
-#include "storage.h"
 #include "log.h"
-
-#define SAFE_TEMPLATE "password: \n"\
-                      "url: \n"
+#include "storage.h"
 
 kp_error_t
 kp_editor_open(const char *path)
@@ -50,29 +48,27 @@ kp_editor_open(const char *path)
 }
 
 kp_error_t
-kp_editor_new(struct kp_storage_ctx *ctx)
+kp_editor_get_tmp(struct kp_storage_ctx *ctx, struct kp_safe *safe, bool keep_open)
 {
 	kp_error_t ret;
-	int fd;
-	char tpl[PATH_MAX];
 
-	if ((ret = kp_storage_get_path(ctx, tpl, PATH_MAX)) != KP_SUCCESS)
+	if ((ret = kp_storage_get_path(ctx, safe->plain.path, PATH_MAX)) != KP_SUCCESS)
 		return ret;
 
-	if (strlcat(tpl, "/.kpXXXXXX", PATH_MAX) >= PATH_MAX)
+	if (strlcat(safe->plain.path, "/.kpXXXXXX", PATH_MAX) >= PATH_MAX)
 		return KP_ENOMEM;
 
-	fd = mkstemp(tpl);
-	if (fd < 0) {
+	safe->plain.fd = mkstemp(safe->plain.path);
+	if (safe->plain.fd < 0) {
 		LOGE("cannot create create temporary file %s: %s (%d)",
-				tpl, strerror(errno), errno);
+				safe->plain.path, strerror(errno), errno);
 		return errno;
 	}
 
-	dprintf(fd, "%s", SAFE_TEMPLATE);
-	close(fd);
-
-	kp_editor_open(tpl);
+	if (!keep_open) {
+		close(safe->plain.fd);
+		safe->plain.fd = 0;
+	}
 
 	return KP_SUCCESS;
 }

@@ -17,6 +17,8 @@
 #ifndef KP_ERROR_H
 #define KP_ERROR_H
 
+#include <errno.h>
+
 /* errno > 0 are system error */
 #define KP_SUCCESS         0
 #define KP_NYI            -1

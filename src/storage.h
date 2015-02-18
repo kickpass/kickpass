@@ -17,6 +17,8 @@
 #ifndef KP_STORAGE_H
 #define KP_STORAGE_H
 
+#include "error.h"
+
 /**
  * Abstract kickpass storage context
  */

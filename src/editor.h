@@ -17,9 +17,19 @@
 #ifndef KP_EDITOR_H
 #define KP_EDITOR_H
 
+#include <stdbool.h>
+
+#include "safe.h"
 #include "storage.h"
 
+/**
+ * Create a temporary file for editing safe.
+ */
+kp_error_t kp_editor_get_tmp(struct kp_storage_ctx *ctx, struct kp_safe *safe, bool keep_open);
+
+/**
+ * Fork, run $EDITOR and wait for it to end.
+ */
 kp_error_t kp_editor_open(const char *path);
-kp_error_t kp_editor_new(struct kp_storage_ctx *ctx);
 
 #endif /* KP_EDITOR_H */
