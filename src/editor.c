@@ -14,12 +14,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/wait.h>
+
+#include <assert.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
 #include "editor.h"
@@ -28,10 +31,16 @@
 #include "storage.h"
 
 kp_error_t
-kp_editor_open(const char *path)
+kp_editor_open(struct kp_safe *safe)
 {
 	const char *editor;
 	pid_t pid;
+
+	assert(safe->plain.fd >= 0);
+	if (close(safe->plain.fd) < 0) {
+		LOGW("cannot close temporary clear text file %s: %s (%d)",
+				safe->plain.path, strerror(errno), errno);
+	}
 
 	editor = getenv("EDITOR");
 	if (editor == NULL) editor = "vi";
@@ -39,9 +48,22 @@ kp_editor_open(const char *path)
 	pid = fork();
 
 	if (pid == 0) {
-		execlp(editor, editor, path, NULL);
+		execlp(editor, editor, safe->plain.path, NULL);
 	} else {
 		wait(NULL);
+		// TODO check for return value of editor
+
+		safe->plain.fd = open(safe->plain.path, O_RDONLY);
+		if (safe->plain.fd < 0) {
+			LOGE("cannot open temporary clear text file %s: %s (%d)",
+					safe->plain.path, strerror(errno), errno);
+			if (unlink(safe->plain.path) < 0) {
+				LOGE("cannot delete temporary clear text file %s: %s (%d)",
+						safe->plain.path, strerror(errno), errno);
+				LOGE("ensure to delete it manually to avoid password leak");
+			}
+			return errno;
+		}
 	}
 
 	return KP_SUCCESS;

@@ -64,9 +64,8 @@ kp_safe_create(struct kp_storage_ctx *ctx, const char *path, struct kp_safe *saf
 	}
 
 	dprintf(safe->plain.fd, "%s", KP_SAFE_TEMPLATE);
-	close(safe->plain.fd);
 
-	if ((ret = kp_editor_open(safe->plain.path)) != KP_SUCCESS) {
+	if ((ret = kp_editor_open(safe)) != KP_SUCCESS) {
 		LOGE("cannot edit safe");
 		return ret;
 	}

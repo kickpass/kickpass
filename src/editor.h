@@ -30,6 +30,6 @@ kp_error_t kp_editor_get_tmp(struct kp_storage_ctx *ctx, struct kp_safe *safe, b
 /**
  * Fork, run $EDITOR and wait for it to end.
  */
-kp_error_t kp_editor_open(const char *path);
+kp_error_t kp_editor_open(struct kp_safe *safe);
 
 #endif /* KP_EDITOR_H */
