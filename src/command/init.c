@@ -15,72 +15,50 @@
  */
 
 #include <errno.h>
-#include <getopt.h>
-#include <limits.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
 
+#include "kickpass.h"
+
 #include "command.h"
-#include "create.h"
-#include "editor.h"
-#include "error.h"
-#include "log.h"
-#include "safe.h"
+#include "init.h"
 #include "storage.h"
 
-static kp_error_t create(int argc, char **argv);
+static kp_error_t init(struct kp_ctx *ctx, int argc, char **argv);
 static kp_error_t usage(void);
 
-struct kp_cmd kp_cmd_create = {
-	.main  = create,
+struct kp_cmd kp_cmd_init = {
+	.main  = init,
 	.usage = usage,
 };
 
 kp_error_t
-create(int argc, char **argv)
+init(struct kp_ctx *ctx, int argc, char **argv)
 {
 	kp_error_t ret = KP_SUCCESS;
-	char path[PATH_MAX];
-	struct kp_storage_ctx *ctx;
-	struct kp_safe safe;
+	struct stat stats;
 
-	if (argc - optind != 1) {
-		LOGE("missing safe name");
-		return KP_EINPUT;
-	}
-
-	if ((ret = kp_storage_init(&ctx)) != KP_SUCCESS) return ret;
-
-	if ((ret = kp_storage_get_path(ctx, path, PATH_MAX)) != KP_SUCCESS) {
-		LOGE("cannot get storage path");
+	if (stat(ctx->ws_path, &stats) == 0) {
+		LOGW("workspace already exists");
+		ret = KP_EINPUT;
 		goto out;
-	}
-
-	if (strlcat(path, "/", PATH_MAX) >= PATH_MAX) {
-		LOGE("memory error");
-		ret = KP_ENOMEM;
-		goto out;
-	}
-
-	if (strlcat(path, argv[optind], PATH_MAX) >= PATH_MAX) {
-		LOGE("memory error");
-		ret = KP_ENOMEM;
-		goto out;
-	}
-
-	if ((ret = kp_safe_create(ctx, path, &safe)) != KP_SUCCESS) {
-		LOGE("cannot create safe");
+	} else if (errno & ENOENT) {
+		LOGI("creating workspace %s", ctx->ws_path);
+		mkdir(ctx->ws_path, 0700);
+	} else {
+		LOGE("invalid workspace %s: %s (%d)", ctx->ws_path, strerror(errno), errno);
+		ret = errno;
 		goto out;
 	}
 
 out:
-	ret = kp_storage_fini(ctx);
 	return ret;
 }
 
 kp_error_t
 usage(void)
 {
-	printf("    %-10s%s\n", "create", "Create a new password safe");
+	printf("    %-10s%s\n", "init", "Initialize a new password safe directory");
 	return KP_SUCCESS;
 }

@@ -14,14 +14,22 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef KP_COMMAND_H
-#define KP_COMMAND_H
+#ifndef KP_EDITOR_H
+#define KP_EDITOR_H
 
-#include "error.h"
+#include "kickpass.h"
 
-struct kp_cmd {
-	kp_error_t (*main)(int argc, char **argv);
-	kp_error_t (*usage)(void);
-};
+#include "safe.h"
+#include "storage.h"
 
-#endif /* KP_COMMAND_H */
+/**
+ * Create a temporary file for editing safe.
+ */
+kp_error_t kp_editor_get_tmp(struct kp_ctx *ctx, struct kp_safe *safe, bool keep_open);
+
+/**
+ * Fork, run $EDITOR and wait for it to end.
+ */
+kp_error_t kp_editor_open(struct kp_safe *safe);
+
+#endif /* KP_EDITOR_H */

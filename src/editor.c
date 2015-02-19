@@ -70,15 +70,19 @@ kp_editor_open(struct kp_safe *safe)
 }
 
 kp_error_t
-kp_editor_get_tmp(struct kp_storage_ctx *ctx, struct kp_safe *safe, bool keep_open)
+kp_editor_get_tmp(struct kp_ctx *ctx, struct kp_safe *safe, bool keep_open)
 {
 	kp_error_t ret;
 
-	if ((ret = kp_storage_get_path(ctx, safe->plain.path, PATH_MAX)) != KP_SUCCESS)
-		return ret;
-
-	if (strlcat(safe->plain.path, "/.kpXXXXXX", PATH_MAX) >= PATH_MAX)
+	if (strlcpy(safe->plain.path, ctx->ws_path, PATH_MAX) >= PATH_MAX) {
+		LOGE("memory error");
 		return KP_ENOMEM;
+	}
+
+	if (strlcat(safe->plain.path, "/.kpXXXXXX", PATH_MAX) >= PATH_MAX) {
+		LOGE("memory error");
+		return KP_ENOMEM;
+	}
 
 	safe->plain.fd = mkstemp(safe->plain.path);
 	if (safe->plain.fd < 0) {

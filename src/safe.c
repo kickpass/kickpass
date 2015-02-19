@@ -16,22 +16,24 @@
 
 #include <sys/stat.h>
 
-#include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
 
+#include "kickpass.h"
+
 #include "editor.h"
-#include "error.h"
-#include "log.h"
 #include "safe.h"
 #include "storage.h"
 
 kp_error_t
-kp_safe_open(struct kp_storage_ctx *ctx, const char *path, struct kp_safe *safe)
+kp_safe_open(struct kp_ctx *ctx, const char *path, struct kp_safe *safe)
 {
 	struct stat stats;
 
-	if (strlcpy(safe->path, path, PATH_MAX) >= PATH_MAX) return KP_ENOMEM;
+	if (strlcpy(safe->path, path, PATH_MAX) >= PATH_MAX) {
+		LOGE("memory error");
+		return KP_ENOMEM;
+	}
 	safe->open = false;
 
 	if (stat(path, &stats) == 0) {
@@ -43,12 +45,15 @@ kp_safe_open(struct kp_storage_ctx *ctx, const char *path, struct kp_safe *safe)
 }
 
 kp_error_t
-kp_safe_create(struct kp_storage_ctx *ctx, const char *path, struct kp_safe *safe)
+kp_safe_create(struct kp_ctx *ctx, const char *path, struct kp_safe *safe)
 {
 	kp_error_t ret;
 	struct stat stats;
 
-	if (strlcpy(safe->path, path, PATH_MAX) >= PATH_MAX) return KP_ENOMEM;
+	if (strlcpy(safe->path, path, PATH_MAX) >= PATH_MAX) {
+		LOGE("memory error");
+		return KP_ENOMEM;
+	}
 	safe->open = true;
 
 	if (stat(path, &stats) == 0) {
@@ -74,7 +79,7 @@ kp_safe_create(struct kp_storage_ctx *ctx, const char *path, struct kp_safe *saf
 }
 
 kp_error_t
-kp_safe_edit(struct kp_storage_ctx *ctx, struct kp_safe *safe)
+kp_safe_edit(struct kp_ctx *ctx, struct kp_safe *safe)
 {
 	if (safe->open) {
 		LOGE("cannot edit closed safe");
@@ -85,7 +90,7 @@ kp_safe_edit(struct kp_storage_ctx *ctx, struct kp_safe *safe)
 }
 
 kp_error_t
-kp_safe_close(struct kp_storage_ctx *ctx, struct kp_safe *safe)
+kp_safe_close(struct kp_ctx *ctx, struct kp_safe *safe)
 {
 	if (!safe->open) {
 		LOGW("safe already closed");

@@ -14,46 +14,47 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <fcntl.h>
 #include <gpgme.h>
-#include <limits.h>
 #include <locale.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
-#include "error.h"
-#include "log.h"
+#include "kickpass.h"
+
+#include "safe.h"
 #include "storage.h"
 
-#define KP_PATH ".kickpass"
-
-struct kp_storage_ctx
+struct kp_storage
 {
 	const char *engine;
 	const char *version;
-	char        path[PATH_MAX];
 	gpgme_ctx_t gpgme_ctx;
 };
 
 static const char *kp_storage_engine = "gpg";
 
 kp_error_t
-kp_storage_init(struct kp_storage_ctx **ctx)
+kp_storage_init(struct kp_ctx *ctx, struct kp_storage **storage)
 {
 	setlocale(LC_ALL, "");
 
-	*ctx = malloc(sizeof(struct kp_storage_ctx));
-	if (!*ctx) return KP_ENOMEM;
+	*storage = malloc(sizeof(struct kp_storage));
+	if (!*storage) {
+		LOGE("memory error");
+		return KP_ENOMEM;
+	}
 
-	(*ctx)->engine = kp_storage_engine;
-	(*ctx)->version = gpgme_check_version(NULL);
-	strlcpy((*ctx)->path, "", PATH_MAX);
+	(*storage)->engine = kp_storage_engine;
+	(*storage)->version = gpgme_check_version(NULL);
 
 	gpgme_set_locale(NULL, LC_CTYPE, setlocale(LC_CTYPE, NULL));
 #ifdef LC_MESSAGES
 	gpgme_set_locale(NULL, LC_MESSAGES, setlocale(LC_MESSAGES, NULL));
 #endif
 
-	switch (gpgme_new(&(*ctx)->gpgme_ctx)) {
+	switch (gpgme_new(&(*storage)->gpgme_ctx)) {
 	case GPG_ERR_NO_ERROR:
 		break;
 	case GPG_ERR_ENOMEM:
@@ -62,42 +63,68 @@ kp_storage_init(struct kp_storage_ctx **ctx)
 		return KP_EINTERNAL;
 	}
 
-	gpgme_set_armor((*ctx)->gpgme_ctx, 1);
+	gpgme_set_armor((*storage)->gpgme_ctx, 1);
 
 	return KP_SUCCESS;
 }
 
 kp_error_t
-kp_storage_fini(struct kp_storage_ctx *ctx)
+kp_storage_fini(struct kp_storage *storage)
 {
-	gpgme_release(ctx->gpgme_ctx);
-	free(ctx);
+	gpgme_release(storage->gpgme_ctx);
+	free(storage);
 
 	return KP_SUCCESS;
 }
 
 kp_error_t
-kp_storage_get_engine(struct kp_storage_ctx *ctx, char *engine, size_t dstsize)
+kp_storage_get_engine(struct kp_storage *storage, char *engine, size_t dstsize)
 {
-	if (ctx == NULL || engine == NULL) return KP_EINPUT;
-	if (strlcpy(engine, ctx->engine, dstsize) >= dstsize) return KP_ENOMEM;
+	if (storage == NULL || engine == NULL) return KP_EINPUT;
+	if (strlcpy(engine, storage->engine, dstsize) >= dstsize) return KP_ENOMEM;
 	return KP_SUCCESS;
 }
 
 kp_error_t
-kp_storage_get_version(struct kp_storage_ctx *ctx, char *version, size_t dstsize)
+kp_storage_get_version(struct kp_storage *storage, char *version, size_t dstsize)
 {
-	if (ctx == NULL || version == NULL) return KP_EINPUT;
-	if (strlcpy(version, ctx->version, dstsize) >= dstsize) return KP_ENOMEM;
+	if (storage == NULL || version == NULL) return KP_EINPUT;
+	if (strlcpy(version, storage->version, dstsize) >= dstsize) return KP_ENOMEM;
 	return KP_SUCCESS;
 }
 
 kp_error_t
-kp_storage_save(struct kp_storage_ctx *ctx, gpgme_data_t plain, gpgme_data_t cipher)
+kp_storage_save(struct kp_storage *storage, struct kp_safe *safe)
 {
 	gpgme_error_t ret;
+	int cipher_fd;
+	gpgme_data_t plain, cipher;
 
-	ret = gpgme_op_encrypt(ctx->gpgme_ctx, NULL, GPGME_ENCRYPT_NO_ENCRYPT_TO, plain, cipher);
+	ret = gpgme_data_new_from_fd(&plain, safe->plain.fd);
+	switch(ret) {
+	case GPG_ERR_NO_ERROR:
+		break;
+	default:
+		LOGE("internal error: %s", gpgme_strerror(ret));
+		return KP_EINTERNAL;
+	}
+
+	cipher_fd = open(safe->path, O_WRONLY);
+	if (safe->plain.fd < 0) {
+		LOGE("cannot open safe %s: %s (%d)", safe->path, strerror(errno), errno);
+		return KP_EINPUT;
+	}
+
+	gpgme_data_new_from_fd(&cipher, cipher_fd);
+	switch(ret) {
+	case GPG_ERR_NO_ERROR:
+		break;
+	default:
+		LOGE("internal error: %s", gpgme_strerror(ret));
+		return KP_EINTERNAL;
+	}
+
+	ret = gpgme_op_encrypt(storage->gpgme_ctx, NULL, GPGME_ENCRYPT_NO_ENCRYPT_TO, plain, cipher);
 
 	switch(ret) {
 	case GPG_ERR_NO_ERROR:
@@ -107,15 +134,17 @@ kp_storage_save(struct kp_storage_ctx *ctx, gpgme_data_t plain, gpgme_data_t cip
 		return KP_EINTERNAL;
 	}
 
+	close(cipher_fd);
+
 	return KP_SUCCESS;
 }
 
 kp_error_t
-kp_storage_open(struct kp_storage_ctx *ctx, gpgme_data_t cipher, gpgme_data_t plain)
+kp_storage_open(struct kp_storage *storage, gpgme_data_t cipher, gpgme_data_t plain)
 {
 	gpgme_error_t ret;
 
-	ret = gpgme_op_decrypt(ctx->gpgme_ctx, cipher, plain);
+	ret = gpgme_op_decrypt(storage->gpgme_ctx, cipher, plain);
 
 	switch(ret) {
 	case GPG_ERR_NO_ERROR:
@@ -125,32 +154,5 @@ kp_storage_open(struct kp_storage_ctx *ctx, gpgme_data_t cipher, gpgme_data_t pl
 		return KP_EINTERNAL;
 	}
 
-	return KP_SUCCESS;
-}
-
-kp_error_t
-kp_storage_set_path(struct kp_storage_ctx *ctx, char *path)
-{
-	if (strlcpy(ctx->path, path, PATH_MAX) >= PATH_MAX) return KP_EINPUT;
-	return KP_SUCCESS;
-}
-
-kp_error_t
-kp_storage_get_path(struct kp_storage_ctx *ctx, char *path, size_t dstsize)
-{
-	if (strlen(ctx->path) == 0) {
-		const char *home;
-
-		home = getenv("HOME");
-		if (!home) {
-			LOGE("cannot find $HOME environment variable");
-			return KP_EINPUT;
-		}
-
-		if (strlcpy(ctx->path, home, PATH_MAX) >= PATH_MAX) return KP_ENOMEM;
-		if (strlcat(ctx->path, "/" KP_PATH, PATH_MAX) >= PATH_MAX) return KP_ENOMEM;
-	}
-
-	if (strlcpy(path, ctx->path, dstsize) >= dstsize) return KP_ENOMEM;
 	return KP_SUCCESS;
 }

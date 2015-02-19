@@ -20,15 +20,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "kickpass.h"
+
 #include "command.h"
-#include "error.h"
-#include "kickpass_config.h"
-#include "log.h"
 #include "storage.h"
 
 /* commands */
-#include "init.h"
-#include "create.h"
+#include "command/init.h"
+#include "command/create.h"
 
 static kp_error_t parse_opt(int argc, char **argv);
 static int        cmd_cmp(const void *k, const void *e);
@@ -36,6 +35,7 @@ static int        cmd_sort(const void *a, const void *b);
 static kp_error_t command(int argc, char **argv);
 static kp_error_t show_version(void);
 static kp_error_t usage(void);
+static kp_error_t init_ws_path(struct kp_ctx *ctx);
 
 struct cmd {
 	const char    *name;
@@ -104,8 +104,33 @@ cmd_sort(const void *a, const void *b)
 }
 
 static kp_error_t
+init_ws_path(struct kp_ctx *ctx)
+{
+	const char *home;
+
+	home = getenv("HOME");
+	if (!home) {
+		LOGE("cannot find $HOME environment variable");
+		return KP_EINPUT;
+	}
+
+	if (strlcpy(ctx->ws_path, home, PATH_MAX) >= PATH_MAX) {
+		LOGE("memory error");
+		return KP_ENOMEM;
+	}
+	if (strlcat(ctx->ws_path, "/" KP_PATH, PATH_MAX) >= PATH_MAX) {
+		LOGE("memory error");
+		return KP_ENOMEM;
+	}
+
+	return KP_SUCCESS;
+}
+
+static kp_error_t
 command(int argc, char **argv)
 {
+	kp_error_t ret;
+	struct kp_ctx ctx;
 	const struct cmd *cmd;
 
 	if (optind >= argc) {
@@ -123,13 +148,16 @@ command(int argc, char **argv)
 
 	optind++;
 
-	return cmd->cmd->main(argc, argv);
+	if ((ret = init_ws_path(&ctx)) != KP_SUCCESS) return ret;
+
+	return cmd->cmd->main(&ctx, argc, argv);
 }
 
 static kp_error_t
 show_version(void)
 {
-	struct kp_storage_ctx *ctx;
+	struct kp_storage *storage;
+	struct kp_ctx ctx;
 	char storage_engine[10], storage_version[10];
 
 	printf("KickPass version %d.%d.%d\n",
@@ -137,9 +165,9 @@ show_version(void)
 			KICKPASS_VERSION_MINOR,
 			KICKPASS_VERSION_PATCH);
 
-	kp_storage_init(&ctx);
-	kp_storage_get_engine(ctx, storage_engine, sizeof(storage_engine));
-	kp_storage_get_version(ctx, storage_version, sizeof(storage_version));
+	kp_storage_init(&ctx, &storage);
+	kp_storage_get_engine(storage, storage_engine, sizeof(storage_engine));
+	kp_storage_get_version(storage, storage_version, sizeof(storage_version));
 	printf("storage engine %s %s\n", storage_engine, storage_version);
 
 	return KP_SUCCESS;

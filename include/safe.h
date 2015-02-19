@@ -17,11 +17,7 @@
 #ifndef KP_SAFE_H
 #define KP_SAFE_H
 
-#include <limits.h>
-#include <stdbool.h>
-
-#include "error.h"
-#include "storage.h"
+#include "kickpass.h"
 
 #ifndef KP_SAFE_TEMPLATE
 #define KP_SAFE_TEMPLATE "password: \n"\
@@ -54,9 +50,9 @@ struct kp_safe {
 	struct kp_safe_ciphertext cipher;
 };
 
-kp_error_t kp_safe_open(struct kp_storage_ctx *ctx, const char *path, struct kp_safe *safe);
-kp_error_t kp_safe_create(struct kp_storage_ctx *ctx, const char *path, struct kp_safe *safe);
-kp_error_t kp_safe_edit(struct kp_storage_ctx *ctx, struct kp_safe *safe);
-kp_error_t kp_safe_close(struct kp_storage_ctx *ctx, struct kp_safe *safe);
+kp_error_t kp_safe_open(struct kp_ctx *ctx, const char *path, struct kp_safe *safe);
+kp_error_t kp_safe_create(struct kp_ctx *ctx, const char *path, struct kp_safe *safe);
+kp_error_t kp_safe_edit(struct kp_ctx *ctx, struct kp_safe *safe);
+kp_error_t kp_safe_close(struct kp_ctx *ctx, struct kp_safe *safe);
 
 #endif /* KP_SAFE_H */

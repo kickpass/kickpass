@@ -14,23 +14,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef KP_STORAGE_H
-#define KP_STORAGE_H
+#ifndef KP_KICKPASS_H
+#define KP_KICKPASS_H
+
+#include <stdbool.h>
+#include <limits.h>
 
 #include "error.h"
+#include "kickpass_config.h"
+#include "log.h"
 
-/**
- * Abstract kickpass storage context
- */
-struct kp_storage_ctx;
+struct kp_ctx {
+	char                  ws_path[PATH_MAX];
+};
 
-kp_error_t kp_storage_init(struct kp_storage_ctx **ctx);
-kp_error_t kp_storage_fini(struct kp_storage_ctx *ctx);
-
-kp_error_t kp_storage_get_engine(struct kp_storage_ctx *ctx, char *engine, size_t dstsize);
-kp_error_t kp_storage_get_version(struct kp_storage_ctx *ctx, char *version, size_t dstsize);
-
-kp_error_t kp_storage_set_path(struct kp_storage_ctx *ctx, char *path);
-kp_error_t kp_storage_get_path(struct kp_storage_ctx *ctx, char *path, size_t size);
-
-#endif /* KP_STORAGE_H */
+#endif /* KP_KICKPASS_H */

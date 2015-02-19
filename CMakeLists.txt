@@ -31,6 +31,7 @@ configure_file(
 )
 
 include_directories("${PROJECT_BINARY_DIR}/src/")
+include_directories("${PROJECT_SOURCE_DIR}/include/")
 
 add_executable(kickpass
 	src/error.c
@@ -39,8 +40,8 @@ add_executable(kickpass
 	src/editor.c
 	src/safe.c
 	# commands
-	src/init.c
-	src/create.c
+	src/command/init.c
+	src/command/create.c
 )
 
 # Configure portability
