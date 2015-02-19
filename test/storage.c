@@ -70,35 +70,35 @@ START_TEST(test_storage_should_provide_engine_and_version)
 }
 END_TEST
 
-//START_TEST(test_storage_save_should_be_successful)
-//{
-//	/* Given */
-//	int ret = KP_SUCCESS;
-//	struct kp_storage *storage;
-//	gpgme_data_t plain, cipher;
-//	char plaintext[] = "test";
-//	char ciphertext[256] = { 0 };
-//#define CIPHER_HEADER "-----BEGIN PGP MESSAGE-----"
-//
-//	ret = kp_storage_init(NULL, &storage);
-//	gpgme_data_new_from_mem(&plain, plaintext, sizeof(plaintext), 1);
-//	gpgme_data_new_from_mem(&cipher, ciphertext, sizeof(ciphertext), 0);
-//	gpgme_set_passphrase_cb(storage->gpgme_ctx, gpgme_passphrase_cb, NULL);
-//
-//	/* When */
-//	ret |= kp_storage_save(storage, plain, cipher);
-//
-//	/* Then */
-//	ck_assert_int_eq(ret, KP_SUCCESS);
-//	gpgme_data_seek(cipher, 0, SEEK_SET);
-//	gpgme_data_read(cipher, ciphertext, strlen(CIPHER_HEADER));
-//	ck_assert_str_eq(ciphertext, CIPHER_HEADER);
-//
-//	/* Cleanup */
-//	kp_storage_fini(storage);
-//#undef CIPHER_HEADER
-//}
-//END_TEST
+START_TEST(test_storage_encrypt_should_be_successful)
+{
+	/* Given */
+	int ret = KP_SUCCESS;
+	struct kp_storage *storage;
+	gpgme_data_t plain, cipher;
+	char plaintext[] = "test";
+	char ciphertext[256] = { 0 };
+#define CIPHER_HEADER "-----BEGIN PGP MESSAGE-----"
+
+	ret = kp_storage_init(NULL, &storage);
+	gpgme_data_new_from_mem(&plain, plaintext, sizeof(plaintext), 1);
+	gpgme_data_new_from_mem(&cipher, ciphertext, sizeof(ciphertext), 0);
+	gpgme_set_passphrase_cb(storage->gpgme_ctx, gpgme_passphrase_cb, NULL);
+
+	/* When */
+	ret |= kp_storage_encrypt(storage, plain, cipher);
+
+	/* Then */
+	ck_assert_int_eq(ret, KP_SUCCESS);
+	gpgme_data_seek(cipher, 0, SEEK_SET);
+	gpgme_data_read(cipher, ciphertext, strlen(CIPHER_HEADER));
+	ck_assert_str_eq(ciphertext, CIPHER_HEADER);
+
+	/* Cleanup */
+	kp_storage_fini(storage);
+#undef CIPHER_HEADER
+}
+END_TEST
 
 START_TEST(test_storage_open_should_be_successful)
 {
@@ -145,7 +145,7 @@ main(int argc, char **argv)
 	TCase *tcase = tcase_create("case");
 	tcase_add_test(tcase, test_storage_should_init);
 	tcase_add_test(tcase, test_storage_should_provide_engine_and_version);
-	//tcase_add_test(tcase, test_storage_save_should_be_successful);
+	tcase_add_test(tcase, test_storage_encrypt_should_be_successful);
 	tcase_add_test(tcase, test_storage_open_should_be_successful);
 	suite_add_tcase(suite, tcase);
 

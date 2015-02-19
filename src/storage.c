@@ -35,6 +35,8 @@ struct kp_storage
 
 static const char *kp_storage_engine = "gpg";
 
+static kp_error_t kp_storage_encrypt(struct kp_storage *storage, gpgme_data_t plain, gpgme_data_t cipher);
+
 kp_error_t
 kp_storage_init(struct kp_ctx *ctx, struct kp_storage **storage)
 {
@@ -93,6 +95,23 @@ kp_storage_get_version(struct kp_storage *storage, char *version, size_t dstsize
 	return KP_SUCCESS;
 }
 
+static kp_error_t
+kp_storage_encrypt(struct kp_storage *storage, gpgme_data_t plain, gpgme_data_t cipher)
+{
+	gpgme_error_t ret;
+	ret = gpgme_op_encrypt(storage->gpgme_ctx, NULL, GPGME_ENCRYPT_NO_ENCRYPT_TO, plain, cipher);
+
+	switch(ret) {
+	case GPG_ERR_NO_ERROR:
+		break;
+	default:
+		LOGE("internal error: %s", gpgme_strerror(ret));
+		return KP_EINTERNAL;
+	}
+
+	return KP_SUCCESS;
+}
+
 kp_error_t
 kp_storage_save(struct kp_storage *storage, struct kp_safe *safe)
 {
@@ -124,13 +143,8 @@ kp_storage_save(struct kp_storage *storage, struct kp_safe *safe)
 		return KP_EINTERNAL;
 	}
 
-	ret = gpgme_op_encrypt(storage->gpgme_ctx, NULL, GPGME_ENCRYPT_NO_ENCRYPT_TO, plain, cipher);
-
-	switch(ret) {
-	case GPG_ERR_NO_ERROR:
-		break;
-	default:
-		LOGE("internal error: %s", gpgme_strerror(ret));
+	if (kp_storage_encrypt(storage, plain, cipher) != KP_SUCCESS) {
+		LOGE("cannot encrypt safe");
 		return KP_EINTERNAL;
 	}
 
