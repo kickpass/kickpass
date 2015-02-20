@@ -21,7 +21,8 @@
 
 #include "../src/storage.c"
 
-gpgme_error_t gpgme_passphrase_cb(void *hook, const char *uid_hint, const char *passphrase_info, int prev_was_bad, int fd)
+gpgme_error_t
+gpgme_passphrase_cb_test(void *hook, const char *uid_hint, const char *passphrase_info, int prev_was_bad, int fd)
 {
 	const char passwd[] = "test\n";
 	gpgme_io_write(fd, passwd, sizeof(passwd)-1);
@@ -83,7 +84,7 @@ START_TEST(test_storage_encrypt_should_be_successful)
 	ret = kp_storage_init(NULL, &storage);
 	gpgme_data_new_from_mem(&plain, plaintext, sizeof(plaintext), 1);
 	gpgme_data_new_from_mem(&cipher, ciphertext, sizeof(ciphertext), 0);
-	gpgme_set_passphrase_cb(storage->gpgme_ctx, gpgme_passphrase_cb, NULL);
+	gpgme_set_passphrase_cb(storage->gpgme_ctx, gpgme_passphrase_cb_test, NULL);
 
 	/* When */
 	ret |= kp_storage_encrypt(storage, plain, cipher);
@@ -119,7 +120,7 @@ START_TEST(test_storage_open_should_be_successful)
 	ret = kp_storage_init(NULL, &storage);
 	gpgme_data_new_from_mem(&plain, plaintext, sizeof(plaintext), 1);
 	gpgme_data_new_from_mem(&cipher, ciphertext, sizeof(ciphertext), 0);
-	gpgme_set_passphrase_cb(storage->gpgme_ctx, gpgme_passphrase_cb, NULL);
+	gpgme_set_passphrase_cb(storage->gpgme_ctx, gpgme_passphrase_cb_test, NULL);
 
 	/* When */
 	ret |= kp_storage_open(storage, cipher, plain);
