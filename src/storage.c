@@ -190,7 +190,20 @@ kp_storage_save(struct kp_storage *storage, struct kp_safe *safe)
 		return KP_EINTERNAL;
 	}
 
-	close(cipher_fd);
+	if (close(cipher_fd) < 0) {
+		LOGW("cannot close safe: %s (%d)", strerror(errno), errno);
+		return errno;
+	}
+
+	if (close(safe->plain.fd) < 0) {
+		LOGW("cannot close clear text safe: %s (%d)", strerror(errno), errno);
+		return errno;
+	}
+
+	if (unlink(safe->plain.path) < 0) {
+		LOGE("cannot delete clear text safe: %s (%d)", strerror(errno), errno);
+		return errno;
+	}
 
 	return KP_SUCCESS;
 }
