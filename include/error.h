@@ -25,6 +25,7 @@
 #define KP_ENOMEM         -2
 #define KP_EINPUT         -3
 #define KP_EINTERNAL      -4
+#define KP_EEXIST         -5
 
 typedef int kp_error_t;
 

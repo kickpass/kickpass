@@ -58,7 +58,7 @@ kp_safe_create(struct kp_ctx *ctx, const char *path, struct kp_safe *safe)
 
 	if (stat(path, &stats) == 0) {
 		LOGE("safe %s already exists", path);
-		return KP_EINPUT;
+		return KP_EEXIST;
 	} else if (errno != ENOENT) {
 		LOGE("cannot create safe %s: %s (%d)", path, strerror(errno), errno);
 		return KP_EINPUT;

@@ -69,7 +69,11 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	if ((ret = kp_safe_create(ctx, path, &safe)) != KP_SUCCESS) {
-		LOGE("cannot create safe");
+		if (ret == KP_EEXIST) {
+			LOGI("please use edit command to edit an existing safe");
+		} else {
+			LOGE("cannot create safe");
+		}
 		goto out;
 	}
 
