@@ -21,11 +21,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <readpassphrase.h>
 
 #include "kickpass.h"
 
 #include "safe.h"
 #include "storage.h"
+
+#define PASSWD_READ_BUF 1024
+#define PASSWD_PROMPT   "[kickpass] password: "
 
 struct kp_storage
 {
@@ -37,13 +41,21 @@ struct kp_storage
 static const char *kp_storage_engine = "gpg";
 
 static kp_error_t kp_storage_encrypt(struct kp_storage *storage, gpgme_data_t plain, gpgme_data_t cipher);
-gpgme_error_t gpgme_passphrase_cb(void *hook, const char *uid_hint, const char *passphrase_info, int prev_was_bad, int fd);
+static gpgme_error_t gpgme_passphrase_cb(void *hook, const char *uid_hint, const char *passphrase_info, int prev_was_bad, int fd);
 
-gpgme_error_t
+static gpgme_error_t
 gpgme_passphrase_cb(void *hook, const char *uid_hint, const char *passphrase_info, int prev_was_bad, int fd)
 {
-	const char passwd[] = "test\n";
-	gpgme_io_write(fd, passwd, sizeof(passwd)-1);
+	char passwd[PASSWD_READ_BUF];
+
+	if (readpassphrase(PASSWD_PROMPT, passwd, PASSWD_READ_BUF, RPP_ECHO_OFF) == NULL) {
+		LOGE("cannot read password");
+		return gpg_error(GPG_ERR_MISSING_ERRNO);
+	}
+
+	gpgme_io_write(fd, passwd, strlen(passwd));
+	gpgme_io_write(fd, "\n", 1);
+
 	return 0;
 }
 
