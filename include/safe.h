@@ -20,8 +20,10 @@
 #include "kickpass.h"
 
 #ifndef KP_SAFE_TEMPLATE
-#define KP_SAFE_TEMPLATE "password: \n"\
-                      "url: \n"
+#define KP_SAFE_TEMPLATE "\n"                                                  \
+                         "url: \n"                                             \
+                         "username: \n"                                        \
+                         "comment: \n"
 #endif
 
 enum kp_safe_plaintext_type {
