@@ -22,21 +22,21 @@
 #include "kickpass.h"
 
 #include "command.h"
-#include "create.h"
+#include "open.h"
 #include "editor.h"
 #include "safe.h"
 #include "storage.h"
 
-static kp_error_t create(struct kp_ctx *ctx, int argc, char **argv);
+static kp_error_t open(struct kp_ctx *ctx, int argc, char **argv);
 static kp_error_t usage(void);
 
-struct kp_cmd kp_cmd_create = {
-	.main  = create,
+struct kp_cmd kp_cmd_open = {
+	.main  = open,
 	.usage = usage,
 };
 
 kp_error_t
-create(struct kp_ctx *ctx, int argc, char **argv)
+open(struct kp_ctx *ctx, int argc, char **argv)
 {
 	kp_error_t ret = KP_SUCCESS;
 	char path[PATH_MAX];
@@ -68,24 +68,17 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 		goto out;
 	}
 
-	if ((ret = kp_safe_create(ctx, path, KP_SAFE_PLAINTEXT_FILE, &safe)) != KP_SUCCESS) {
-		if (ret == KP_EEXIST) {
-			LOGI("please use edit command to edit an existing safe");
-		} else {
-			LOGE("cannot create safe");
-		}
+	if ((ret = kp_safe_open(ctx, path, KP_SAFE_PLAINTEXT_MEMORY, &safe)) != KP_SUCCESS) {
+		LOGE("cannot open safe");
 		goto out;
 	}
 
-	if ((ret = kp_editor_open(&safe)) != KP_SUCCESS) {
-		LOGE("cannot edit safe");
-		return ret;
-	}
-
-	if ((ret = kp_storage_save(storage, &safe)) != KP_SUCCESS) {
+	if ((ret = kp_storage_open(storage, &safe)) != KP_SUCCESS) {
 		LOGE("cannot save safe");
 		return ret;
 	}
+
+	printf("%s\n", safe.plain.data);
 
 	if ((ret = kp_safe_close(ctx, &safe)) != KP_SUCCESS) {
 		LOGE("cannot cleanly close safe");
@@ -100,6 +93,6 @@ out:
 kp_error_t
 usage(void)
 {
-	printf("    %-10s%s\n", "create", "Create a new password safe");
+	printf("    %-10s%s\n", "open", "Open a password safe and print its content on stdout");
 	return KP_SUCCESS;
 }

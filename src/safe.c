@@ -16,6 +16,9 @@
 
 #include <sys/stat.h>
 
+#include <assert.h>
+#include <fcntl.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -26,7 +29,7 @@
 #include "storage.h"
 
 kp_error_t
-kp_safe_open(struct kp_ctx *ctx, const char *path, struct kp_safe *safe)
+kp_safe_open(struct kp_ctx *ctx, const char *path, enum kp_safe_plaintext_type type, struct kp_safe *safe)
 {
 	struct stat stats;
 
@@ -34,18 +37,37 @@ kp_safe_open(struct kp_ctx *ctx, const char *path, struct kp_safe *safe)
 		LOGE("memory error");
 		return KP_ENOMEM;
 	}
+
+	safe->plain.type = type;
+	switch (safe->plain.type) {
+	case KP_SAFE_PLAINTEXT_FILE:
+		safe->plain.fd = 0;
+		break;
+	case KP_SAFE_PLAINTEXT_MEMORY:
+		safe->plain.size = 0;
+		safe->plain.data = NULL;
+		break;
+	default:
+		assert(false);
+	}
 	safe->open = false;
 
-	if (stat(path, &stats) == 0) {
-		LOGE("unknown safe");
+	if (stat(path, &stats) != 0) {
+		LOGE("unknown safe %s: %s (%d)", path, strerror(errno), errno);
 		return KP_EINPUT;
 	}
 
-	return KP_NYI;
+	safe->cipher.fd = open(safe->path, O_RDWR | O_NONBLOCK);
+	if (safe->plain.fd < 0) {
+		LOGE("cannot open safe %s: %s (%d)", safe->path, strerror(errno), errno);
+		return KP_EINPUT;
+	}
+
+	return KP_SUCCESS;
 }
 
 kp_error_t
-kp_safe_create(struct kp_ctx *ctx, const char *path, struct kp_safe *safe)
+kp_safe_create(struct kp_ctx *ctx, const char *path, enum kp_safe_plaintext_type type, struct kp_safe *safe)
 {
 	kp_error_t ret;
 	struct stat stats;
@@ -54,6 +76,8 @@ kp_safe_create(struct kp_ctx *ctx, const char *path, struct kp_safe *safe)
 		LOGE("memory error");
 		return KP_ENOMEM;
 	}
+
+	safe->plain.type = type;
 	safe->open = true;
 
 	if (stat(path, &stats) == 0) {
@@ -61,6 +85,12 @@ kp_safe_create(struct kp_ctx *ctx, const char *path, struct kp_safe *safe)
 		return KP_EEXIST;
 	} else if (errno != ENOENT) {
 		LOGE("cannot create safe %s: %s (%d)", path, strerror(errno), errno);
+		return KP_EINPUT;
+	}
+
+	safe->cipher.fd = open(safe->path, O_RDWR | O_NONBLOCK | O_CREAT, S_IRUSR | S_IWUSR);
+	if (safe->plain.fd < 0) {
+		LOGE("cannot open safe %s: %s (%d)", safe->path, strerror(errno), errno);
 		return KP_EINPUT;
 	}
 
@@ -74,23 +104,40 @@ kp_safe_create(struct kp_ctx *ctx, const char *path, struct kp_safe *safe)
 }
 
 kp_error_t
-kp_safe_edit(struct kp_ctx *ctx, struct kp_safe *safe)
-{
-	if (safe->open) {
-		LOGE("cannot edit closed safe");
-		return KP_EINPUT;
-	}
-
-	return KP_NYI;
-}
-
-kp_error_t
 kp_safe_close(struct kp_ctx *ctx, struct kp_safe *safe)
 {
-	if (!safe->open) {
-		LOGW("safe already closed");
-		return KP_EINPUT;
+	if (close(safe->cipher.fd) < 0) {
+		LOGW("cannot close safe: %s (%d)", strerror(errno), errno);
+		return errno;
 	}
 
-	return KP_NYI;
+	safe->cipher.fd = 0;
+
+	switch (safe->plain.type) {
+	case KP_SAFE_PLAINTEXT_FILE:
+		if (safe->plain.fd == 0) break;
+
+		if (close(safe->plain.fd) < 0) {
+			LOGW("cannot close clear text safe: %s (%d)", strerror(errno), errno);
+			return errno;
+		}
+
+		safe->plain.fd = 0;
+
+		if (unlink(safe->plain.path) < 0) {
+			LOGE("cannot delete clear text safe: %s (%d)", strerror(errno), errno);
+			return errno;
+		}
+		break;
+	case KP_SAFE_PLAINTEXT_MEMORY:
+		if (safe->plain.data == NULL) break;
+
+		// XXX shred memory ?
+		free(safe->plain.data);
+		break;
+	default:
+		assert(false);
+	}
+
+	return KP_SUCCESS;
 }

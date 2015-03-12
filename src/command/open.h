@@ -14,25 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef KP_STORAGE_H
-#define KP_STORAGE_H
+#ifndef KP_OPEN_H
+#define KP_OPEN_H
 
-#include "kickpass.h"
+#include "command.h"
 
-#include "safe.h"
+extern struct kp_cmd kp_cmd_open;
 
-/**
- * Abstract kickpass storage context
- */
-struct kp_storage;
-
-kp_error_t kp_storage_init(struct kp_ctx *ctx, struct kp_storage **storage);
-kp_error_t kp_storage_fini(struct kp_storage *storage);
-
-kp_error_t kp_storage_get_engine(struct kp_storage *storage, char *engine, size_t dstsize);
-kp_error_t kp_storage_get_version(struct kp_storage *storage, char *version, size_t dstsize);
-
-kp_error_t kp_storage_open(struct kp_storage *storage, struct kp_safe *safe);
-kp_error_t kp_storage_save(struct kp_storage *storage, struct kp_safe *safe);
-
-#endif /* KP_STORAGE_H */
+#endif /* KP_OPEN_H */

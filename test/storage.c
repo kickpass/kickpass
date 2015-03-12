@@ -101,7 +101,7 @@ START_TEST(test_storage_encrypt_should_be_successful)
 }
 END_TEST
 
-START_TEST(test_storage_open_should_be_successful)
+START_TEST(test_storage_decrypt_should_be_successful)
 {
 	/* Given */
 	int ret = KP_SUCCESS;
@@ -123,7 +123,7 @@ START_TEST(test_storage_open_should_be_successful)
 	gpgme_set_passphrase_cb(storage->gpgme_ctx, gpgme_passphrase_cb_test, NULL);
 
 	/* When */
-	ret |= kp_storage_open(storage, cipher, plain);
+	ret |= kp_storage_decrypt(storage, cipher, plain);
 
 	/* Then */
 	ck_assert_int_eq(ret, KP_SUCCESS);
@@ -147,7 +147,7 @@ main(int argc, char **argv)
 	tcase_add_test(tcase, test_storage_should_init);
 	tcase_add_test(tcase, test_storage_should_provide_engine_and_version);
 	tcase_add_test(tcase, test_storage_encrypt_should_be_successful);
-	tcase_add_test(tcase, test_storage_open_should_be_successful);
+	tcase_add_test(tcase, test_storage_decrypt_should_be_successful);
 	suite_add_tcase(suite, tcase);
 
 	SRunner *runner = srunner_create(suite);

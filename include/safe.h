@@ -26,6 +26,7 @@
 
 enum kp_safe_plaintext_type {
 	KP_SAFE_PLAINTEXT_FILE,
+	KP_SAFE_PLAINTEXT_MEMORY,
 };
 
 struct kp_safe_plaintext {
@@ -35,6 +36,10 @@ struct kp_safe_plaintext {
 		struct {
 			char path[PATH_MAX];
 			int fd;
+		};
+		struct {
+			size_t size;
+			char *data;
 		};
 	};
 };
@@ -50,9 +55,8 @@ struct kp_safe {
 	struct kp_safe_ciphertext cipher;
 };
 
-kp_error_t kp_safe_open(struct kp_ctx *ctx, const char *path, struct kp_safe *safe);
-kp_error_t kp_safe_create(struct kp_ctx *ctx, const char *path, struct kp_safe *safe);
-kp_error_t kp_safe_edit(struct kp_ctx *ctx, struct kp_safe *safe);
+kp_error_t kp_safe_open(struct kp_ctx *ctx, const char *path, enum kp_safe_plaintext_type type, struct kp_safe *safe);
+kp_error_t kp_safe_create(struct kp_ctx *ctx, const char *path, enum kp_safe_plaintext_type type, struct kp_safe *safe);
 kp_error_t kp_safe_close(struct kp_ctx *ctx, struct kp_safe *safe);
 
 #endif /* KP_SAFE_H */

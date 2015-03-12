@@ -15,7 +15,6 @@
  */
 
 #include <assert.h>
-#include <fcntl.h>
 #include <gpgme.h>
 #include <locale.h>
 #include <stdlib.h>
@@ -165,15 +164,13 @@ kp_storage_encrypt(struct kp_storage *storage, gpgme_data_t plain, gpgme_data_t 
 
 	return KP_SUCCESS;
 }
-
-kp_error_t
-kp_storage_save(struct kp_storage *storage, struct kp_safe *safe)
+static kp_error_t
+kp_storage_decrypt(struct kp_storage *storage, gpgme_data_t plain, gpgme_data_t cipher)
 {
 	gpgme_error_t ret;
-	int cipher_fd;
-	gpgme_data_t plain, cipher;
 
-	ret = gpgme_data_new_from_fd(&plain, safe->plain.fd);
+	ret = gpgme_op_decrypt(storage->gpgme_ctx, cipher, plain);
+
 	switch(ret) {
 	case GPG_ERR_NO_ERROR:
 		break;
@@ -182,13 +179,32 @@ kp_storage_save(struct kp_storage *storage, struct kp_safe *safe)
 		return KP_EINTERNAL;
 	}
 
-	cipher_fd = open(safe->path, O_RDWR | O_NONBLOCK | O_CREAT, S_IRUSR | S_IWUSR);
-	if (safe->plain.fd < 0) {
-		LOGE("cannot open safe %s: %s (%d)", safe->path, strerror(errno), errno);
-		return KP_EINPUT;
+	return KP_SUCCESS;
+}
+
+kp_error_t
+kp_storage_save(struct kp_storage *storage, struct kp_safe *safe)
+{
+	gpgme_error_t ret;
+	gpgme_data_t plain, cipher;
+
+	switch (safe->plain.type) {
+	case KP_SAFE_PLAINTEXT_FILE:
+		ret = gpgme_data_new_from_fd(&plain, safe->plain.fd);
+		break;
+	default:
+		assert(false);
 	}
 
-	gpgme_data_new_from_fd(&cipher, cipher_fd);
+	switch(ret) {
+	case GPG_ERR_NO_ERROR:
+		break;
+	default:
+		LOGE("internal error: %s", gpgme_strerror(ret));
+		return KP_EINTERNAL;
+	}
+
+	gpgme_data_new_from_fd(&cipher, safe->cipher.fd);
 	switch(ret) {
 	case GPG_ERR_NO_ERROR:
 		break;
@@ -202,30 +218,25 @@ kp_storage_save(struct kp_storage *storage, struct kp_safe *safe)
 		return KP_EINTERNAL;
 	}
 
-	if (close(cipher_fd) < 0) {
-		LOGW("cannot close safe: %s (%d)", strerror(errno), errno);
-		return errno;
-	}
-
-	if (close(safe->plain.fd) < 0) {
-		LOGW("cannot close clear text safe: %s (%d)", strerror(errno), errno);
-		return errno;
-	}
-
-	if (unlink(safe->plain.path) < 0) {
-		LOGE("cannot delete clear text safe: %s (%d)", strerror(errno), errno);
-		return errno;
-	}
-
 	return KP_SUCCESS;
 }
 
 kp_error_t
-kp_storage_open(struct kp_storage *storage, gpgme_data_t cipher, gpgme_data_t plain)
+kp_storage_open(struct kp_storage *storage, struct kp_safe *safe)
 {
 	gpgme_error_t ret;
+	gpgme_data_t plain, cipher;
 
-	ret = gpgme_op_decrypt(storage->gpgme_ctx, cipher, plain);
+	switch (safe->plain.type) {
+	case KP_SAFE_PLAINTEXT_FILE:
+		ret = gpgme_data_new_from_fd(&plain, safe->plain.fd);
+		break;
+	case KP_SAFE_PLAINTEXT_MEMORY:
+		ret = gpgme_data_new(&plain);
+		break;
+	default:
+		assert(false);
+	}
 
 	switch(ret) {
 	case GPG_ERR_NO_ERROR:
@@ -233,6 +244,43 @@ kp_storage_open(struct kp_storage *storage, gpgme_data_t cipher, gpgme_data_t pl
 	default:
 		LOGE("internal error: %s", gpgme_strerror(ret));
 		return KP_EINTERNAL;
+	}
+
+	gpgme_data_new_from_fd(&cipher, safe->cipher.fd);
+	switch(ret) {
+	case GPG_ERR_NO_ERROR:
+		break;
+	default:
+		LOGE("internal error: %s", gpgme_strerror(ret));
+		return KP_EINTERNAL;
+	}
+
+	if (kp_storage_decrypt(storage, plain, cipher) != KP_SUCCESS) {
+		LOGE("cannot encrypt safe");
+		return KP_EINTERNAL;
+	}
+
+	if (lseek(safe->cipher.fd, 0, SEEK_SET) != 0) {
+		LOGW("cannot seek safe to start: %s (%d)", strerror(errno), errno);
+		return errno;
+	}
+
+	if (safe->plain.type == KP_SAFE_PLAINTEXT_MEMORY) {
+		char *_plain = gpgme_data_release_and_get_mem(plain, &safe->plain.size);
+		if (!_plain) {
+			LOGE("cannot decrypt safe");
+			return KP_EINTERNAL;
+		}
+
+		safe->plain.data = malloc(safe->plain.size);
+		if (!safe->plain.data) {
+			LOGE("memory error");
+			return KP_ENOMEM;
+		}
+
+		// TODO mlock
+		memcpy(safe->plain.data, _plain, safe->plain.size);
+		gpgme_free(_plain);
 	}
 
 	return KP_SUCCESS;
