@@ -70,11 +70,6 @@ kp_safe_create(struct kp_ctx *ctx, const char *path, struct kp_safe *safe)
 
 	dprintf(safe->plain.fd, "%s", KP_SAFE_TEMPLATE);
 
-	if ((ret = kp_editor_open(safe)) != KP_SUCCESS) {
-		LOGE("cannot edit safe");
-		return ret;
-	}
-
 	return KP_SUCCESS;
 }
 

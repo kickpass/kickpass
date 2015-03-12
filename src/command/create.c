@@ -77,6 +77,11 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 		goto out;
 	}
 
+	if ((ret = kp_editor_open(&safe)) != KP_SUCCESS) {
+		LOGE("cannot edit safe");
+		return ret;
+	}
+
 	if ((ret = kp_storage_save(storage, &safe)) != KP_SUCCESS) {
 		LOGE("cannot save safe");
 		return ret;
