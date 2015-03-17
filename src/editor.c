@@ -30,6 +30,11 @@
 #include "log.h"
 #include "storage.h"
 
+/*
+ * Open editor on the given safe.
+ * Fork, exec $EDITOR and wait for it to return.
+ * The safe must be open.
+ */
 kp_error_t
 kp_editor_open(struct kp_safe *safe)
 {
@@ -69,6 +74,9 @@ kp_editor_open(struct kp_safe *safe)
 	return KP_SUCCESS;
 }
 
+/*
+ * Create and open a temporary file in current workspace for later edition.
+ */
 kp_error_t
 kp_editor_get_tmp(struct kp_ctx *ctx, struct kp_safe *safe, bool keep_open)
 {

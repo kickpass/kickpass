@@ -68,8 +68,8 @@ open(struct kp_ctx *ctx, int argc, char **argv)
 		goto out;
 	}
 
-	if ((ret = kp_safe_open(ctx, path, KP_SAFE_PLAINTEXT_MEMORY, &safe)) != KP_SUCCESS) {
-		LOGE("cannot open safe");
+	if ((ret = kp_safe_load(ctx, path, KP_SAFE_PLAINTEXT_MEMORY, &safe)) != KP_SUCCESS) {
+		LOGE("cannot load safe");
 		goto out;
 	}
 

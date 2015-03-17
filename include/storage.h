@@ -26,13 +26,13 @@
  */
 struct kp_storage;
 
-kp_error_t kp_storage_init(struct kp_ctx *ctx, struct kp_storage **storage);
-kp_error_t kp_storage_fini(struct kp_storage *storage);
+kp_error_t kp_storage_init(struct kp_ctx *, struct kp_storage **);
+kp_error_t kp_storage_fini(struct kp_storage *);
 
-kp_error_t kp_storage_get_engine(struct kp_storage *storage, char *engine, size_t dstsize);
-kp_error_t kp_storage_get_version(struct kp_storage *storage, char *version, size_t dstsize);
+kp_error_t kp_storage_get_engine(struct kp_storage *, char *, size_t);
+kp_error_t kp_storage_get_version(struct kp_storage *, char *, size_t);
 
-kp_error_t kp_storage_open(struct kp_storage *storage, struct kp_safe *safe);
-kp_error_t kp_storage_save(struct kp_storage *storage, struct kp_safe *safe);
+kp_error_t kp_storage_open(struct kp_storage *, struct kp_safe *);
+kp_error_t kp_storage_save(struct kp_storage *, struct kp_safe *);
 
 #endif /* KP_STORAGE_H */

@@ -22,14 +22,7 @@
 #include "safe.h"
 #include "storage.h"
 
-/**
- * Create a temporary file for editing safe.
- */
-kp_error_t kp_editor_get_tmp(struct kp_ctx *ctx, struct kp_safe *safe, bool keep_open);
-
-/**
- * Fork, run $EDITOR and wait for it to end.
- */
-kp_error_t kp_editor_open(struct kp_safe *safe);
+kp_error_t kp_editor_get_tmp(struct kp_ctx *, struct kp_safe *, bool);
+kp_error_t kp_editor_open(struct kp_safe *);
 
 #endif /* KP_EDITOR_H */

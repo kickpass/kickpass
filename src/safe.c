@@ -28,8 +28,13 @@
 #include "safe.h"
 #include "storage.h"
 
+/*
+ * Load an existing safe.
+ * Init the kp_safe structure and open the cipher file.
+ * The returned safe is closed.
+ */
 kp_error_t
-kp_safe_open(struct kp_ctx *ctx, const char *path, enum kp_safe_plaintext_type type, struct kp_safe *safe)
+kp_safe_load(struct kp_ctx *ctx, const char *path, enum kp_safe_plaintext_type type, struct kp_safe *safe)
 {
 	struct stat stats;
 
@@ -66,6 +71,10 @@ kp_safe_open(struct kp_ctx *ctx, const char *path, enum kp_safe_plaintext_type t
 	return KP_SUCCESS;
 }
 
+/*
+ * Create a new safe.
+ * The returned safe is opened.
+ */
 kp_error_t
 kp_safe_create(struct kp_ctx *ctx, const char *path, enum kp_safe_plaintext_type type, struct kp_safe *safe)
 {
@@ -103,6 +112,11 @@ kp_safe_create(struct kp_ctx *ctx, const char *path, enum kp_safe_plaintext_type
 	return KP_SUCCESS;
 }
 
+/*
+ * Close a safe.
+ * Take care of cleaning the safe plain text and closing the opened file
+ * descriptor.
+ */
 kp_error_t
 kp_safe_close(struct kp_ctx *ctx, struct kp_safe *safe)
 {

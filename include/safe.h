@@ -57,8 +57,8 @@ struct kp_safe {
 	struct kp_safe_ciphertext cipher;
 };
 
-kp_error_t kp_safe_open(struct kp_ctx *ctx, const char *path, enum kp_safe_plaintext_type type, struct kp_safe *safe);
-kp_error_t kp_safe_create(struct kp_ctx *ctx, const char *path, enum kp_safe_plaintext_type type, struct kp_safe *safe);
-kp_error_t kp_safe_close(struct kp_ctx *ctx, struct kp_safe *safe);
+kp_error_t kp_safe_load(struct kp_ctx *, const char *, enum kp_safe_plaintext_type, struct kp_safe *);
+kp_error_t kp_safe_create(struct kp_ctx *, const char *, enum kp_safe_plaintext_type, struct kp_safe *);
+kp_error_t kp_safe_close(struct kp_ctx *, struct kp_safe *);
 
 #endif /* KP_SAFE_H */
