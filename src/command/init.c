@@ -40,14 +40,14 @@ init(struct kp_ctx *ctx, int argc, char **argv)
 	struct stat stats;
 
 	if (stat(ctx->ws_path, &stats) == 0) {
-		LOGW("workspace already exists");
+		warnx("workspace already exists");
 		ret = KP_EINPUT;
 		goto out;
 	} else if (errno & ENOENT) {
-		LOGI("creating workspace %s", ctx->ws_path);
+		printf("creating workspace %s", ctx->ws_path);
 		mkdir(ctx->ws_path, 0700);
 	} else {
-		LOGE("invalid workspace %s: %s (%d)", ctx->ws_path, strerror(errno), errno);
+		warn("invalid workspace %s", ctx->ws_path);
 		ret = errno;
 		goto out;
 	}

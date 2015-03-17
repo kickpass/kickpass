@@ -29,6 +29,4 @@
 
 typedef int kp_error_t;
 
-void error(char *fmt, ...);
-
 #endif /* KP_ERROR_H */

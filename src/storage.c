@@ -48,7 +48,7 @@ gpgme_passphrase_cb(void *hook, const char *uid_hint, const char *passphrase_inf
 	char passwd[PASSWD_READ_BUF];
 
 	if (readpassphrase(PASSWD_PROMPT, passwd, PASSWD_READ_BUF, RPP_ECHO_OFF) == NULL) {
-		LOGE("cannot read password");
+		warnx("cannot read password");
 		return gpg_error(GPG_ERR_MISSING_ERRNO);
 	}
 
@@ -62,12 +62,12 @@ kp_error_t
 kp_storage_init(struct kp_ctx *ctx, struct kp_storage **storage)
 {
 	kp_error_t ret;
-	gpgme_error_t err;
+	gpgme_error_t error;
 	setlocale(LC_ALL, "");
 
 	*storage = malloc(sizeof(struct kp_storage));
 	if (!*storage) {
-		LOGE("memory error");
+		warnx("memory error");
 		return KP_ENOMEM;
 	}
 
@@ -79,8 +79,8 @@ kp_storage_init(struct kp_ctx *ctx, struct kp_storage **storage)
 	gpgme_set_locale(NULL, LC_MESSAGES, setlocale(LC_MESSAGES, NULL));
 #endif
 
-	err = gpgme_new(&(*storage)->gpgme_ctx);
-	switch (err) {
+	error = gpgme_new(&(*storage)->gpgme_ctx);
+	switch (error) {
 	case GPG_ERR_NO_ERROR:
 		break;
 	case GPG_ERR_ENOMEM:
@@ -89,26 +89,26 @@ kp_storage_init(struct kp_ctx *ctx, struct kp_storage **storage)
 		return KP_EINTERNAL;
 	}
 
-	err = gpgme_engine_check_version(GPGME_PROTOCOL_OpenPGP);
-	switch (err) {
+	error = gpgme_engine_check_version(GPGME_PROTOCOL_OpenPGP);
+	switch (error) {
 	case GPG_ERR_NO_ERROR:
 		break;
 	case GPG_ERR_INV_ENGINE:
-		LOGF("cannot use OpenPGP as a storage engine: %s", gpgme_strerror(err));
+		warnx("cannot use OpenPGP as a storage engine: %s", gpgme_strerror(error));
 		ret = KP_EINTERNAL;
 		goto out;
 	}
 
-	err = gpgme_set_protocol((*storage)->gpgme_ctx, GPGME_PROTOCOL_OpenPGP);
-	assert(err == GPG_ERR_NO_ERROR);
+	error = gpgme_set_protocol((*storage)->gpgme_ctx, GPGME_PROTOCOL_OpenPGP);
+	assert(error == GPG_ERR_NO_ERROR);
 
 	gpgme_engine_info_t eng = gpgme_ctx_get_engine_info((*storage)->gpgme_ctx);
-	err = gpgme_ctx_set_engine_info((*storage)->gpgme_ctx, GPGME_PROTOCOL_OpenPGP, eng->file_name, ctx->ws_path);
-	switch (err) {
+	error = gpgme_ctx_set_engine_info((*storage)->gpgme_ctx, GPGME_PROTOCOL_OpenPGP, eng->file_name, ctx->ws_path);
+	switch (error) {
 	case GPG_ERR_NO_ERROR:
 		break;
 	default:
-		LOGF("cannot configure storage engine OpenPGP: %s", gpgme_strerror(err));
+		warnx("cannot configure storage engine OpenPGP: %s", gpgme_strerror(error));
 		ret = KP_EINTERNAL;
 		goto out;
 	}
@@ -158,7 +158,7 @@ kp_storage_encrypt(struct kp_storage *storage, gpgme_data_t plain, gpgme_data_t 
 	case GPG_ERR_NO_ERROR:
 		break;
 	default:
-		LOGE("internal error: %s", gpgme_strerror(ret));
+		warnx("internal error: %s", gpgme_strerror(ret));
 		return KP_EINTERNAL;
 	}
 
@@ -175,7 +175,7 @@ kp_storage_decrypt(struct kp_storage *storage, gpgme_data_t plain, gpgme_data_t 
 	case GPG_ERR_NO_ERROR:
 		break;
 	default:
-		LOGE("internal error: %s", gpgme_strerror(ret));
+		warnx("internal error: %s", gpgme_strerror(ret));
 		return KP_EINTERNAL;
 	}
 
@@ -200,7 +200,7 @@ kp_storage_save(struct kp_storage *storage, struct kp_safe *safe)
 	case GPG_ERR_NO_ERROR:
 		break;
 	default:
-		LOGE("internal error: %s", gpgme_strerror(ret));
+		warnx("internal error: %s", gpgme_strerror(ret));
 		return KP_EINTERNAL;
 	}
 
@@ -209,12 +209,12 @@ kp_storage_save(struct kp_storage *storage, struct kp_safe *safe)
 	case GPG_ERR_NO_ERROR:
 		break;
 	default:
-		LOGE("internal error: %s", gpgme_strerror(ret));
+		warnx("internal error: %s", gpgme_strerror(ret));
 		return KP_EINTERNAL;
 	}
 
 	if (kp_storage_encrypt(storage, plain, cipher) != KP_SUCCESS) {
-		LOGE("cannot encrypt safe");
+		warnx("cannot encrypt safe");
 		return KP_EINTERNAL;
 	}
 
@@ -242,7 +242,7 @@ kp_storage_open(struct kp_storage *storage, struct kp_safe *safe)
 	case GPG_ERR_NO_ERROR:
 		break;
 	default:
-		LOGE("internal error: %s", gpgme_strerror(ret));
+		warnx("internal error: %s", gpgme_strerror(ret));
 		return KP_EINTERNAL;
 	}
 
@@ -251,30 +251,30 @@ kp_storage_open(struct kp_storage *storage, struct kp_safe *safe)
 	case GPG_ERR_NO_ERROR:
 		break;
 	default:
-		LOGE("internal error: %s", gpgme_strerror(ret));
+		warnx("internal error: %s", gpgme_strerror(ret));
 		return KP_EINTERNAL;
 	}
 
 	if (kp_storage_decrypt(storage, plain, cipher) != KP_SUCCESS) {
-		LOGE("cannot encrypt safe");
+		warnx("cannot encrypt safe");
 		return KP_EINTERNAL;
 	}
 
 	if (lseek(safe->cipher.fd, 0, SEEK_SET) != 0) {
-		LOGW("cannot seek safe to start: %s (%d)", strerror(errno), errno);
+		warn("cannot seek safe to start");
 		return errno;
 	}
 
 	if (safe->plain.type == KP_SAFE_PLAINTEXT_MEMORY) {
 		char *_plain = gpgme_data_release_and_get_mem(plain, &safe->plain.size);
 		if (!_plain) {
-			LOGE("cannot decrypt safe");
+			warnx("cannot decrypt safe");
 			return KP_EINTERNAL;
 		}
 
 		safe->plain.data = malloc(safe->plain.size);
 		if (!safe->plain.data) {
-			LOGE("memory error");
+			warnx("memory error");
 			return KP_ENOMEM;
 		}
 

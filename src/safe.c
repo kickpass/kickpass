@@ -18,6 +18,7 @@
 
 #include <assert.h>
 #include <fcntl.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -39,7 +40,7 @@ kp_safe_load(struct kp_ctx *ctx, const char *path, enum kp_safe_plaintext_type t
 	struct stat stats;
 
 	if (strlcpy(safe->path, path, PATH_MAX) >= PATH_MAX) {
-		LOGE("memory error");
+		warnx("memory error");
 		return KP_ENOMEM;
 	}
 
@@ -58,13 +59,13 @@ kp_safe_load(struct kp_ctx *ctx, const char *path, enum kp_safe_plaintext_type t
 	safe->open = false;
 
 	if (stat(path, &stats) != 0) {
-		LOGE("unknown safe %s: %s (%d)", path, strerror(errno), errno);
+		warn("unknown safe %s", path);
 		return KP_EINPUT;
 	}
 
 	safe->cipher.fd = open(safe->path, O_RDWR | O_NONBLOCK);
 	if (safe->plain.fd < 0) {
-		LOGE("cannot open safe %s: %s (%d)", safe->path, strerror(errno), errno);
+		warn("cannot open safe %s", safe->path);
 		return KP_EINPUT;
 	}
 
@@ -82,7 +83,7 @@ kp_safe_create(struct kp_ctx *ctx, const char *path, enum kp_safe_plaintext_type
 	struct stat stats;
 
 	if (strlcpy(safe->path, path, PATH_MAX) >= PATH_MAX) {
-		LOGE("memory error");
+		warnx("memory error");
 		return KP_ENOMEM;
 	}
 
@@ -90,16 +91,16 @@ kp_safe_create(struct kp_ctx *ctx, const char *path, enum kp_safe_plaintext_type
 	safe->open = true;
 
 	if (stat(path, &stats) == 0) {
-		LOGE("safe %s already exists", path);
+		warnx("safe %s already exists", path);
 		return KP_EEXIST;
 	} else if (errno != ENOENT) {
-		LOGE("cannot create safe %s: %s (%d)", path, strerror(errno), errno);
+		warn("cannot create safe %s", path);
 		return KP_EINPUT;
 	}
 
 	safe->cipher.fd = open(safe->path, O_RDWR | O_NONBLOCK | O_CREAT, S_IRUSR | S_IWUSR);
 	if (safe->plain.fd < 0) {
-		LOGE("cannot open safe %s: %s (%d)", safe->path, strerror(errno), errno);
+		warn("cannot open safe %s", safe->path);
 		return KP_EINPUT;
 	}
 
@@ -121,7 +122,7 @@ kp_error_t
 kp_safe_close(struct kp_ctx *ctx, struct kp_safe *safe)
 {
 	if (close(safe->cipher.fd) < 0) {
-		LOGW("cannot close safe: %s (%d)", strerror(errno), errno);
+		warn("cannot close safe");
 		return errno;
 	}
 
@@ -132,14 +133,14 @@ kp_safe_close(struct kp_ctx *ctx, struct kp_safe *safe)
 		if (safe->plain.fd == 0) break;
 
 		if (close(safe->plain.fd) < 0) {
-			LOGW("cannot close clear text safe: %s (%d)", strerror(errno), errno);
+			warn("cannot close clear text safe");
 			return errno;
 		}
 
 		safe->plain.fd = 0;
 
 		if (unlink(safe->plain.path) < 0) {
-			LOGE("cannot delete clear text safe: %s (%d)", strerror(errno), errno);
+			warn("cannot delete clear text safe");
 			return errno;
 		}
 		break;

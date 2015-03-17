@@ -30,12 +30,12 @@
 #include "command/create.h"
 #include "command/open.h"
 
-static kp_error_t parse_opt(int, char **);
+static void       parse_opt(int, char **);
 static int        cmd_cmp(const void *, const void *);
 static int        cmd_sort(const void *, const void *);
 static kp_error_t command(int, char **);
-static kp_error_t show_version(void);
-static kp_error_t usage(void);
+static void       show_version(void);
+static void       usage(void);
 static kp_error_t init_ws_path(struct kp_ctx *);
 
 struct cmd {
@@ -66,8 +66,7 @@ static struct cmd cmds[] = {
 int
 main(int argc, char **argv)
 {
-
-	if (parse_opt(argc, argv) != KP_SUCCESS) error("cannot parse command line arguments");
+	parse_opt(argc, argv);
 
 	if (command(argc, argv) != KP_SUCCESS) {
 		return EXIT_FAILURE;
@@ -79,7 +78,7 @@ main(int argc, char **argv)
 /*
  * Parse global argument and command name.
  */
-static kp_error_t
+static void
 parse_opt(int argc, char **argv)
 {
 	int opt;
@@ -93,14 +92,14 @@ parse_opt(int argc, char **argv)
 		switch (opt) {
 		case 'v':
 			show_version();
-			exit(EXIT_SUCCESS);
+
 		case 'h':
 			usage();
-			exit(EXIT_SUCCESS);
+
+		default:
+			errx(KP_EINPUT, "unknown option %c", opt);
 		}
 	}
-
-	return KP_SUCCESS;
 }
 
 static int
@@ -121,19 +120,14 @@ init_ws_path(struct kp_ctx *ctx)
 	const char *home;
 
 	home = getenv("HOME");
-	if (!home) {
-		LOGE("cannot find $HOME environment variable");
-		return KP_EINPUT;
-	}
+	if (!home)
+		errx(KP_EINPUT, "cannot find $HOME environment variable");
 
-	if (strlcpy(ctx->ws_path, home, PATH_MAX) >= PATH_MAX) {
-		LOGE("memory error");
-		return KP_ENOMEM;
-	}
-	if (strlcat(ctx->ws_path, "/" KP_PATH, PATH_MAX) >= PATH_MAX) {
-		LOGE("memory error");
-		return KP_ENOMEM;
-	}
+	if (strlcpy(ctx->ws_path, home, PATH_MAX) >= PATH_MAX)
+		errx(KP_ENOMEM, "memory error");
+
+	if (strlcat(ctx->ws_path, "/" KP_PATH, PATH_MAX) >= PATH_MAX)
+		errx(KP_ENOMEM, "memory error");
 
 	return KP_SUCCESS;
 }
@@ -148,18 +142,14 @@ command(int argc, char **argv)
 	struct kp_ctx ctx;
 	const struct cmd *cmd;
 
-	if (optind >= argc) {
-		LOGE("missing command");
-		return KP_EINPUT;
-	}
+	if (optind >= argc)
+		errx(KP_EINPUT, "missing command");
 
 	qsort(cmds, CMD_COUNT, sizeof(struct cmd), cmd_sort);
 	cmd = bsearch(argv[optind], cmds, CMD_COUNT, sizeof(struct cmd), cmd_cmp);
 
-	if (!cmd) {
-		LOGE("unknown command %s", argv[optind]);
-		return KP_EINPUT;
-	}
+	if (!cmd)
+		errx(KP_EINPUT, "unknown command %s", argv[optind]);
 
 	optind++;
 
@@ -168,7 +158,7 @@ command(int argc, char **argv)
 	return cmd->cmd->main(&ctx, argc, argv);
 }
 
-static kp_error_t
+static void
 show_version(void)
 {
 	struct kp_storage *storage;
@@ -185,13 +175,13 @@ show_version(void)
 	kp_storage_get_version(storage, storage_version, sizeof(storage_version));
 	printf("storage engine %s %s\n", storage_engine, storage_version);
 
-	return KP_SUCCESS;
+	exit(EXIT_SUCCESS);
 }
 
 /*
  * Print global usage by calling each command own usage function.
  */
-static kp_error_t
+static void
 usage(void)
 {
 	int i;
@@ -210,5 +200,5 @@ usage(void)
 		if (cmds[i].cmd->usage) cmds[i].cmd->usage();
 	}
 
-	return KP_SUCCESS;
+	exit(EXIT_SUCCESS);
 }

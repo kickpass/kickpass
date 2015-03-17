@@ -27,7 +27,6 @@
 
 #include "editor.h"
 #include "error.h"
-#include "log.h"
 #include "storage.h"
 
 /*
@@ -43,8 +42,8 @@ kp_editor_open(struct kp_safe *safe)
 
 	assert(safe->plain.fd >= 0);
 	if (close(safe->plain.fd) < 0) {
-		LOGW("cannot close temporary clear text file %s: %s (%d)",
-				safe->plain.path, strerror(errno), errno);
+		warn("cannot close temporary clear text file %s",
+				safe->plain.path);
 	}
 
 	editor = getenv("EDITOR");
@@ -60,12 +59,12 @@ kp_editor_open(struct kp_safe *safe)
 
 		safe->plain.fd = open(safe->plain.path, O_RDONLY);
 		if (safe->plain.fd < 0) {
-			LOGE("cannot open temporary clear text file %s: %s (%d)",
-					safe->plain.path, strerror(errno), errno);
+			warn("cannot open temporary clear text file %s",
+					safe->plain.path);
 			if (unlink(safe->plain.path) < 0) {
-				LOGE("cannot delete temporary clear text file %s: %s (%d)",
-						safe->plain.path, strerror(errno), errno);
-				LOGE("ensure to delete it manually to avoid password leak");
+				warn("cannot delete temporary clear text file %s",
+						safe->plain.path);
+				warnx("ensure to delete it manually to avoid password leak");
 			}
 			return errno;
 		}
@@ -81,19 +80,19 @@ kp_error_t
 kp_editor_get_tmp(struct kp_ctx *ctx, struct kp_safe *safe, bool keep_open)
 {
 	if (strlcpy(safe->plain.path, ctx->ws_path, PATH_MAX) >= PATH_MAX) {
-		LOGE("memory error");
+		warnx("memory error");
 		return KP_ENOMEM;
 	}
 
 	if (strlcat(safe->plain.path, "/.kpXXXXXX", PATH_MAX) >= PATH_MAX) {
-		LOGE("memory error");
+		warnx("memory error");
 		return KP_ENOMEM;
 	}
 
 	safe->plain.fd = mkstemp(safe->plain.path);
 	if (safe->plain.fd < 0) {
-		LOGE("cannot create create temporary file %s: %s (%d)",
-				safe->plain.path, strerror(errno), errno);
+		warn("cannot create temporary file %s",
+				safe->plain.path);
 		return errno;
 	}
 

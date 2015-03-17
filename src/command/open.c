@@ -14,10 +14,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/stat.h>
+
 #include <errno.h>
 #include <getopt.h>
+#include <stdio.h>
 #include <string.h>
-#include <sys/stat.h>
 
 #include "kickpass.h"
 
@@ -44,45 +46,45 @@ open(struct kp_ctx *ctx, int argc, char **argv)
 	struct kp_safe safe;
 
 	if (argc - optind != 1) {
-		LOGE("missing safe name");
+		warnx("missing safe name");
 		return KP_EINPUT;
 	}
 
 	if ((ret = kp_storage_init(ctx, &storage)) != KP_SUCCESS) return ret;
 
 	if (strlcpy(path, ctx->ws_path, PATH_MAX) >= PATH_MAX) {
-		LOGE("memory error");
+		warnx("memory error");
 		ret = KP_ENOMEM;
 		goto out;
 	}
 
 	if (strlcat(path, "/", PATH_MAX) >= PATH_MAX) {
-		LOGE("memory error");
+		warnx("memory error");
 		ret = KP_ENOMEM;
 		goto out;
 	}
 
 	if (strlcat(path, argv[optind], PATH_MAX) >= PATH_MAX) {
-		LOGE("memory error");
+		warnx("memory error");
 		ret = KP_ENOMEM;
 		goto out;
 	}
 
 	if ((ret = kp_safe_load(ctx, path, KP_SAFE_PLAINTEXT_MEMORY, &safe)) != KP_SUCCESS) {
-		LOGE("cannot load safe");
+		warnx("cannot load safe");
 		goto out;
 	}
 
 	if ((ret = kp_storage_open(storage, &safe)) != KP_SUCCESS) {
-		LOGE("cannot save safe");
+		warnx("cannot save safe");
 		return ret;
 	}
 
 	printf("%s\n", safe.plain.data);
 
 	if ((ret = kp_safe_close(ctx, &safe)) != KP_SUCCESS) {
-		LOGE("cannot cleanly close safe");
-		LOGE("clear text password might have leaked");
+		warnx("cannot cleanly close safe");
+		warnx("clear text password might have leaked");
 	}
 
 out:

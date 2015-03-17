@@ -18,11 +18,11 @@
 #define KP_KICKPASS_H
 
 #include <stdbool.h>
+#include <err.h>
 #include <limits.h>
 
 #include "error.h"
 #include "kickpass_config.h"
-#include "log.h"
 
 struct kp_ctx {
 	char                  ws_path[PATH_MAX];

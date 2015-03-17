@@ -14,10 +14,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/stat.h>
+
 #include <errno.h>
 #include <getopt.h>
+#include <stdio.h>
 #include <string.h>
-#include <sys/stat.h>
 
 #include "kickpass.h"
 
@@ -44,52 +46,52 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 	struct kp_safe safe;
 
 	if (argc - optind != 1) {
-		LOGE("missing safe name");
+		warnx("missing safe name");
 		return KP_EINPUT;
 	}
 
 	if ((ret = kp_storage_init(ctx, &storage)) != KP_SUCCESS) return ret;
 
 	if (strlcpy(path, ctx->ws_path, PATH_MAX) >= PATH_MAX) {
-		LOGE("memory error");
+		warnx("memory error");
 		ret = KP_ENOMEM;
 		goto out;
 	}
 
 	if (strlcat(path, "/", PATH_MAX) >= PATH_MAX) {
-		LOGE("memory error");
+		warnx("memory error");
 		ret = KP_ENOMEM;
 		goto out;
 	}
 
 	if (strlcat(path, argv[optind], PATH_MAX) >= PATH_MAX) {
-		LOGE("memory error");
+		warnx("memory error");
 		ret = KP_ENOMEM;
 		goto out;
 	}
 
 	if ((ret = kp_safe_create(ctx, path, KP_SAFE_PLAINTEXT_FILE, &safe)) != KP_SUCCESS) {
 		if (ret == KP_EEXIST) {
-			LOGI("please use edit command to edit an existing safe");
+			printf("please use edit command to edit an existing safe");
 		} else {
-			LOGE("cannot create safe");
+			warnx("cannot create safe");
 		}
 		goto out;
 	}
 
 	if ((ret = kp_editor_open(&safe)) != KP_SUCCESS) {
-		LOGE("cannot edit safe");
+		warnx("cannot edit safe");
 		return ret;
 	}
 
 	if ((ret = kp_storage_save(storage, &safe)) != KP_SUCCESS) {
-		LOGE("cannot save safe");
+		warnx("cannot save safe");
 		return ret;
 	}
 
 	if ((ret = kp_safe_close(ctx, &safe)) != KP_SUCCESS) {
-		LOGE("cannot cleanly close safe");
-		LOGE("clear text password might have leaked");
+		warnx("cannot cleanly close safe");
+		warnx("clear text password might have leaked");
 	}
 
 out:
