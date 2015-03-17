@@ -30,13 +30,13 @@
 #include "command/create.h"
 #include "command/open.h"
 
-static kp_error_t parse_opt(int argc, char **argv);
-static int        cmd_cmp(const void *k, const void *e);
-static int        cmd_sort(const void *a, const void *b);
-static kp_error_t command(int argc, char **argv);
+static kp_error_t parse_opt(int, char **);
+static int        cmd_cmp(const void *, const void *);
+static int        cmd_sort(const void *, const void *);
+static kp_error_t command(int, char **);
 static kp_error_t show_version(void);
 static kp_error_t usage(void);
-static kp_error_t init_ws_path(struct kp_ctx *ctx);
+static kp_error_t init_ws_path(struct kp_ctx *);
 
 struct cmd {
 	const char    *name;
@@ -59,6 +59,10 @@ static struct cmd cmds[] = {
 	{ "open",   &kp_cmd_open },
 };
 
+/*
+ * Parse command line and call matching command.
+ * Most command are aliased and parse their own arguments.
+ */
 int
 main(int argc, char **argv)
 {
@@ -72,6 +76,9 @@ main(int argc, char **argv)
 	}
 }
 
+/*
+ * Parse global argument and command name.
+ */
 static kp_error_t
 parse_opt(int argc, char **argv)
 {
@@ -131,6 +138,9 @@ init_ws_path(struct kp_ctx *ctx)
 	return KP_SUCCESS;
 }
 
+/*
+ * Call given command and let it parse its own arguments.
+ */
 static kp_error_t
 command(int argc, char **argv)
 {
@@ -178,19 +188,23 @@ show_version(void)
 	return KP_SUCCESS;
 }
 
+/*
+ * Print global usage by calling each command own usage function.
+ */
 static kp_error_t
 usage(void)
 {
 	int i;
+	extern char *__progname;
 	char usage[] =
-		"usage: kickpass [-hv] <command> [<args>]\n"
+		"usage: %s [-hv] <command> [<args>]\n"
 		"\n"
 		"options:\n"
 		"    -h, --help     Display this help\n"
-		"    -v, --version  Show kickass version\n"
+		"    -v, --version  Show %s version\n"
 		"\n"
 		"commands:\n";
-	printf(usage);
+	printf(usage, __progname, __progname);
 	for (i = 0; i < CMD_COUNT; i++) {
 		if (cmds[i-1].cmd == cmds[i].cmd) continue;
 		if (cmds[i].cmd->usage) cmds[i].cmd->usage();
