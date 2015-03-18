@@ -62,6 +62,6 @@ out:
 kp_error_t
 usage(void)
 {
-	printf("    %-10s%s\n", "init", "Initialize a new password safe directory");
+	printf("    %-10s%s\n", "init", "Initialize a new password safe directory. Default to ~/" KP_PATH);
 	return KP_SUCCESS;
 }
