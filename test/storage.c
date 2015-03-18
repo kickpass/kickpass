@@ -123,7 +123,7 @@ START_TEST(test_storage_decrypt_should_be_successful)
 	gpgme_set_passphrase_cb(storage->gpgme_ctx, gpgme_passphrase_cb_test, NULL);
 
 	/* When */
-	ret |= kp_storage_decrypt(storage, cipher, plain);
+	ret |= kp_storage_decrypt(storage, plain, cipher);
 
 	/* Then */
 	ck_assert_int_eq(ret, KP_SUCCESS);
