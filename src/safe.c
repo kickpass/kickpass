@@ -64,7 +64,7 @@ kp_safe_load(struct kp_ctx *ctx, const char *path, enum kp_safe_plaintext_type t
 	}
 
 	safe->cipher.fd = open(safe->path, O_RDWR | O_NONBLOCK);
-	if (safe->plain.fd < 0) {
+	if (safe->cipher.fd < 0) {
 		warn("cannot open safe %s", safe->path);
 		return KP_EINPUT;
 	}
@@ -99,7 +99,7 @@ kp_safe_create(struct kp_ctx *ctx, const char *path, enum kp_safe_plaintext_type
 	}
 
 	safe->cipher.fd = open(safe->path, O_RDWR | O_NONBLOCK | O_CREAT, S_IRUSR | S_IWUSR);
-	if (safe->plain.fd < 0) {
+	if (safe->cipher.fd < 0) {
 		warn("cannot open safe %s", safe->path);
 		return KP_EINPUT;
 	}
