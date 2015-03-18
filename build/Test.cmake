@@ -22,7 +22,7 @@ if (CHECK_FOUND)
 		set(oneValueArgs NAME FILE)
 		set(multiValueArgs LIBS)
 		cmake_parse_arguments(UNIT_TEST "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-		set(TEST_NAME test-unit-${INTEGRATION_TEST_NAME})
+		set(TEST_NAME test-unit-${UNIT_TEST_NAME})
 
 		add_executable(${TEST_NAME} ${UNIT_TEST_FILE})
 		target_link_libraries(${TEST_NAME} ${CHECK_LIBRARIES})
