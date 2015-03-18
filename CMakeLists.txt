@@ -34,7 +34,6 @@ include_directories("${PROJECT_BINARY_DIR}/src/")
 include_directories("${PROJECT_SOURCE_DIR}/include/")
 
 add_executable(kickpass
-	src/error.c
 	src/main.c
 	src/storage.c
 	src/editor.c
