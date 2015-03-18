@@ -17,6 +17,7 @@
 # Configure cmake
 cmake_minimum_required(VERSION 2.6)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build)
+set(CTEST_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build)
 
 # Configure project
 project(KickPass C)

@@ -14,6 +14,8 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 
-include(TestUnit)
+include(Test)
 
-TEST_UNIT(NAME storage FILE storage.c LIBS ${LIBS})
+UNIT_TEST(NAME storage FILE storage.c LIBS ${LIBS})
+INTEGRATION_TEST(NAME init FILE init.sh)
+INTEGRATION_TEST(NAME create FILE create.sh)
