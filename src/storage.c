@@ -86,6 +86,7 @@ kp_storage_init(struct kp_ctx *ctx, struct kp_storage **storage)
 	case GPG_ERR_ENOMEM:
 		return KP_ENOMEM;
 	default:
+		warnx("cannot initialize GnuPG: %s", gpgme_strerror(error));
 		return KP_EINTERNAL;
 	}
 
