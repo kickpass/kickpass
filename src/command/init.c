@@ -44,7 +44,7 @@ init(struct kp_ctx *ctx, int argc, char **argv)
 		ret = KP_EINPUT;
 		goto out;
 	} else if (errno & ENOENT) {
-		printf("creating workspace %s", ctx->ws_path);
+		printf("creating workspace %s\n", ctx->ws_path);
 		mkdir(ctx->ws_path, 0700);
 	} else {
 		warn("invalid workspace %s", ctx->ws_path);

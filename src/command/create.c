@@ -72,7 +72,7 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 
 	if ((ret = kp_safe_create(ctx, path, KP_SAFE_PLAINTEXT_FILE, &safe)) != KP_SUCCESS) {
 		if (ret == KP_EEXIST) {
-			printf("please use edit command to edit an existing safe");
+			printf("please use edit command to edit an existing safe\n");
 		} else {
 			warnx("cannot create safe");
 		}
