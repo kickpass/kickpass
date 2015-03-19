@@ -1,5 +1,7 @@
 spawn $::env(KP) create test
 expect {
-	password: { send "test password\r" }
+	password: { send "test password\n" }
 }
-wait
+expect {
+	eof { puts [wait] }
+}
