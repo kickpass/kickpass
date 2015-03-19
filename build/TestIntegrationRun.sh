@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
 TEST_NAME=$1
@@ -15,4 +15,4 @@ function abort {
 	return 1
 }
 
-source $TEST
+. $TEST
