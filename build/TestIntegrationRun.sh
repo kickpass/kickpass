@@ -10,7 +10,7 @@ TEST=$2
 echo "Running test $TEST_NAME"
 echo "HOME=$HOME KP=$KP EDITOR=$EDITOR EXPECT=$EXPECT SRC=$SRC $0 $TEST_NAME $TEST"
 
-function abort {
+abort() {
 	echo $1
 	return 1
 }
