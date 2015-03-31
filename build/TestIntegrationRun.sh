@@ -1,8 +1,9 @@
 #!/bin/sh
 set -e
 
-TEST_NAME=$1
-TEST=$2
+export KP=$1
+TEST_NAME=$2
+TEST=$3
 
 [ -d $HOME ] || mkdir $HOME
 [ ! -d $HOME/.kickpass ] || rm -r $HOME/.kickpass

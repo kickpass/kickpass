@@ -44,13 +44,11 @@ if (EXPECT)
 		set(TEST_NAME test-integration-${INTEGRATION_TEST_NAME})
 
 		add_test(NAME ${TEST_NAME}
-			COMMAND ${CTEST_MODULE_PATH}/TestIntegrationRun.sh "${TEST_NAME}" "${CMAKE_CURRENT_SOURCE_DIR}/${INTEGRATION_TEST_FILE}")
+			COMMAND ${CTEST_MODULE_PATH}/TestIntegrationRun.sh $<TARGET_FILE:kickpass> "${TEST_NAME}" "${CMAKE_CURRENT_SOURCE_DIR}/${INTEGRATION_TEST_FILE}")
 
 		set(TEST_ENV "")
 		list(APPEND TEST_ENV "HOME=${CMAKE_CURRENT_BINARY_DIR}/workspace")
 		list(APPEND TEST_ENV "SRC=${CMAKE_CURRENT_SOURCE_DIR}")
-		get_property(kickpass_location TARGET kickpass PROPERTY LOCATION)
-		list(APPEND TEST_ENV "KP=${kickpass_location}")
 		list(APPEND TEST_ENV "EDITOR=${CTEST_MODULE_PATH}/TestIntegrationEditor.sh")
 		list(APPEND TEST_ENV "EXPECT=${EXPECT}")
 		set_tests_properties(${TEST_NAME} PROPERTIES ENVIRONMENT "${TEST_ENV}")
