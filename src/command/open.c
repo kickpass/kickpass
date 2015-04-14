@@ -40,7 +40,7 @@ struct kp_cmd kp_cmd_open = {
 kp_error_t
 open(struct kp_ctx *ctx, int argc, char **argv)
 {
-	kp_error_t ret = KP_SUCCESS;
+	kp_error_t ret;
 	char path[PATH_MAX];
 	struct kp_safe safe;
 
@@ -83,6 +83,7 @@ open(struct kp_ctx *ctx, int argc, char **argv)
 	if ((ret = kp_safe_close(ctx, &safe)) != KP_SUCCESS) {
 		warnx("cannot cleanly close safe");
 		warnx("clear text password might have leaked");
+		return ret;
 	}
 
 	return KP_SUCCESS;

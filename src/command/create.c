@@ -40,7 +40,7 @@ struct kp_cmd kp_cmd_create = {
 kp_error_t
 create(struct kp_ctx *ctx, int argc, char **argv)
 {
-	kp_error_t ret = KP_SUCCESS;
+	kp_error_t ret;
 	char path[PATH_MAX];
 	struct kp_safe safe;
 
@@ -51,24 +51,23 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 
 	if (strlcpy(path, ctx->ws_path, PATH_MAX) >= PATH_MAX) {
 		warnx("memory error");
-		ret = KP_ENOMEM;
-		goto out;
+		return KP_ENOMEM;
 	}
 
 	if (strlcat(path, "/", PATH_MAX) >= PATH_MAX) {
 		warnx("memory error");
 		ret = KP_ENOMEM;
-		goto out;
+		return ret;
 	}
 
 	if (strlcat(path, argv[optind], PATH_MAX) >= PATH_MAX) {
 		warnx("memory error");
 		ret = KP_ENOMEM;
-		goto out;
+		return ret;
 	}
 
 	if ((ret = kp_load_passwd(ctx)) != KP_SUCCESS) {
-		goto out;
+		return ret;
 	}
 
 	if ((ret = kp_safe_create(ctx, &safe, path)) != KP_SUCCESS) {
@@ -77,26 +76,26 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 		} else {
 			warnx("cannot create safe");
 		}
-		goto out;
+		return ret;
 	}
 
 	if ((ret = kp_edit(ctx, &safe)) != KP_SUCCESS) {
 		warnx("cannot edit safe");
-		goto out;
+		return ret;
 	}
 
 	if ((ret = kp_storage_save(ctx, &safe)) != KP_SUCCESS) {
 		warnx("cannot save safe");
-		goto out;
+		return ret;
 	}
 
 	if ((ret = kp_safe_close(ctx, &safe)) != KP_SUCCESS) {
 		warnx("cannot cleanly close safe");
 		warnx("clear text password might have leaked");
+		return ret;
 	}
 
-out:
-	return ret;
+	return KP_SUCCESS;
 }
 
 kp_error_t
