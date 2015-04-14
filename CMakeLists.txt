@@ -44,6 +44,7 @@ add_executable(kickpass
 	src/command/init.c
 	src/command/create.c
 	src/command/open.c
+	src/command/edit.c
 )
 
 # Configure portability

@@ -28,6 +28,7 @@
 /* commands */
 #include "command/init.h"
 #include "command/create.h"
+#include "command/edit.h"
 #include "command/open.h"
 
 static int        cmd_cmp(const void *, const void *);
@@ -56,6 +57,10 @@ static struct cmd cmds[] = {
 	/* kp_cmd_open */
 	{ "show",   &kp_cmd_open },
 	{ "open",   &kp_cmd_open },
+	{ "cat",    &kp_cmd_open },
+
+	/* kp_cmp_edit */
+	{ "edit",   &kp_cmd_edit },
 };
 
 /*

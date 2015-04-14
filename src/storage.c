@@ -257,6 +257,7 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 	}
 
 	safe->plain[safe->plain_size] = '\0';
+	safe->open = true;
 
 out:
 	free(cipher);
