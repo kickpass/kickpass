@@ -30,13 +30,12 @@
 #include "command/create.h"
 #include "command/open.h"
 
-static void       parse_opt(int, char **);
 static int        cmd_cmp(const void *, const void *);
 static int        cmd_sort(const void *, const void *);
-static kp_error_t command(int, char **);
-static void       show_version(void);
-static void       usage(void);
-static kp_error_t init_ws_path(struct kp_ctx *);
+static kp_error_t command(struct kp_ctx *, int, char **);
+static kp_error_t parse_opt(struct kp_ctx *, int, char **);
+static kp_error_t show_version(struct kp_ctx *);
+static kp_error_t usage(struct kp_ctx *);
 
 struct cmd {
 	const char    *name;
@@ -66,20 +65,23 @@ static struct cmd cmds[] = {
 int
 main(int argc, char **argv)
 {
-	parse_opt(argc, argv);
+	int ret;
+	struct kp_ctx ctx;
 
-	if (command(argc, argv) != KP_SUCCESS) {
-		return EXIT_FAILURE;
-	} else {
-		return EXIT_SUCCESS;
-	}
+	kp_init(&ctx);
+
+	ret = parse_opt(&ctx, argc, argv);
+
+	kp_fini(&ctx);
+
+	return ret;
 }
 
 /*
  * Parse global argument and command name.
  */
-static void
-parse_opt(int argc, char **argv)
+static kp_error_t
+parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 {
 	int opt;
 	static struct option longopts[] = {
@@ -91,15 +93,16 @@ parse_opt(int argc, char **argv)
 	while ((opt = getopt_long(argc, argv, "vh", longopts, NULL)) != -1) {
 		switch (opt) {
 		case 'v':
-			show_version();
-
+			return show_version(ctx);
 		case 'h':
-			usage();
-
+			return usage(ctx);
 		default:
-			errx(KP_EINPUT, "unknown option %c", opt);
+			warnx("unknown option %c", opt);
+			return KP_EINPUT;
 		}
 	}
+
+	return command(ctx, argc, argv);
 }
 
 static int
@@ -114,32 +117,12 @@ cmd_sort(const void *a, const void *b)
 	return strcmp(((struct cmd *)a)->name, ((struct cmd *)b)->name);
 }
 
-static kp_error_t
-init_ws_path(struct kp_ctx *ctx)
-{
-	const char *home;
-
-	home = getenv("HOME");
-	if (!home)
-		errx(KP_EINPUT, "cannot find $HOME environment variable");
-
-	if (strlcpy(ctx->ws_path, home, PATH_MAX) >= PATH_MAX)
-		errx(KP_ENOMEM, "memory error");
-
-	if (strlcat(ctx->ws_path, "/" KP_PATH, PATH_MAX) >= PATH_MAX)
-		errx(KP_ENOMEM, "memory error");
-
-	return KP_SUCCESS;
-}
-
 /*
  * Call given command and let it parse its own arguments.
  */
 static kp_error_t
-command(int argc, char **argv)
+command(struct kp_ctx *ctx, int argc, char **argv)
 {
-	kp_error_t ret;
-	struct kp_ctx ctx;
 	const struct cmd *cmd;
 
 	if (optind >= argc)
@@ -153,36 +136,25 @@ command(int argc, char **argv)
 
 	optind++;
 
-	if ((ret = init_ws_path(&ctx)) != KP_SUCCESS) return ret;
-
-	return cmd->cmd->main(&ctx, argc, argv);
+	return cmd->cmd->main(ctx, argc, argv);
 }
 
-static void
-show_version(void)
+static kp_error_t
+show_version(struct kp_ctx *ctx)
 {
-	struct kp_storage *storage;
-	struct kp_ctx ctx;
-	char storage_engine[10], storage_version[10];
-
 	printf("KickPass version %d.%d.%d\n",
 			KICKPASS_VERSION_MAJOR,
 			KICKPASS_VERSION_MINOR,
 			KICKPASS_VERSION_PATCH);
 
-	kp_storage_init(&ctx, &storage);
-	kp_storage_get_engine(storage, storage_engine, sizeof(storage_engine));
-	kp_storage_get_version(storage, storage_version, sizeof(storage_version));
-	printf("storage engine %s %s\n", storage_engine, storage_version);
-
-	exit(EXIT_SUCCESS);
+	return KP_SUCCESS;
 }
 
 /*
  * Print global usage by calling each command own usage function.
  */
-static void
-usage(void)
+static kp_error_t
+usage(struct kp_ctx *ctx)
 {
 	int i;
 	extern char *__progname;
@@ -200,5 +172,5 @@ usage(void)
 		if (cmds[i].cmd->usage) cmds[i].cmd->usage();
 	}
 
-	exit(EXIT_SUCCESS);
+	return KP_SUCCESS;
 }

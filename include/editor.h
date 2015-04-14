@@ -22,7 +22,6 @@
 #include "safe.h"
 #include "storage.h"
 
-kp_error_t kp_editor_get_tmp(struct kp_ctx *, struct kp_safe *, bool);
-kp_error_t kp_editor_open(struct kp_safe *);
+kp_error_t kp_edit(struct kp_ctx *, struct kp_safe *);
 
 #endif /* KP_EDITOR_H */

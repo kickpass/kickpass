@@ -18,6 +18,7 @@
 
 #include <assert.h>
 #include <fcntl.h>
+#include <sodium.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,42 +30,30 @@
 #include "safe.h"
 #include "storage.h"
 
+static kp_error_t kp_safe_init(struct kp_safe *, const char *, bool);
+
 /*
  * Load an existing safe.
  * Init the kp_safe structure and open the cipher file.
  * The returned safe is closed.
  */
 kp_error_t
-kp_safe_load(struct kp_ctx *ctx, const char *path, enum kp_safe_plaintext_type type, struct kp_safe *safe)
+kp_safe_load(struct kp_ctx *ctx, struct kp_safe *safe, const char *path)
 {
+	kp_error_t ret;
 	struct stat stats;
 
-	if (strlcpy(safe->path, path, PATH_MAX) >= PATH_MAX) {
-		warnx("memory error");
-		return KP_ENOMEM;
+	if ((ret = kp_safe_init(safe, path, false)) != KP_SUCCESS) {
+		return ret;
 	}
-
-	safe->plain.type = type;
-	switch (safe->plain.type) {
-	case KP_SAFE_PLAINTEXT_FILE:
-		safe->plain.fd = 0;
-		break;
-	case KP_SAFE_PLAINTEXT_MEMORY:
-		safe->plain.size = 0;
-		safe->plain.data = NULL;
-		break;
-	default:
-		assert(false);
-	}
-	safe->open = false;
 
 	if (stat(path, &stats) != 0) {
 		warn("unknown safe %s", path);
 		return KP_EINPUT;
 	}
 
-	safe->cipher.fd = open(safe->path, O_RDWR | O_NONBLOCK);
-	if (safe->cipher.fd < 0) {
+	safe->cipher = open(safe->path, O_RDWR | O_NONBLOCK);
+	if (safe->cipher < 0) {
 		warn("cannot open safe %s", safe->path);
 		return KP_EINPUT;
 	}
@@ -77,18 +66,14 @@ kp_safe_load(struct kp_ctx *ctx, const char *path, enum kp_safe_plaintext_type t
  * The returned safe is opened.
  */
 kp_error_t
-kp_safe_create(struct kp_ctx *ctx, const char *path, enum kp_safe_plaintext_type type, struct kp_safe *safe)
+kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *path)
 {
 	kp_error_t ret;
 	struct stat stats;
 
-	if (strlcpy(safe->path, path, PATH_MAX) >= PATH_MAX) {
-		warnx("memory error");
-		return KP_ENOMEM;
+	if ((ret = kp_safe_init(safe, path, true)) != KP_SUCCESS) {
+		return ret;
 	}
-
-	safe->plain.type = type;
-	safe->open = true;
 
 	if (stat(path, &stats) == 0) {
 		warnx("safe %s already exists", path);
@@ -98,17 +83,14 @@ kp_safe_create(struct kp_ctx *ctx, const char *path, enum kp_safe_plaintext_type
 		return KP_EINPUT;
 	}
 
-	safe->cipher.fd = open(safe->path, O_RDWR | O_NONBLOCK | O_CREAT, S_IRUSR | S_IWUSR);
-	if (safe->cipher.fd < 0) {
+	safe->cipher = open(safe->path, O_RDWR | O_NONBLOCK | O_CREAT, S_IRUSR | S_IWUSR);
+	if (safe->cipher < 0) {
 		warn("cannot open safe %s", safe->path);
 		return KP_EINPUT;
 	}
 
-	if ((ret = kp_editor_get_tmp(ctx, safe, true)) != KP_SUCCESS) {
-		return ret;
-	}
-
-	dprintf(safe->plain.fd, "%s", KP_SAFE_TEMPLATE);
+	memcpy(safe->plain, KP_SAFE_TEMPLATE, sizeof(KP_SAFE_TEMPLATE));
+	safe->plain_size = sizeof(KP_SAFE_TEMPLATE)-1;
 
 	return KP_SUCCESS;
 }
@@ -121,38 +103,28 @@ kp_safe_create(struct kp_ctx *ctx, const char *path, enum kp_safe_plaintext_type
 kp_error_t
 kp_safe_close(struct kp_ctx *ctx, struct kp_safe *safe)
 {
-	if (close(safe->cipher.fd) < 0) {
+	if (close(safe->cipher) < 0) {
 		warn("cannot close safe");
 		return errno;
 	}
 
-	safe->cipher.fd = 0;
+	safe->cipher = 0;
 
-	switch (safe->plain.type) {
-	case KP_SAFE_PLAINTEXT_FILE:
-		if (safe->plain.fd == 0) break;
+	sodium_free(safe->plain);
 
-		if (close(safe->plain.fd) < 0) {
-			warn("cannot close clear text safe");
-			return errno;
-		}
+	return KP_SUCCESS;
+}
 
-		safe->plain.fd = 0;
-
-		if (unlink(safe->plain.path) < 0) {
-			warn("cannot delete clear text safe");
-			return errno;
-		}
-		break;
-	case KP_SAFE_PLAINTEXT_MEMORY:
-		if (safe->plain.data == NULL) break;
-
-		// XXX shred memory ?
-		free(safe->plain.data);
-		break;
-	default:
-		assert(false);
+static kp_error_t
+kp_safe_init(struct kp_safe *safe, const char *path, bool open)
+{
+	if (strlcpy(safe->path, path, PATH_MAX) >= PATH_MAX) {
+		warnx("memory error");
+		return KP_ENOMEM;
 	}
+
+	safe->open = open;
+	safe->plain = sodium_malloc(KP_PLAIN_MAX_SIZE);
 
 	return KP_SUCCESS;
 }

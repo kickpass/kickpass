@@ -36,6 +36,7 @@ include_directories("${PROJECT_SOURCE_DIR}/include/")
 
 add_executable(kickpass
 	src/main.c
+	src/kickpass.c
 	src/storage.c
 	src/editor.c
 	src/safe.c
@@ -49,9 +50,9 @@ add_executable(kickpass
 include(build/compat/bsd.cmake)
 
 # Configure dependencies
-find_package(GPGME REQUIRED)
-include_directories(${GPGME_INCLUDE_DIRS})
-set(LIBS ${LIBS} ${GPGME_LIBRARIES})
+find_package(Sodium REQUIRED)
+include_directories(${SODIUM_INCLUDE_DIRS})
+set(LIBS ${LIBS} ${SODIUM_LIBRARIES})
 
 # Link all dependencies
 target_link_libraries(kickpass ${LIBS})

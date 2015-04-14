@@ -15,89 +15,34 @@
  */
 
 #include <check.h>
-#include <gpgme.h>
 
 #include "check_compat.h"
 
 #include "../src/storage.c"
 
-gpgme_error_t
-gpgme_passphrase_cb_test(void *hook, const char *uid_hint, const char *passphrase_info, int prev_was_bad, int fd)
-{
-	const char passwd[] = "test\n";
-	gpgme_io_write(fd, passwd, sizeof(passwd)-1);
-	return 0;
-}
-
-START_TEST(test_storage_should_init)
-{
-	/* Given */
-	int ret = KP_SUCCESS;
-	struct kp_storage *storage;
-
-	/* When */
-	ret |= kp_storage_init(NULL, &storage);
-
-	/* Then */
-	ck_assert_int_eq(ret, KP_SUCCESS);
-	ck_assert_ptr_ne(storage, NULL);
-
-	/* Cleanup */
-	kp_storage_fini(storage);
-}
-END_TEST
-
-START_TEST(test_storage_should_provide_engine_and_version)
-{
-	/* Given */
-	char engine[10];
-	char version[10];
-	int ret = KP_SUCCESS;
-	struct kp_storage *storage;
-
-	ret = kp_storage_init(NULL, &storage);
-
-	/* When */
-	ret |= kp_storage_get_engine(storage, engine, sizeof(engine));
-	ret |= kp_storage_get_version(storage, version, sizeof(version));
-
-	/* Then */
-	ck_assert_int_eq(ret, KP_SUCCESS);
-	ck_assert_str_eq(engine, "gpg");
-	ck_assert_int_gt(strlen(version), 0);
-
-	/* Cleanup */
-	kp_storage_fini(storage);
-}
-END_TEST
-
 START_TEST(test_storage_encrypt_should_be_successful)
 {
 	/* Given */
 	int ret = KP_SUCCESS;
-	struct kp_storage *storage;
-	gpgme_data_t plain, cipher;
-	char plaintext[] = "test";
-	char ciphertext[256] = { 0 };
-#define CIPHER_HEADER "-----BEGIN PGP MESSAGE-----"
+	struct kp_ctx ctx;
+	unsigned char plain[] = "test", cipher[256] = { 0 };
+	struct kp_storage_header header;
 
-	ret = kp_storage_init(NULL, &storage);
-	gpgme_data_new_from_mem(&plain, plaintext, sizeof(plaintext), 1);
-	gpgme_data_new_from_mem(&cipher, ciphertext, sizeof(ciphertext), 0);
-	gpgme_set_passphrase_cb(storage->gpgme_ctx, gpgme_passphrase_cb_test, NULL);
+	header.version = 0xde;
+	header.sodium_version = 0xad;
+	header.opslimit = crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_INTERACTIVE;
+	header.memlimit = crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_INTERACTIVE;
+
+	ctx.password = "test";
 
 	/* When */
-	ret |= kp_storage_encrypt(storage, plain, cipher);
+	ret |= kp_storage_encrypt(&ctx, &header, plain, cipher, sizeof(plain));
 
 	/* Then */
 	ck_assert_int_eq(ret, KP_SUCCESS);
-	gpgme_data_seek(cipher, 0, SEEK_SET);
-	gpgme_data_read(cipher, ciphertext, strlen(CIPHER_HEADER));
-	ck_assert_str_eq(ciphertext, CIPHER_HEADER);
-
-	/* Cleanup */
-	kp_storage_fini(storage);
-#undef CIPHER_HEADER
+	ck_assert(header.data);
+	ck_assert_int_gt(header.data_size, 0);
+	free(header.data);
 }
 END_TEST
 
@@ -105,35 +50,38 @@ START_TEST(test_storage_decrypt_should_be_successful)
 {
 	/* Given */
 	int ret = KP_SUCCESS;
-	struct kp_storage *storage;
-	gpgme_data_t plain, cipher;
-	char plaintext[5] = { 0 };
-	char ciphertext[] =
-		"-----BEGIN PGP MESSAGE-----\n"
-		"Version: GnuPG v2\n"
-		"\n"
-		"jA0EBwMC19HAbfCKnrC+0joB2oeqgmUTMsDnJrRlZ1KmSr2FtpUCa+ikN2sas+87\n"
-		"MQRE3V5DijqMMDbVnVXhC8K4u/jHP4MXUAJa\n"
-		"=Lmrh\n"
-		"-----END PGP MESSAGE-----";
+	struct kp_ctx ctx;
+	struct kp_storage_header header;
+	unsigned char plain[256], cipher[] = {
+		0x75, 0xbd, 0x17, 0x20, 0x9f, 0xa6, 0xbf, 0x19,
+		0x89, 0xdd, 0x33, 0x38, 0x84, 0x74, 0xc9, 0x07,
+		0x93, 0xbe, 0xc6, 0x67, 0xaa,
+	};
+	unsigned char hdata[] = {
+		0xb6, 0xa9, 0xb3, 0x8c, 0x10, 0x47, 0xde, 0x9e,
+		0xdd, 0x5d, 0xf4, 0x38, 0x36, 0x83, 0x67, 0x9b,
+		0x8b, 0x9c, 0x10, 0xab, 0x84, 0x75, 0x7a, 0xc7,
+		0x04, 0xee, 0x64, 0xe5, 0xda, 0x5c, 0x90, 0x7d,
+		0x34, 0x82, 0x2c, 0x10, 0x58, 0xc9, 0x63, 0x69,
+		0xc4, 0x78, 0xce, 0xc1, 0x73, 0x55, 0xcd, 0x0d,
+		0x9b, 0x33, 0x17, 0x44, 0x41, 0xfc, 0x45, 0xcc,
+	};
 
-	ret = kp_storage_init(NULL, &storage);
-	gpgme_data_new_from_mem(&plain, plaintext, sizeof(plaintext), 1);
-	gpgme_data_new_from_mem(&cipher, ciphertext, sizeof(ciphertext), 0);
-	gpgme_set_passphrase_cb(storage->gpgme_ctx, gpgme_passphrase_cb_test, NULL);
+	header.version = 0xde;
+	header.sodium_version = 0xad;
+	header.opslimit = crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_INTERACTIVE;
+	header.memlimit = crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_INTERACTIVE;
+	header.data = hdata;
+	header.data_size = sizeof(hdata);
+
+	ctx.password = "test";
 
 	/* When */
-	ret |= kp_storage_decrypt(storage, plain, cipher);
+	ret |= kp_storage_decrypt(&ctx, &header, plain, cipher, sizeof(cipher));
 
 	/* Then */
 	ck_assert_int_eq(ret, KP_SUCCESS);
-	ck_assert_int_eq(gpgme_data_seek(plain, 0, SEEK_CUR), sizeof(plaintext));
-	gpgme_data_seek(plain, 0, SEEK_SET);
-	gpgme_data_read(plain, plaintext, sizeof(plaintext));
-	ck_assert_str_eq(plaintext, "test");
-
-	/* Cleanup */
-	kp_storage_fini(storage);
+	ck_assert_str_eq(plain, "test");
 }
 END_TEST
 
@@ -144,13 +92,12 @@ main(int argc, char **argv)
 
 	Suite *suite = suite_create("storage_test_suite");
 	TCase *tcase = tcase_create("case");
-	tcase_add_test(tcase, test_storage_should_init);
-	tcase_add_test(tcase, test_storage_should_provide_engine_and_version);
 	tcase_add_test(tcase, test_storage_encrypt_should_be_successful);
 	tcase_add_test(tcase, test_storage_decrypt_should_be_successful);
 	suite_add_tcase(suite, tcase);
 
 	SRunner *runner = srunner_create(suite);
+	srunner_set_fork_status(runner, CK_NOFORK);
 	srunner_run_all(runner, CK_VERBOSE);
 	number_failed = srunner_ntests_failed(runner);
 	srunner_free(runner);

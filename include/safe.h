@@ -26,39 +26,23 @@
                          "comment: \n"
 #endif
 
-enum kp_safe_plaintext_type {
-	KP_SAFE_PLAINTEXT_FILE,
-	KP_SAFE_PLAINTEXT_MEMORY,
-};
+#define KP_PLAIN_MAX_SIZE 4096
 
-struct kp_safe_plaintext {
-	enum kp_safe_plaintext_type type;
-	union {
-		/* plaintext file */
-		struct {
-			char path[PATH_MAX];
-			int fd;
-		};
-		struct {
-			size_t size;
-			char *data;
-		};
-	};
-};
-
-struct kp_safe_ciphertext {
-	int fd;
-};
-
+/*
+ * A safe is either open or close.
+ * Plain data are stored in memory.
+ * Cipher data are stored in file.
+ */
 struct kp_safe {
-	bool open;
-	char path[PATH_MAX];
-	struct kp_safe_plaintext plain;
-	struct kp_safe_ciphertext cipher;
+	bool           open;            /* whether the safe is open or not */
+	char           path[PATH_MAX];  /* path to the cipher file */
+	int            cipher;          /* fd of the cipher file if the safe is open */
+	size_t         plain_size;      /* size of the plaintext safe */
+	unsigned char *plain;           /* data of the plaintext safe */
 };
 
-kp_error_t kp_safe_load(struct kp_ctx *, const char *, enum kp_safe_plaintext_type, struct kp_safe *);
-kp_error_t kp_safe_create(struct kp_ctx *, const char *, enum kp_safe_plaintext_type, struct kp_safe *);
+kp_error_t kp_safe_load(struct kp_ctx *, struct kp_safe *, const char *);
+kp_error_t kp_safe_create(struct kp_ctx *, struct kp_safe *, const char *);
 kp_error_t kp_safe_close(struct kp_ctx *, struct kp_safe *);
 
 #endif /* KP_SAFE_H */

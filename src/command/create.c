@@ -42,15 +42,12 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 {
 	kp_error_t ret = KP_SUCCESS;
 	char path[PATH_MAX];
-	struct kp_storage *storage;
 	struct kp_safe safe;
 
 	if (argc - optind != 1) {
 		warnx("missing safe name");
 		return KP_EINPUT;
 	}
-
-	if ((ret = kp_storage_init(ctx, &storage)) != KP_SUCCESS) return ret;
 
 	if (strlcpy(path, ctx->ws_path, PATH_MAX) >= PATH_MAX) {
 		warnx("memory error");
@@ -70,23 +67,27 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 		goto out;
 	}
 
-	if ((ret = kp_safe_create(ctx, path, KP_SAFE_PLAINTEXT_FILE, &safe)) != KP_SUCCESS) {
+	if ((ret = kp_load_passwd(ctx)) != KP_SUCCESS) {
+		goto out;
+	}
+
+	if ((ret = kp_safe_create(ctx, &safe, path)) != KP_SUCCESS) {
 		if (ret == KP_EEXIST) {
-			printf("please use edit command to edit an existing safe\n");
+			warnx("please use edit command to edit an existing safe");
 		} else {
 			warnx("cannot create safe");
 		}
 		goto out;
 	}
 
-	if ((ret = kp_editor_open(&safe)) != KP_SUCCESS) {
+	if ((ret = kp_edit(ctx, &safe)) != KP_SUCCESS) {
 		warnx("cannot edit safe");
-		return ret;
+		goto out;
 	}
 
-	if ((ret = kp_storage_save(storage, &safe)) != KP_SUCCESS) {
+	if ((ret = kp_storage_save(ctx, &safe)) != KP_SUCCESS) {
 		warnx("cannot save safe");
-		return ret;
+		goto out;
 	}
 
 	if ((ret = kp_safe_close(ctx, &safe)) != KP_SUCCESS) {
@@ -95,7 +96,6 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 out:
-	ret = kp_storage_fini(storage);
 	return ret;
 }
 

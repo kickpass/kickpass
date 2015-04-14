@@ -15,11 +15,13 @@
  */
 
 #include <assert.h>
-#include <gpgme.h>
+#include <endian.h>
+#include <sodium.h>
 #include <locale.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdint.h>
 #include <readpassphrase.h>
 
 #include "kickpass.h"
@@ -27,262 +29,237 @@
 #include "safe.h"
 #include "storage.h"
 
-#define PASSWD_READ_BUF 1024
-#define PASSWD_PROMPT   "[kickpass] password: "
+#ifndef betoh16
+#define betoh16 be16toh
+#endif
+#ifndef betoh64
+#define betoh64 be64toh
+#endif
 
-struct kp_storage
-{
-	const char *engine;
-	const char *version;
-	gpgme_ctx_t gpgme_ctx;
+static uint16_t kp_storage_version = 0x0001;
+
+struct kp_storage_header {
+	uint16_t       version;
+	uint16_t       sodium_version;
+	uint64_t       opslimit;
+	uint64_t       memlimit;
+	uint64_t       data_size;
+	unsigned char *data;
 };
 
-static const char *kp_storage_engine = "gpg";
+#define KP_STORAGE_HEADER_INIT { 0, 0, 0, 0, 0, NULL }
 
-static kp_error_t kp_storage_encrypt(struct kp_storage *storage, gpgme_data_t plain, gpgme_data_t cipher);
-static gpgme_error_t gpgme_passphrase_cb(void *hook, const char *uid_hint, const char *passphrase_info, int prev_was_bad, int fd);
+static kp_error_t kp_storage_save_header(const struct kp_safe *,
+		struct kp_storage_header *);
+static kp_error_t kp_storage_load_header(const struct kp_safe *,
+		struct kp_storage_header *);
+static kp_error_t kp_storage_encrypt(struct kp_ctx *,
+		struct kp_storage_header *, const unsigned char *,
+		unsigned char *, size_t);
+static kp_error_t kp_storage_decrypt(struct kp_ctx *,
+		struct kp_storage_header *, unsigned char *,
+		const unsigned char *, size_t);
 
-static gpgme_error_t
-gpgme_passphrase_cb(void *hook, const char *uid_hint, const char *passphrase_info, int prev_was_bad, int fd)
+#define RW_HEADER(f, s, cipher, headfield) do {\
+	(headfield) = htobe##s(headfield);\
+	if (f(cipher, &(headfield), sizeof(headfield)) < sizeof(headfield)) {\
+		warn("cannot " #f " safe header");\
+		return errno;\
+	}\
+	(headfield) = betoh##s(headfield);\
+} while(0)
+
+#define READ_HEADER(s, cipher, headfield) RW_HEADER(read, s, cipher, headfield)
+#define WRITE_HEADER(s, cipher, headfield) RW_HEADER(write, s, cipher, headfield)
+
+static kp_error_t
+kp_storage_save_header(const struct kp_safe *safe,
+		struct kp_storage_header *header)
 {
-	char passwd[PASSWD_READ_BUF];
+	assert(safe);
+	assert(header->data);
+	assert(header->data_size);
 
-	if (readpassphrase(PASSWD_PROMPT, passwd, PASSWD_READ_BUF, RPP_ECHO_OFF) == NULL) {
-		warnx("cannot read password");
-		return gpg_error(GPG_ERR_MISSING_ERRNO);
+	WRITE_HEADER(16, safe->cipher, header->version);
+	WRITE_HEADER(16, safe->cipher, header->sodium_version);
+	WRITE_HEADER(64, safe->cipher, header->opslimit);
+	WRITE_HEADER(64, safe->cipher, header->memlimit);
+	WRITE_HEADER(64, safe->cipher, header->data_size);
+
+	if (write(safe->cipher, header->data, header->data_size)
+			< header->data_size) {
+		warn("cannot write safe header");
+		return errno;
 	}
 
-	gpgme_io_write(fd, passwd, strlen(passwd));
-	gpgme_io_write(fd, "\n", 1);
-
-	return 0;
+	return KP_SUCCESS;
 }
 
-kp_error_t
-kp_storage_init(struct kp_ctx *ctx, struct kp_storage **storage)
+static kp_error_t
+kp_storage_load_header(const struct kp_safe *safe,
+		struct kp_storage_header *header)
 {
-	kp_error_t ret;
-	gpgme_error_t error;
-	setlocale(LC_ALL, "");
+	assert(safe);
+	assert(header->data == NULL);
+	assert(header->data_size == 0);
 
-	*storage = malloc(sizeof(struct kp_storage));
-	if (!*storage) {
+	READ_HEADER(16, safe->cipher, header->version);
+	READ_HEADER(16, safe->cipher, header->sodium_version);
+	READ_HEADER(64, safe->cipher, header->opslimit);
+	READ_HEADER(64, safe->cipher, header->memlimit);
+	READ_HEADER(64, safe->cipher, header->data_size);
+
+	header->data = malloc(header->data_size);
+	if (!header->data) {
 		warnx("memory error");
 		return KP_ENOMEM;
 	}
 
-	(*storage)->engine = kp_storage_engine;
-	(*storage)->version = gpgme_check_version(NULL);
+	errno = 0;
+	if (read(safe->cipher, header->data, header->data_size) < header->data_size) {
+		if (errno == 0) {
+			warnx("invalid safe file");
+			return KP_EINPUT;
+		} else {
+			warn("cannot read safe header");
+			return errno;
+		}
+	}
 
-	gpgme_set_locale(NULL, LC_CTYPE, setlocale(LC_CTYPE, NULL));
-#ifdef LC_MESSAGES
-	gpgme_set_locale(NULL, LC_MESSAGES, setlocale(LC_MESSAGES, NULL));
-#endif
+	return KP_SUCCESS;
+}
 
-	error = gpgme_new(&(*storage)->gpgme_ctx);
-	switch (error) {
-	case GPG_ERR_NO_ERROR:
-		break;
-	case GPG_ERR_ENOMEM:
+
+static kp_error_t
+kp_storage_encrypt(struct kp_ctx *ctx, struct kp_storage_header *header,
+		const unsigned char *plain, unsigned char *cipher, size_t size)
+{
+	unsigned char *salt, *nonce;
+	unsigned char key[crypto_secretbox_KEYBYTES];
+
+	header->data_size = crypto_pwhash_scryptsalsa208sha256_SALTBYTES +
+		crypto_secretbox_NONCEBYTES;
+	header->data      = malloc(header->data_size);
+
+	if (!header->data) {
+		warnx("memory error");
 		return KP_ENOMEM;
-	default:
-		warnx("cannot initialize GnuPG: %s", gpgme_strerror(error));
+	}
+
+	randombytes_buf(header->data, header->data_size);
+	salt = header->data;
+	nonce = header->data + crypto_pwhash_scryptsalsa208sha256_SALTBYTES;
+
+	crypto_pwhash_scryptsalsa208sha256(key, crypto_secretbox_KEYBYTES,
+			ctx->password, strlen(ctx->password),
+			salt, header->opslimit, header->memlimit);
+
+	if (crypto_secretbox_easy(cipher, plain, size, nonce, key) != 0) {
 		return KP_EINTERNAL;
 	}
 
-	error = gpgme_engine_check_version(GPGME_PROTOCOL_OpenPGP);
-	switch (error) {
-	case GPG_ERR_NO_ERROR:
-		break;
-	case GPG_ERR_INV_ENGINE:
-		warnx("cannot use OpenPGP as a storage engine: %s", gpgme_strerror(error));
-		ret = KP_EINTERNAL;
-		goto out;
+	return KP_SUCCESS;
+}
+static kp_error_t
+kp_storage_decrypt(struct kp_ctx *ctx, struct kp_storage_header *header,
+		unsigned char *plain, const unsigned char *cipher, size_t size)
+{
+	unsigned char *salt, *nonce;
+	unsigned char key[crypto_secretbox_KEYBYTES];
+
+	salt = header->data;
+	nonce = header->data + crypto_pwhash_scryptsalsa208sha256_SALTBYTES;
+
+	crypto_pwhash_scryptsalsa208sha256(key, crypto_secretbox_KEYBYTES,
+			ctx->password, strlen(ctx->password),
+			salt, header->opslimit, header->memlimit);
+
+	if (crypto_secretbox_open_easy(plain, cipher, size, nonce, key) != 0) {
+		return KP_EINTERNAL;
 	}
-
-	error = gpgme_set_protocol((*storage)->gpgme_ctx, GPGME_PROTOCOL_OpenPGP);
-	assert(error == GPG_ERR_NO_ERROR);
-
-	gpgme_engine_info_t eng = gpgme_ctx_get_engine_info((*storage)->gpgme_ctx);
-	error = gpgme_ctx_set_engine_info((*storage)->gpgme_ctx, GPGME_PROTOCOL_OpenPGP, eng->file_name, ctx->ws_path);
-	switch (error) {
-	case GPG_ERR_NO_ERROR:
-		break;
-	default:
-		warnx("cannot configure storage engine OpenPGP: %s", gpgme_strerror(error));
-		ret = KP_EINTERNAL;
-		goto out;
-	}
-
-	gpgme_set_armor((*storage)->gpgme_ctx, 1);
-	gpgme_set_passphrase_cb((*storage)->gpgme_ctx, gpgme_passphrase_cb, NULL);
 
 	return KP_SUCCESS;
+}
+
+kp_error_t
+kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
+{
+	kp_error_t ret = KP_SUCCESS;
+	unsigned char *cipher = NULL;
+	struct kp_storage_header header = KP_STORAGE_HEADER_INIT;
+
+	assert(ctx);
+	assert(safe);
+	assert(safe->open == true);
+
+	cipher = malloc(safe->plain_size+crypto_secretbox_MACBYTES);
+	if (!cipher) {
+		warnx("memory error");
+		ret = KP_ENOMEM;
+		goto out;
+	}
+
+	header.version = kp_storage_version;
+	header.sodium_version = SODIUM_LIBRARY_VERSION_MAJOR << 8 |
+		SODIUM_LIBRARY_VERSION_MINOR;
+	header.opslimit = ctx->opslimit;
+	header.memlimit = ctx->memlimit;
+
+	if ((ret = kp_storage_encrypt(ctx, &header, safe->plain, cipher,
+		safe->plain_size))
+		!= KP_SUCCESS) {
+		warnx("cannot encrypt safe");
+		goto out;
+	}
+
+	if ((ret = kp_storage_save_header(safe, &header)) != KP_SUCCESS) {
+		goto out;
+	}
+
+	if (write(safe->cipher, cipher, safe->plain_size+crypto_secretbox_MACBYTES)
+			< safe->plain_size+crypto_secretbox_MACBYTES) {
+		warn("cannot write safe to file %s", safe->path);
+		ret = errno;
+		goto out;
+	}
 
 out:
-	kp_storage_fini(*storage);
+	free(cipher);
+	free(header.data);
+
 	return ret;
 }
 
 kp_error_t
-kp_storage_fini(struct kp_storage *storage)
+kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 {
-	gpgme_release(storage->gpgme_ctx);
-	free(storage);
+	kp_error_t ret = KP_SUCCESS;
+	size_t size;
+	struct kp_storage_header header = KP_STORAGE_HEADER_INIT;
+	unsigned char *cipher = NULL;
 
-	return KP_SUCCESS;
-}
+	assert(ctx);
+	assert(safe);
+	assert(safe->open == false);
 
-kp_error_t
-kp_storage_get_engine(struct kp_storage *storage, char *engine, size_t dstsize)
-{
-	if (storage == NULL || engine == NULL) return KP_EINPUT;
-	if (strlcpy(engine, storage->engine, dstsize) >= dstsize) return KP_ENOMEM;
-	return KP_SUCCESS;
-}
-
-kp_error_t
-kp_storage_get_version(struct kp_storage *storage, char *version, size_t dstsize)
-{
-	if (storage == NULL || version == NULL) return KP_EINPUT;
-	if (strlcpy(version, storage->version, dstsize) >= dstsize) return KP_ENOMEM;
-	return KP_SUCCESS;
-}
-
-static kp_error_t
-kp_storage_encrypt(struct kp_storage *storage, gpgme_data_t plain, gpgme_data_t cipher)
-{
-	gpgme_error_t ret;
-	ret = gpgme_op_encrypt(storage->gpgme_ctx, NULL, GPGME_ENCRYPT_NO_ENCRYPT_TO, plain, cipher);
-
-	switch(ret) {
-	case GPG_ERR_NO_ERROR:
-		break;
-	default:
-		warnx("internal error: %s", gpgme_strerror(ret));
-		return KP_EINTERNAL;
+	if ((ret = kp_storage_load_header(safe, &header)) != KP_SUCCESS) {
+		goto out;
 	}
 
-	return KP_SUCCESS;
-}
-static kp_error_t
-kp_storage_decrypt(struct kp_storage *storage, gpgme_data_t plain, gpgme_data_t cipher)
-{
-	gpgme_error_t ret;
+	cipher = malloc(KP_PLAIN_MAX_SIZE+crypto_secretbox_MACBYTES);
+	size = read(safe->cipher, cipher, KP_PLAIN_MAX_SIZE+crypto_secretbox_MACBYTES);
+	safe->plain_size = size - crypto_secretbox_MACBYTES;
 
-	ret = gpgme_op_decrypt(storage->gpgme_ctx, cipher, plain);
-
-	switch(ret) {
-	case GPG_ERR_NO_ERROR:
-		break;
-	default:
-		warnx("internal error: %s", gpgme_strerror(ret));
-		return KP_EINTERNAL;
+	if ((ret = kp_storage_decrypt(ctx, &header, safe->plain, cipher, size))
+			!= KP_SUCCESS) {
+		warnx("cannot decrypt safe");
+		goto out;
 	}
 
-	return KP_SUCCESS;
-}
+	safe->plain[safe->plain_size] = '\0';
 
-kp_error_t
-kp_storage_save(struct kp_storage *storage, struct kp_safe *safe)
-{
-	gpgme_error_t ret;
-	gpgme_data_t plain, cipher;
+out:
+	free(cipher);
 
-	switch (safe->plain.type) {
-	case KP_SAFE_PLAINTEXT_FILE:
-		ret = gpgme_data_new_from_fd(&plain, safe->plain.fd);
-		break;
-	default:
-		assert(false);
-	}
-
-	switch(ret) {
-	case GPG_ERR_NO_ERROR:
-		break;
-	default:
-		warnx("internal error: %s", gpgme_strerror(ret));
-		return KP_EINTERNAL;
-	}
-
-	gpgme_data_new_from_fd(&cipher, safe->cipher.fd);
-	switch(ret) {
-	case GPG_ERR_NO_ERROR:
-		break;
-	default:
-		warnx("internal error: %s", gpgme_strerror(ret));
-		return KP_EINTERNAL;
-	}
-
-	if (kp_storage_encrypt(storage, plain, cipher) != KP_SUCCESS) {
-		warnx("cannot encrypt safe");
-		return KP_EINTERNAL;
-	}
-
-	return KP_SUCCESS;
-}
-
-kp_error_t
-kp_storage_open(struct kp_storage *storage, struct kp_safe *safe)
-{
-	gpgme_error_t ret;
-	gpgme_data_t plain, cipher;
-
-	switch (safe->plain.type) {
-	case KP_SAFE_PLAINTEXT_FILE:
-		ret = gpgme_data_new_from_fd(&plain, safe->plain.fd);
-		break;
-	case KP_SAFE_PLAINTEXT_MEMORY:
-		ret = gpgme_data_new(&plain);
-		break;
-	default:
-		assert(false);
-	}
-
-	switch(ret) {
-	case GPG_ERR_NO_ERROR:
-		break;
-	default:
-		warnx("internal error: %s", gpgme_strerror(ret));
-		return KP_EINTERNAL;
-	}
-
-	gpgme_data_new_from_fd(&cipher, safe->cipher.fd);
-	switch(ret) {
-	case GPG_ERR_NO_ERROR:
-		break;
-	default:
-		warnx("internal error: %s", gpgme_strerror(ret));
-		return KP_EINTERNAL;
-	}
-
-	if (kp_storage_decrypt(storage, plain, cipher) != KP_SUCCESS) {
-		warnx("cannot encrypt safe");
-		return KP_EINTERNAL;
-	}
-
-	if (lseek(safe->cipher.fd, 0, SEEK_SET) != 0) {
-		warn("cannot seek safe to start");
-		return errno;
-	}
-
-	if (safe->plain.type == KP_SAFE_PLAINTEXT_MEMORY) {
-		char *_plain = gpgme_data_release_and_get_mem(plain, &safe->plain.size);
-		if (!_plain) {
-			warnx("cannot decrypt safe");
-			return KP_EINTERNAL;
-		}
-
-		safe->plain.data = malloc(safe->plain.size);
-		if (!safe->plain.data) {
-			warnx("memory error");
-			return KP_ENOMEM;
-		}
-
-		// TODO mlock
-		memcpy(safe->plain.data, _plain, safe->plain.size);
-		gpgme_free(_plain);
-	}
-
-	return KP_SUCCESS;
+	return ret;
 }

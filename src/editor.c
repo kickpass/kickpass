@@ -29,22 +29,25 @@
 #include "error.h"
 #include "storage.h"
 
+static kp_error_t kp_editor_get_tmp(struct kp_ctx *, struct kp_safe *, char *, size_t);
+
 /*
  * Open editor on the given safe.
  * Fork, exec $EDITOR and wait for it to return.
  * The safe must be open.
  */
 kp_error_t
-kp_editor_open(struct kp_safe *safe)
+kp_edit(struct kp_ctx *ctx, struct kp_safe *safe)
 {
+	kp_error_t ret;
+	int fd;
 	const char *editor;
+	char path[PATH_MAX];
 	pid_t pid;
 
-	assert(safe->plain.fd >= 0);
-	if (close(safe->plain.fd) < 0) {
-		warn("cannot close temporary clear text file %s",
-				safe->plain.path);
-	}
+	assert(safe->open);
+
+	kp_editor_get_tmp(ctx, safe, path, PATH_MAX);
 
 	editor = getenv("EDITOR");
 	if (editor == NULL) editor = "vi";
@@ -52,53 +55,69 @@ kp_editor_open(struct kp_safe *safe)
 	pid = fork();
 
 	if (pid == 0) {
-		execlp(editor, editor, safe->plain.path, NULL);
+		execlp(editor, editor, path, NULL);
 	} else {
 		wait(NULL);
-		// TODO check for return value of editor
 
-		safe->plain.fd = open(safe->plain.path, O_RDONLY);
-		if (safe->plain.fd < 0) {
+		fd = open(path, O_RDONLY);
+		if (fd < 0) {
 			warn("cannot open temporary clear text file %s",
-					safe->plain.path);
-			if (unlink(safe->plain.path) < 0) {
-				warn("cannot delete temporary clear text file %s",
-						safe->plain.path);
-				warnx("ensure to delete it manually to avoid password leak");
-			}
-			return errno;
+					path);
+			ret = errno;
+			goto clean;
+		}
+
+		if ((safe->plain_size = read(fd, safe->plain, KP_PLAIN_MAX_SIZE)) < 0) {
+			warn("cannot read temporary clear text file %s",
+					path);
+			ret = errno;
+			goto clean;
 		}
 	}
+	
+clean:
+	if (unlink(path) < 0) {
+		warn("cannot delete temporary clear text file %s",
+				path);
+		warnx("ensure to delete it manually to avoid password leak");
+	}
 
-	return KP_SUCCESS;
+	return ret;
 }
 
 /*
  * Create and open a temporary file in current workspace for later edition.
  */
-kp_error_t
-kp_editor_get_tmp(struct kp_ctx *ctx, struct kp_safe *safe, bool keep_open)
+static kp_error_t
+kp_editor_get_tmp(struct kp_ctx *ctx, struct kp_safe *safe, char *path, size_t size)
 {
-	if (strlcpy(safe->plain.path, ctx->ws_path, PATH_MAX) >= PATH_MAX) {
+	int fd;
+
+	if (strlcpy(path, ctx->ws_path, size) >= size) {
 		warnx("memory error");
 		return KP_ENOMEM;
 	}
 
-	if (strlcat(safe->plain.path, "/.kpXXXXXX", PATH_MAX) >= PATH_MAX) {
+	if (strlcat(path, "/.kpXXXXXX", size) >= size) {
 		warnx("memory error");
 		return KP_ENOMEM;
 	}
 
-	safe->plain.fd = mkstemp(safe->plain.path);
-	if (safe->plain.fd < 0) {
+	fd = mkstemp(path);
+	if (fd < 0) {
 		warn("cannot create temporary file %s",
-				safe->plain.path);
+				path);
 		return errno;
 	}
 
-	if (!keep_open) {
-		close(safe->plain.fd);
-		safe->plain.fd = 0;
+	if (write(fd, safe->plain, safe->plain_size) != safe->plain_size) {
+		warn("cannot dump safe on temp file %s for edition", path);
+		return errno;
+	}
+
+	if (close(fd) < 0) {
+		warn("cannot close temp file %s with plain safe", path);
+		return errno;
 	}
 
 	return KP_SUCCESS;
