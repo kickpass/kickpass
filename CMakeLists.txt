@@ -51,7 +51,7 @@ add_executable(kickpass
 include(build/compat/bsd.cmake)
 
 # Configure dependencies
-find_package(Sodium REQUIRED)
+find_package(Sodium 1.0.2 REQUIRED)
 include_directories(${SODIUM_INCLUDE_DIRS})
 set(LIBS ${LIBS} ${SODIUM_LIBRARIES})
 
