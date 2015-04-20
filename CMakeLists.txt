@@ -45,6 +45,7 @@ add_executable(kickpass
 	src/command/create.c
 	src/command/open.c
 	src/command/edit.c
+	src/command/copy.c
 )
 
 # Configure portability
@@ -54,6 +55,10 @@ include(build/compat/bsd.cmake)
 find_package(Sodium 1.0.2 REQUIRED)
 include_directories(${SODIUM_INCLUDE_DIRS})
 set(LIBS ${LIBS} ${SODIUM_LIBRARIES})
+
+find_package(X11)
+include_directories(${X11_INCLUDE_DIRS})
+set(LIBS ${LIBS} ${X11_LIBRARIES})
 
 # Link all dependencies
 target_link_libraries(kickpass ${LIBS})

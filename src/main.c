@@ -26,9 +26,10 @@
 #include "storage.h"
 
 /* commands */
-#include "command/init.h"
+#include "command/copy.h"
 #include "command/create.h"
 #include "command/edit.h"
+#include "command/init.h"
 #include "command/open.h"
 
 static int        cmd_cmp(const void *, const void *);
@@ -61,6 +62,9 @@ static struct cmd cmds[] = {
 
 	/* kp_cmp_edit */
 	{ "edit",   &kp_cmd_edit },
+
+	/* kp_cmp_copy */
+	{ "copy",   &kp_cmd_copy },
 };
 
 /*

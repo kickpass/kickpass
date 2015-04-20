@@ -128,3 +128,25 @@ kp_safe_init(struct kp_safe *safe, const char *path, bool open)
 
 	return KP_SUCCESS;
 }
+
+size_t
+kp_safe_password_len(const struct kp_safe *safe)
+{
+	char *end;
+
+	assert(safe);
+	assert(safe->open);
+
+	if ((end = strchr((char *)safe->plain, '\r')) != NULL) {
+		goto out;
+	}
+
+	if ((end = strchr((char *)safe->plain, '\n')) != NULL) {
+		goto out;
+	}
+
+	return strlen((char *)safe->plain);
+
+out:
+	return end - (char *)safe->plain;
+}
