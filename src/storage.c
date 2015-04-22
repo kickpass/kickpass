@@ -38,123 +38,102 @@
 
 static uint16_t kp_storage_version = 0x0001;
 
+#define KP_STORAGE_SALT_SIZE   crypto_pwhash_scryptsalsa208sha256_SALTBYTES
+#define KP_STORAGE_NONCE_SIZE  crypto_aead_chacha20poly1305_NPUBBYTES
+#define KP_STORAGE_HEADER_SIZE (2+2+8+8+KP_STORAGE_SALT_SIZE+KP_STORAGE_NONCE_SIZE)
+
 struct kp_storage_header {
 	uint16_t       version;
 	uint16_t       sodium_version;
 	uint64_t       opslimit;
 	uint64_t       memlimit;
-	uint64_t       data_size;
-	unsigned char *data;
+	unsigned char  salt[KP_STORAGE_SALT_SIZE];
+	unsigned char  nonce[KP_STORAGE_NONCE_SIZE];
 };
 
-#define KP_STORAGE_HEADER_INIT { 0, 0, 0, 0, 0, NULL }
+#define KP_STORAGE_HEADER_INIT { 0, 0, 0, 0, { 0 }, { 0 } }
 
-static kp_error_t kp_storage_save_header(const struct kp_safe *,
-		struct kp_storage_header *);
-static kp_error_t kp_storage_load_header(const struct kp_safe *,
-		struct kp_storage_header *);
+static void kp_storage_header_pack(const struct kp_storage_header *,
+		unsigned char *);
+static void kp_storage_header_unpack(struct kp_storage_header *,
+		const unsigned char *);
 static kp_error_t kp_storage_encrypt(struct kp_ctx *,
-		struct kp_storage_header *, const unsigned char *,
-		unsigned char *, size_t);
+		struct kp_storage_header *,
+		const unsigned char *, size_t,
+		const unsigned char *, size_t,
+		unsigned char *, size_t *);
 static kp_error_t kp_storage_decrypt(struct kp_ctx *,
-		struct kp_storage_header *, unsigned char *,
+		struct kp_storage_header *,
+		const unsigned char *, size_t,
+		unsigned char *, size_t *,
 		const unsigned char *, size_t);
 
-#define RW_HEADER(f, s, cipher, headfield) do {\
-	(headfield) = htobe##s(headfield);\
-	if (f(cipher, &(headfield), sizeof(headfield)) < sizeof(headfield)) {\
-		warn("cannot " #f " safe header");\
-		return errno;\
-	}\
-	(headfield) = betoh##s(headfield);\
+#define READ_HEADER(s, packed, field) do {\
+	memcpy(&(field), (packed), (s)/8);\
+	(field) = betoh##s(field);\
+	(packed) = (packed) + (s)/8;\
 } while(0)
 
-#define READ_HEADER(s, cipher, headfield) RW_HEADER(read, s, cipher, headfield)
-#define WRITE_HEADER(s, cipher, headfield) RW_HEADER(write, s, cipher, headfield)
+#define WRITE_HEADER(s, packed, field)  do {\
+	memcpy((packed), &(field), (s)/8);\
+	*(uint##s##_t *)(packed) = htobe##s(*(uint##s##_t *)(packed));\
+	(packed) = (packed) + (s)/8;\
+} while(0)
 
-static kp_error_t
-kp_storage_save_header(const struct kp_safe *safe,
-		struct kp_storage_header *header)
+static void
+kp_storage_header_pack(const struct kp_storage_header *header,
+		unsigned char *packed)
 {
-	assert(safe);
-	assert(header->data);
-	assert(header->data_size);
+	assert(header);
+	assert(packed);
 
-	WRITE_HEADER(16, safe->cipher, header->version);
-	WRITE_HEADER(16, safe->cipher, header->sodium_version);
-	WRITE_HEADER(64, safe->cipher, header->opslimit);
-	WRITE_HEADER(64, safe->cipher, header->memlimit);
-	WRITE_HEADER(64, safe->cipher, header->data_size);
-
-	if (write(safe->cipher, header->data, header->data_size)
-			< header->data_size) {
-		warn("cannot write safe header");
-		return errno;
-	}
-
-	return KP_SUCCESS;
+	WRITE_HEADER(16, packed, header->version);
+	WRITE_HEADER(16, packed, header->sodium_version);
+	WRITE_HEADER(64, packed, header->opslimit);
+	WRITE_HEADER(64, packed, header->memlimit);
+	memcpy(packed, header->salt, KP_STORAGE_SALT_SIZE);
+	packed = packed + KP_STORAGE_SALT_SIZE;
+	memcpy(packed, header->nonce, KP_STORAGE_NONCE_SIZE);
 }
 
-static kp_error_t
-kp_storage_load_header(const struct kp_safe *safe,
-		struct kp_storage_header *header)
+static void
+kp_storage_header_unpack(struct kp_storage_header *header,
+		const unsigned char *packed)
 {
-	assert(safe);
-	assert(header->data == NULL);
-	assert(header->data_size == 0);
+	assert(header);
+	assert(packed);
 
-	READ_HEADER(16, safe->cipher, header->version);
-	READ_HEADER(16, safe->cipher, header->sodium_version);
-	READ_HEADER(64, safe->cipher, header->opslimit);
-	READ_HEADER(64, safe->cipher, header->memlimit);
-	READ_HEADER(64, safe->cipher, header->data_size);
-
-	header->data = malloc(header->data_size);
-	if (!header->data) {
-		warnx("memory error");
-		return KP_ENOMEM;
-	}
-
-	errno = 0;
-	if (read(safe->cipher, header->data, header->data_size) < header->data_size) {
-		if (errno == 0) {
-			warnx("invalid safe file");
-			return KP_EINPUT;
-		} else {
-			warn("cannot read safe header");
-			return errno;
-		}
-	}
-
-	return KP_SUCCESS;
+	READ_HEADER(16, packed, header->version);
+	READ_HEADER(16, packed, header->sodium_version);
+	READ_HEADER(64, packed, header->opslimit);
+	READ_HEADER(64, packed, header->memlimit);
+	memcpy(header->salt, packed, KP_STORAGE_SALT_SIZE);
+	packed = packed + KP_STORAGE_SALT_SIZE;
+	memcpy(header->nonce, packed, KP_STORAGE_NONCE_SIZE);
 }
 
 
 static kp_error_t
 kp_storage_encrypt(struct kp_ctx *ctx, struct kp_storage_header *header,
-		const unsigned char *plain, unsigned char *cipher, size_t size)
+		const unsigned char *packed_header, size_t header_size,
+		const unsigned char *plain, size_t plain_size,
+		unsigned char *cipher, size_t *cipher_size)
 {
-	unsigned char *salt, *nonce;
-	unsigned char key[crypto_secretbox_KEYBYTES];
+	unsigned char key[crypto_aead_chacha20poly1305_KEYBYTES];
 
-	header->data_size = crypto_pwhash_scryptsalsa208sha256_SALTBYTES +
-		crypto_secretbox_NONCEBYTES;
-	header->data      = malloc(header->data_size);
-
-	if (!header->data) {
-		warnx("memory error");
-		return KP_ENOMEM;
-	}
-
-	randombytes_buf(header->data, header->data_size);
-	salt = header->data;
-	nonce = header->data + crypto_pwhash_scryptsalsa208sha256_SALTBYTES;
-
-	crypto_pwhash_scryptsalsa208sha256(key, crypto_secretbox_KEYBYTES,
+	crypto_pwhash_scryptsalsa208sha256(key,
+			crypto_aead_chacha20poly1305_KEYBYTES,
 			ctx->password, strlen(ctx->password),
-			salt, header->opslimit, header->memlimit);
+			header->salt, header->opslimit, header->memlimit);
 
-	if (crypto_secretbox_easy(cipher, plain, size, nonce, key) != 0) {
+	if (crypto_aead_chacha20poly1305_encrypt(cipher,
+				(unsigned long long *)cipher_size,
+				plain,
+				(unsigned long long)plain_size,
+				packed_header,
+				(unsigned long long)header_size,
+				NULL,
+				header->nonce, key) != 0) {
 		return KP_EINTERNAL;
 	}
 
@@ -162,19 +141,25 @@ kp_storage_encrypt(struct kp_ctx *ctx, struct kp_storage_header *header,
 }
 static kp_error_t
 kp_storage_decrypt(struct kp_ctx *ctx, struct kp_storage_header *header,
-		unsigned char *plain, const unsigned char *cipher, size_t size)
+		const unsigned char *packed_header, size_t header_size,
+		unsigned char *plain, size_t *plain_size,
+		const unsigned char *cipher, size_t cipher_size)
 {
-	unsigned char *salt, *nonce;
-	unsigned char key[crypto_secretbox_KEYBYTES];
+	unsigned char key[crypto_aead_chacha20poly1305_KEYBYTES];
 
-	salt = header->data;
-	nonce = header->data + crypto_pwhash_scryptsalsa208sha256_SALTBYTES;
-
-	crypto_pwhash_scryptsalsa208sha256(key, crypto_secretbox_KEYBYTES,
+	crypto_pwhash_scryptsalsa208sha256(key,
+			crypto_aead_chacha20poly1305_KEYBYTES,
 			ctx->password, strlen(ctx->password),
-			salt, header->opslimit, header->memlimit);
+			header->salt, header->opslimit, header->memlimit);
 
-	if (crypto_secretbox_open_easy(plain, cipher, size, nonce, key) != 0) {
+	if (crypto_aead_chacha20poly1305_decrypt(plain,
+				(unsigned long long *)plain_size,
+				NULL,
+				cipher,
+				(unsigned long long)cipher_size,
+				packed_header,
+				(unsigned long long)header_size,
+				header->nonce, key) != 0) {
 		return KP_EINTERNAL;
 	}
 
@@ -186,13 +171,16 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 {
 	kp_error_t ret = KP_SUCCESS;
 	unsigned char *cipher = NULL;
+	size_t cipher_size;
 	struct kp_storage_header header = KP_STORAGE_HEADER_INIT;
+	unsigned char packed_header[KP_STORAGE_HEADER_SIZE];
 
 	assert(ctx);
 	assert(safe);
 	assert(safe->open == true);
 
-	cipher = malloc(safe->plain_size+crypto_secretbox_MACBYTES);
+	/* alloc cipher to max size */
+	cipher = malloc(safe->plain_size+crypto_aead_chacha20poly1305_ABYTES);
 	if (!cipher) {
 		warnx("memory error");
 		ret = KP_ENOMEM;
@@ -204,20 +192,29 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 		SODIUM_LIBRARY_VERSION_MINOR;
 	header.opslimit = ctx->opslimit;
 	header.memlimit = ctx->memlimit;
+	randombytes_buf(header.salt, KP_STORAGE_SALT_SIZE);
+	randombytes_buf(header.nonce, KP_STORAGE_NONCE_SIZE);
 
-	if ((ret = kp_storage_encrypt(ctx, &header, safe->plain, cipher,
-		safe->plain_size))
+	kp_storage_header_pack(&header, packed_header);
+
+	if ((ret = kp_storage_encrypt(ctx, &header,
+					packed_header, KP_STORAGE_HEADER_SIZE,
+					safe->plain, safe->plain_size,
+					cipher, &cipher_size))
 		!= KP_SUCCESS) {
 		warnx("cannot encrypt safe");
 		goto out;
 	}
 
-	if ((ret = kp_storage_save_header(safe, &header)) != KP_SUCCESS) {
+	if (write(safe->cipher, packed_header, KP_STORAGE_HEADER_SIZE)
+			< KP_STORAGE_HEADER_SIZE) {
+		warn("cannot write safe to file %s", safe->path);
+		ret = errno;
 		goto out;
 	}
 
-	if (write(safe->cipher, cipher, safe->plain_size+crypto_secretbox_MACBYTES)
-			< safe->plain_size+crypto_secretbox_MACBYTES) {
+	if (write(safe->cipher, cipher, cipher_size)
+			< cipher_size) {
 		warn("cannot write safe to file %s", safe->path);
 		ret = errno;
 		goto out;
@@ -225,7 +222,6 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 
 out:
 	free(cipher);
-	free(header.data);
 
 	return ret;
 }
@@ -234,23 +230,45 @@ kp_error_t
 kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 {
 	kp_error_t ret = KP_SUCCESS;
-	size_t size;
-	struct kp_storage_header header = KP_STORAGE_HEADER_INIT;
 	unsigned char *cipher = NULL;
+	size_t cipher_size;
+	struct kp_storage_header header = KP_STORAGE_HEADER_INIT;
+	unsigned char packed_header[KP_STORAGE_HEADER_SIZE];
 
 	assert(ctx);
 	assert(safe);
 	assert(safe->open == false);
 
-	if ((ret = kp_storage_load_header(safe, &header)) != KP_SUCCESS) {
+	errno = 0;
+	if (read(safe->cipher, packed_header, KP_STORAGE_HEADER_SIZE)
+			!= KP_STORAGE_HEADER_SIZE) {
+		if (errno != 0) {
+			warn("cannot read safe");
+			ret = errno;
+		} else {
+			warnx("cannot read safe");
+			ret = KP_EINPUT;
+		}
 		goto out;
 	}
 
-	cipher = malloc(KP_PLAIN_MAX_SIZE+crypto_secretbox_MACBYTES);
-	size = read(safe->cipher, cipher, KP_PLAIN_MAX_SIZE+crypto_secretbox_MACBYTES);
-	safe->plain_size = size - crypto_secretbox_MACBYTES;
+	kp_storage_header_unpack(&header, packed_header);
 
-	if ((ret = kp_storage_decrypt(ctx, &header, safe->plain, cipher, size))
+	cipher = malloc(KP_PLAIN_MAX_SIZE+crypto_aead_chacha20poly1305_ABYTES);
+	cipher_size = read(safe->cipher, cipher,
+			KP_PLAIN_MAX_SIZE+crypto_aead_chacha20poly1305_ABYTES);
+
+	if (cipher_size - crypto_aead_chacha20poly1305_ABYTES
+			> KP_PLAIN_MAX_SIZE) {
+		warnx("safe too long");
+		ret = KP_EINPUT;
+		goto out;
+	}
+
+	if ((ret = kp_storage_decrypt(ctx, &header,
+					packed_header, KP_STORAGE_HEADER_SIZE,
+					safe->plain, &safe->plain_size,
+					cipher, cipher_size))
 			!= KP_SUCCESS) {
 		warnx("cannot decrypt safe");
 		goto out;
