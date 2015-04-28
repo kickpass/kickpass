@@ -26,9 +26,12 @@
 #include "storage.h"
 
 /* commands */
-#include "command/init.h"
+#ifdef HAS_X11
+#include "command/copy.h"
+#endif /* HAS_X11 */
 #include "command/create.h"
 #include "command/edit.h"
+#include "command/init.h"
 #include "command/open.h"
 
 static int        cmd_cmp(const void *, const void *);
@@ -61,6 +64,11 @@ static struct cmd cmds[] = {
 
 	/* kp_cmp_edit */
 	{ "edit",   &kp_cmd_edit },
+
+#ifdef HAS_X11
+	/* kp_cmp_copy */
+	{ "copy",   &kp_cmd_copy },
+#endif /* HAS_X11 */
 };
 
 /*

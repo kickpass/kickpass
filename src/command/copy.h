@@ -14,15 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef KP_CONFIG_H
-#define KP_CONFIG_H
+#ifndef KP_COPY_H
+#define KP_COPY_H
 
-#define KICKPASS_VERSION_MAJOR @KickPass_VERSION_MAJOR@
-#define KICKPASS_VERSION_MINOR @KickPass_VERSION_MINOR@
-#define KICKPASS_VERSION_PATCH @KickPass_VERSION_PATCH@
+#include "command.h"
 
-#define KP_PATH ".kickpass"
+extern struct kp_cmd kp_cmd_copy;
 
-#cmakedefine HAS_X11
-
-#endif /* KP_CONFIG_H */
+#endif /* KP_COPY_H */

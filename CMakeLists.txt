@@ -26,15 +26,13 @@ set(KickPass_VERSION_MAJOR 0)
 set(KickPass_VERSION_MINOR 1)
 set(KickPass_VERSION_PATCH 0)
 
-configure_file(
-	"${PROJECT_SOURCE_DIR}/src/kickpass_config.h.in"
-	"${PROJECT_BINARY_DIR}/src/kickpass_config.h"
-)
-
 include_directories("${PROJECT_BINARY_DIR}/src/")
 include_directories("${PROJECT_SOURCE_DIR}/include/")
 
-add_executable(kickpass
+# Configure portability
+include(build/compat/bsd.cmake)
+
+set(SRCS
 	src/main.c
 	src/kickpass.c
 	src/storage.c
@@ -47,13 +45,28 @@ add_executable(kickpass
 	src/command/edit.c
 )
 
-# Configure portability
-include(build/compat/bsd.cmake)
-
 # Configure dependencies
 find_package(Sodium 1.0.2 REQUIRED)
 include_directories(${SODIUM_INCLUDE_DIRS})
 set(LIBS ${LIBS} ${SODIUM_LIBRARIES})
+
+find_package(X11)
+if (X11_FOUND)
+	include_directories(${X11_INCLUDE_DIRS})
+	set(LIBS ${LIBS} ${X11_LIBRARIES})
+	set(SRCS ${SRCS} src/command/copy.c)
+	set(HAS_X11 true)
+else()
+	message(WARNING "X11 not found. Skipping copy command.")
+endif()
+
+# Sources
+configure_file(
+	"${PROJECT_SOURCE_DIR}/src/kickpass_config.h.in"
+	"${PROJECT_BINARY_DIR}/src/kickpass_config.h"
+)
+
+add_executable(kickpass ${SRCS})
 
 # Link all dependencies
 target_link_libraries(kickpass ${LIBS})

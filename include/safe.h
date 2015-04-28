@@ -44,5 +44,6 @@ struct kp_safe {
 kp_error_t kp_safe_load(struct kp_ctx *, struct kp_safe *, const char *);
 kp_error_t kp_safe_create(struct kp_ctx *, struct kp_safe *, const char *);
 kp_error_t kp_safe_close(struct kp_ctx *, struct kp_safe *);
+size_t     kp_safe_password_len(const struct kp_safe *safe);
 
 #endif /* KP_SAFE_H */
