@@ -30,7 +30,7 @@
 #include "storage.h"
 
 static kp_error_t create(struct kp_ctx *ctx, int argc, char **argv);
-static kp_error_t usage(void);
+static kp_error_t usage(bool);
 
 struct kp_cmd kp_cmd_create = {
 	.main  = create,
@@ -99,8 +99,14 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 }
 
 kp_error_t
-usage(void)
+usage(bool opt)
 {
-	printf("    %-10s%s\n", "create", "Create a new password safe");
+	printf("    %-" KP_USAGE_CMD_LEN "s%s\n", "create [-g]",
+			"Create a new password safe");
+	if (opt) {
+		printf("    options:\n");
+		printf("        %-" KP_USAGE_OPT_LEN "s%s", "-g, --generate",
+			     "randomly generate a password\n");
+	}
 	return KP_SUCCESS;
 }

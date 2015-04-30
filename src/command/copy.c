@@ -31,7 +31,7 @@
 #include "storage.h"
 
 static kp_error_t copy(struct kp_ctx *ctx, int argc, char **argv);
-static kp_error_t usage(void);
+static kp_error_t usage(bool);
 
 struct kp_cmd kp_cmd_copy = {
 	.main  = copy,
@@ -170,8 +170,9 @@ out:
 }
 
 kp_error_t
-usage(void)
+usage(bool opt)
 {
-	printf("    %-10s%s\n", "copy", "Copy a password (first line of safe into X clipboard");
+	printf("    %-" KP_USAGE_CMD_LEN "s%s\n", "copy",
+			"Copy a password (first line of safe into X clipboard");
 	return KP_SUCCESS;
 }

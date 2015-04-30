@@ -30,7 +30,7 @@
 #include "storage.h"
 
 static kp_error_t edit(struct kp_ctx *ctx, int argc, char **argv);
-static kp_error_t usage(void);
+static kp_error_t usage(bool);
 
 struct kp_cmd kp_cmd_edit = {
 	.main  = edit,
@@ -108,8 +108,9 @@ edit(struct kp_ctx *ctx, int argc, char **argv)
 }
 
 kp_error_t
-usage(void)
+usage(bool opt)
 {
-	printf("    %-10s%s\n", "edit", "Edit a password safe with $EDIT");
+	printf("    %-" KP_USAGE_CMD_LEN "s%s\n", "edit",
+			"Edit a password safe with $EDIT");
 	return KP_SUCCESS;
 }

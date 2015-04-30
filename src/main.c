@@ -182,7 +182,7 @@ usage(struct kp_ctx *ctx)
 	printf(usage, __progname, __progname);
 	for (i = 0; i < CMD_COUNT; i++) {
 		if (cmds[i-1].cmd == cmds[i].cmd) continue;
-		if (cmds[i].cmd->usage) cmds[i].cmd->usage();
+		if (cmds[i].cmd->usage) cmds[i].cmd->usage(false);
 	}
 
 	return KP_SUCCESS;

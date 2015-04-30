@@ -30,7 +30,7 @@
 #include "storage.h"
 
 static kp_error_t open(struct kp_ctx *ctx, int argc, char **argv);
-static kp_error_t usage(void);
+static kp_error_t usage(bool);
 
 struct kp_cmd kp_cmd_open = {
 	.main  = open,
@@ -90,8 +90,9 @@ open(struct kp_ctx *ctx, int argc, char **argv)
 }
 
 kp_error_t
-usage(void)
+usage(bool opt)
 {
-	printf("    %-10s%s\n", "open", "Open a password safe and print its content on stdout");
+	printf("    %-" KP_USAGE_CMD_LEN "s%s\n", "open",
+			"Open a password safe and print its content on stdout");
 	return KP_SUCCESS;
 }

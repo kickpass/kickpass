@@ -26,7 +26,7 @@
 #include "storage.h"
 
 static kp_error_t init(struct kp_ctx *ctx, int argc, char **argv);
-static kp_error_t usage(void);
+static kp_error_t usage(bool);
 
 struct kp_cmd kp_cmd_init = {
 	.main  = init,
@@ -60,8 +60,10 @@ out:
 }
 
 kp_error_t
-usage(void)
+usage(bool opt)
 {
-	printf("    %-10s%s\n", "init", "Initialize a new password safe directory. Default to ~/" KP_PATH);
+	printf("    %-" KP_USAGE_CMD_LEN "s%s\n", "init",
+			"Initialize a new password safe directory."
+			"Default to ~/" KP_PATH);
 	return KP_SUCCESS;
 }

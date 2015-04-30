@@ -20,8 +20,8 @@
 #include "kickpass.h"
 
 struct kp_cmd {
-	kp_error_t (*main)(struct kp_ctx *ctx, int argc, char **argv);
-	kp_error_t (*usage)(void);
+	kp_error_t (*main)(struct kp_ctx *, int, char **);
+	kp_error_t (*usage)(bool);
 };
 
 #endif /* KP_COMMAND_H */
