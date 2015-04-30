@@ -38,6 +38,7 @@ set(SRCS
 	src/storage.c
 	src/editor.c
 	src/safe.c
+	src/password.c
 	# commands
 	src/command/init.c
 	src/command/create.c

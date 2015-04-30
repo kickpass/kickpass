@@ -66,7 +66,8 @@ kp_safe_load(struct kp_ctx *ctx, struct kp_safe *safe, const char *path)
  * The returned safe is opened.
  */
 kp_error_t
-kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *path)
+kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *path,
+		const char *password)
 {
 	kp_error_t ret;
 	struct stat stats;
@@ -89,8 +90,8 @@ kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *path)
 		return KP_EINPUT;
 	}
 
-	memcpy(safe->plain, KP_SAFE_TEMPLATE, sizeof(KP_SAFE_TEMPLATE));
-	safe->plain_size = sizeof(KP_SAFE_TEMPLATE)-1;
+	safe->plain_size = snprintf((char *)safe->plain, KP_PLAIN_MAX_SIZE,
+			KP_SAFE_TEMPLATE, password);
 
 	return KP_SUCCESS;
 }
