@@ -14,11 +14,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <stddef.h>
+#include <stdlib.h>
+
 #include <err.h>
 #include <readpassphrase.h>
 #include <sodium.h>
-#include <stddef.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "kickpass.h"

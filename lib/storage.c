@@ -14,27 +14,21 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/types.h>
+
+#include <stdlib.h>
+#include <stdint.h>
+
 #include <assert.h>
-#include <endian.h>
 #include <sodium.h>
 #include <locale.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <stdint.h>
-#include <readpassphrase.h>
 
 #include "kickpass.h"
 
 #include "safe.h"
 #include "storage.h"
-
-#ifndef betoh16
-#define betoh16 be16toh
-#endif
-#ifndef betoh64
-#define betoh64 be64toh
-#endif
 
 static uint16_t kp_storage_version = 0x0001;
 

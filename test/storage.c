@@ -37,8 +37,8 @@ START_TEST(test_storage_header_pack_should_be_successful)
 
 	header.version = 0xdead;
 	header.sodium_version = 0xbaad;
-	header.opslimit = 0x71f97b79931b97d8;
-	header.memlimit = 0x50b77cc354846208;
+	header.opslimit = 0x71f97b79931b97d8LL;
+	header.memlimit = 0x50b77cc354846208LL;
 	memcpy(header.salt, salt, KP_STORAGE_SALT_SIZE);
 	memcpy(header.nonce, nonce, KP_STORAGE_NONCE_SIZE);
 
@@ -91,8 +91,8 @@ START_TEST(test_storage_header_unpack_should_be_successful)
 	};
 	ck_assert_int_eq(header.version, 0xaad0);
 	ck_assert_int_eq(header.sodium_version, 0xe523);
-	ck_assert_int_eq(header.opslimit, 0x3acfd7a6d05421c0);
-	ck_assert_int_eq(header.memlimit, 0x6a26f81b967f6d9b);
+	ck_assert(header.opslimit == 0x3acfd7a6d05421c0LL);
+	ck_assert(header.memlimit == 0x6a26f81b967f6d9bLL);
 	ck_assert_int_eq(memcmp(header.salt, salt, KP_STORAGE_SALT_SIZE), 0);
 	ck_assert_int_eq(memcmp(header.nonce, nonce, KP_STORAGE_NONCE_SIZE), 0);
 }
