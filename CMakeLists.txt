@@ -94,7 +94,7 @@ endif()
 
 message(STATUS "Build configuration (BUILD): ${CMAKE_BUILD_TYPE}")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_BSD_SOURCE")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_DEFAULT_SOURCE -D_BSD_SOURCE")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Werror")
 
 # Tests

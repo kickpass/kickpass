@@ -32,6 +32,13 @@
 
 static uint16_t kp_storage_version = 0x0001;
 
+#ifndef betoh16
+#define betoh16 be16toh
+#endif
+#ifndef betoh64
+#define betoh64 be64toh
+#endif
+
 #define KP_STORAGE_SALT_SIZE   crypto_pwhash_scryptsalsa208sha256_SALTBYTES
 #define KP_STORAGE_NONCE_SIZE  crypto_aead_chacha20poly1305_NPUBBYTES
 #define KP_STORAGE_HEADER_SIZE (2+2+8+8+KP_STORAGE_SALT_SIZE+KP_STORAGE_NONCE_SIZE)
