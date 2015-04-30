@@ -23,8 +23,9 @@
 
 #include "kickpass.h"
 
-#define PASSWORD_MAX_SIZE 1024
-#define PASSWORD_PROMPT   "[kickpass] password: "
+#define PASSWORD_MAX_SIZE       1024
+#define PASSWORD_PROMPT         "[kickpass] password: "
+#define PASSWORD_CONFIRM_PROMPT "[kickpass] confirm: "
 
 kp_error_t
 kp_init(struct kp_ctx *ctx)
@@ -51,7 +52,7 @@ kp_init(struct kp_ctx *ctx)
 }
 
 kp_error_t
-kp_load_passwd(struct kp_ctx *ctx)
+kp_load_passwd(struct kp_ctx *ctx, bool confirm)
 {
 	ctx->password = sodium_malloc(PASSWORD_MAX_SIZE);
 	if (!ctx->password) {
@@ -59,9 +60,29 @@ kp_load_passwd(struct kp_ctx *ctx)
 		return KP_ENOMEM;
 	}
 
-	if (readpassphrase(PASSWORD_PROMPT, ctx->password, PASSWORD_MAX_SIZE, RPP_ECHO_OFF) == NULL) {
+	if (readpassphrase(PASSWORD_PROMPT, ctx->password,
+				PASSWORD_MAX_SIZE, RPP_ECHO_OFF) == NULL) {
 		warnx("cannot read password");
 		return KP_EINPUT;
+	}
+
+	if (confirm) {
+		char *confirm = sodium_malloc(PASSWORD_MAX_SIZE);
+		if (readpassphrase(PASSWORD_CONFIRM_PROMPT, confirm,
+					PASSWORD_MAX_SIZE, RPP_ECHO_OFF)
+				== NULL) {
+			warnx("cannot read password");
+			sodium_free(confirm);
+			return KP_EINPUT;
+		}
+
+		if (strncmp(ctx->password, confirm, PASSWORD_MAX_SIZE) != 0) {
+			warnx("mismatching password");
+			sodium_free(confirm);
+			return KP_EINPUT;
+		}
+
+		sodium_free(confirm);
 	}
 
 	return KP_SUCCESS;

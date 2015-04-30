@@ -66,7 +66,7 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	if ((ret = kp_load_passwd(ctx)) != KP_SUCCESS) {
+	if ((ret = kp_load_passwd(ctx, true)) != KP_SUCCESS) {
 		return ret;
 	}
 

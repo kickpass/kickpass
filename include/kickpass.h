@@ -33,6 +33,6 @@ struct kp_ctx {
 
 kp_error_t kp_init(struct kp_ctx *);
 kp_error_t kp_fini(struct kp_ctx *);
-kp_error_t kp_load_passwd(struct kp_ctx *);
+kp_error_t kp_load_passwd(struct kp_ctx *, bool);
 
 #endif /* KP_KICKPASS_H */

@@ -3,5 +3,8 @@ expect {
 	password: { send "test password\n" }
 }
 expect {
+	confirm: { send "test password\n" }
+}
+expect {
 	eof { puts [wait] }
 }
