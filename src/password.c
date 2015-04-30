@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2015 Paul Fariello <paul@fariello.eu>
  *
@@ -14,15 +15,34 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef KP_COMMAND_H
-#define KP_COMMAND_H
+#include <stdlib.h>
 
 #include "kickpass.h"
 
-struct kp_cmd {
-	kp_error_t (*main)(struct kp_ctx *, int, char **);
-	char        *opts;
-	char        *desc;
-};
+#include "password.h"
 
-#endif /* KP_COMMAND_H */
+char charset[] = 
+	"abcdefghijklmnopqrstuvwxyz"
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	"0123456789"
+	"{}()[].:,;!?<>#$&'@+-/*=%^_|~\\";
+
+/**
+ * Generate a truly random password.
+ *
+ * password must be pre-allocated with at least len+1 bytes
+ * len      specify the password len without the terminating null byte 
+ *
+ * Always return a null terminated password.
+ */
+kp_error_t kp_password_generate(char *password, size_t len)
+{
+	int i;
+	for (i = 0; i < len; i++) {
+		password[i] = charset[arc4random_uniform(sizeof(charset) - 1)];
+	}
+
+	password[len] = '\0';
+
+	return KP_SUCCESS;
+}

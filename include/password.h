@@ -14,15 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef KP_COMMAND_H
-#define KP_COMMAND_H
+#ifndef KP_PASSWORD_H
+#define KP_PASSWORD_H
 
 #include "kickpass.h"
 
-struct kp_cmd {
-	kp_error_t (*main)(struct kp_ctx *, int, char **);
-	char        *opts;
-	char        *desc;
-};
+kp_error_t kp_password_generate(char *, size_t);
 
-#endif /* KP_COMMAND_H */
+#endif /* KP_PASSWORD_H */
