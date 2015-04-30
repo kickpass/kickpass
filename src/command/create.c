@@ -29,13 +29,18 @@
 #include "safe.h"
 #include "storage.h"
 
-static kp_error_t create(struct kp_ctx *ctx, int argc, char **argv);
-static kp_error_t usage(bool);
+static kp_error_t create(struct kp_ctx *, int, char **);
+static kp_error_t parse_opt(struct kp_ctx *, int, char **);
+static kp_error_t usage(void);
 
 struct kp_cmd kp_cmd_create = {
 	.main  = create,
-	.usage = usage,
+	.opts  = "create [-hg] <safe>",
+	.desc  = "Create a new password safe",
 };
+
+static bool help = false;
+static bool generate = false;
 
 kp_error_t
 create(struct kp_ctx *ctx, int argc, char **argv)
@@ -43,6 +48,12 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 	kp_error_t ret;
 	char path[PATH_MAX];
 	struct kp_safe safe;
+
+	if ((ret = parse_opt(ctx, argc, argv)) != KP_SUCCESS) {
+		return ret;
+	}
+
+	if (help) return usage();
 
 	if (argc - optind != 1) {
 		warnx("missing safe name");
@@ -98,15 +109,42 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 	return KP_SUCCESS;
 }
 
-kp_error_t
-usage(bool opt)
+static kp_error_t
+parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 {
-	printf("    %-" KP_USAGE_CMD_LEN "s%s\n", "create [-g]",
-			"Create a new password safe");
-	if (opt) {
-		printf("    options:\n");
-		printf("        %-" KP_USAGE_OPT_LEN "s%s", "-g, --generate",
-			     "randomly generate a password\n");
+	int opt;
+	static struct option longopts[] = {
+		{ "help",     no_argument, NULL, 'h' },
+		{ "generate", no_argument, NULL, 'g' },
+		{ NULL,       0,           NULL, 0   },
+	};
+
+	while ((opt = getopt_long(argc, argv, "hg", longopts, NULL)) != -1) {
+		switch (opt) {
+		case 'h':
+			help = true;
+			break;
+		case 'g':
+			generate = true;
+			break;
+		default:
+			warnx("unknown option %c", opt);
+			return KP_EINPUT;
+		}
 	}
+
 	return KP_SUCCESS;
+}
+
+kp_error_t
+usage(void)
+{
+	extern char *__progname;
+
+	printf("usage: %s %s\n", __progname, kp_cmd_create.opts);
+	printf("options:\n");
+	printf("    -h, --help     Display this help\n");
+	printf("    -g, --generate Randomly generate a password\n");
+
+	return KP_EINPUT;
 }

@@ -103,7 +103,7 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 		{ NULL,      0,           NULL, 0   },
 	};
 
-	while ((opt = getopt_long(argc, argv, "vh", longopts, NULL)) != -1) {
+	while ((opt = getopt_long(argc, argv, "+vh", longopts, NULL)) != -1) {
 		switch (opt) {
 		case 'v':
 			return show_version(ctx);
@@ -182,7 +182,7 @@ usage(struct kp_ctx *ctx)
 	printf(usage, __progname, __progname);
 	for (i = 0; i < CMD_COUNT; i++) {
 		if (cmds[i-1].cmd == cmds[i].cmd) continue;
-		if (cmds[i].cmd->usage) cmds[i].cmd->usage(false);
+		printf("    %-20s%s\n", cmds[i].cmd->opts, cmds[i].cmd->desc);
 	}
 
 	return KP_SUCCESS;

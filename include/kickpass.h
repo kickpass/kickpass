@@ -24,9 +24,6 @@
 #include "error.h"
 #include "kickpass_config.h"
 
-#define KP_USAGE_OPT_LEN "20"
-#define KP_USAGE_CMD_LEN "20"
-
 struct kp_ctx {
 	char                ws_path[PATH_MAX];
 	char               *password;
