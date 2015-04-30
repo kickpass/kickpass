@@ -27,6 +27,7 @@
 
 #include "command.h"
 #include "copy.h"
+#include "prompt.h"
 #include "safe.h"
 #include "storage.h"
 

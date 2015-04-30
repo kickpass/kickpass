@@ -14,24 +14,41 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef KP_KICKPASS_H
-#define KP_KICKPASS_H
-
-#include <stdbool.h>
 #include <err.h>
-#include <limits.h>
+#include <readpassphrase.h>
+#include <sodium.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "error.h"
-#include "kickpass_config.h"
+#include "kickpass.h"
 
-struct kp_ctx {
-	char                ws_path[PATH_MAX];
-	char               *password;
-	unsigned long long  opslimit;
-	size_t              memlimit;
-};
+kp_error_t
+kp_init(struct kp_ctx *ctx)
+{
+	const char *home;
 
-kp_error_t kp_init(struct kp_ctx *);
-kp_error_t kp_fini(struct kp_ctx *);
+	home = getenv("HOME");
+	if (!home)
+		errx(KP_EINPUT, "cannot find $HOME environment variable");
 
-#endif /* KP_KICKPASS_H */
+	if (strlcpy(ctx->ws_path, home, PATH_MAX) >= PATH_MAX)
+		errx(KP_ENOMEM, "memory error");
+
+	if (strlcat(ctx->ws_path, "/" KP_PATH, PATH_MAX) >= PATH_MAX)
+		errx(KP_ENOMEM, "memory error");
+
+	if (sodium_init() != 0)
+		err(KP_EINTERNAL, "cannot initialize sodium");
+
+	ctx->memlimit = crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_SENSITIVE/5;
+	ctx->opslimit = crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_SENSITIVE/5;
+
+	return KP_SUCCESS;
+}
+
+kp_error_t
+kp_fini(struct kp_ctx *ctx)
+{
+	return KP_SUCCESS;
+}
