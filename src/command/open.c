@@ -26,6 +26,7 @@
 #include "command.h"
 #include "open.h"
 #include "editor.h"
+#include "prompt.h"
 #include "safe.h"
 #include "storage.h"
 

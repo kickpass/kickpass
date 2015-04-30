@@ -14,8 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef KP_KICKPASS_H
-#define KP_KICKPASS_H
+#ifndef KP_PROMPT_H
+#define KP_PROMPT_H
 
 #include <stdbool.h>
 #include <err.h>
@@ -24,14 +24,6 @@
 #include "error.h"
 #include "kickpass_config.h"
 
-struct kp_ctx {
-	char                ws_path[PATH_MAX];
-	char               *password;
-	unsigned long long  opslimit;
-	size_t              memlimit;
-};
+kp_error_t kp_load_passwd(struct kp_ctx *, bool);
 
-kp_error_t kp_init(struct kp_ctx *);
-kp_error_t kp_fini(struct kp_ctx *);
-
-#endif /* KP_KICKPASS_H */
+#endif /* KP_PROMPT_H */

@@ -28,6 +28,7 @@
 #include "create.h"
 #include "editor.h"
 #include "password.h"
+#include "prompt.h"
 #include "safe.h"
 #include "storage.h"
 

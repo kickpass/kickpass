@@ -26,24 +26,21 @@ set(KickPass_VERSION_MAJOR 0)
 set(KickPass_VERSION_MINOR 1)
 set(KickPass_VERSION_PATCH 0)
 
-include_directories("${PROJECT_BINARY_DIR}/src/")
+include_directories("${PROJECT_BINARY_DIR}/include/")
 include_directories("${PROJECT_SOURCE_DIR}/include/")
 
 # Configure portability
 include(build/compat/bsd.cmake)
 
 set(SRCS
-	src/main.c
-	src/kickpass.c
-	src/storage.c
 	src/editor.c
-	src/safe.c
-	src/password.c
+	src/main.c
+	src/prompt.c
 	# commands
-	src/command/init.c
 	src/command/create.c
-	src/command/open.c
 	src/command/edit.c
+	src/command/init.c
+	src/command/open.c
 )
 
 # Configure dependencies
@@ -63,14 +60,29 @@ endif()
 
 # Sources
 configure_file(
-	"${PROJECT_SOURCE_DIR}/src/kickpass_config.h.in"
-	"${PROJECT_BINARY_DIR}/src/kickpass_config.h"
+	"${PROJECT_SOURCE_DIR}/include/kickpass_config.h.in"
+	"${PROJECT_BINARY_DIR}/include/kickpass_config.h"
 )
 
 add_executable(kickpass ${SRCS})
 
 # Link all dependencies
 target_link_libraries(kickpass ${LIBS})
+
+# kickpass lib
+add_library(libkickpass SHARED
+	lib/kickpass.c
+	lib/password.c
+	lib/safe.c
+	lib/storage.c
+)
+
+set_target_properties(libkickpass PROPERTIES
+	VERSION ${KickPass_VERSION_MAJOR}.${KickPass_VERSION_MINOR}.${KickPass_VERSION_PATCH}
+	SOVERSION ${KickPass_VERSION_MAJOR})
+set_target_properties(libkickpass PROPERTIES OUTPUT_NAME kickpass)
+
+target_link_libraries(kickpass libkickpass)
 
 # Configure build
 set(BUILD "Release" CACHE STRING "Selected build type")
