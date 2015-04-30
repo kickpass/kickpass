@@ -37,7 +37,8 @@ kp_load_passwd(struct kp_ctx *ctx, bool confirm)
 	}
 
 	if (readpassphrase(PASSWORD_PROMPT, ctx->password,
-				PASSWORD_MAX_SIZE, RPP_ECHO_OFF) == NULL) {
+				PASSWORD_MAX_SIZE,
+				RPP_ECHO_OFF | RPP_REQUIRE_TTY) == NULL) {
 		warnx("cannot read password");
 		return KP_EINPUT;
 	}
@@ -45,7 +46,8 @@ kp_load_passwd(struct kp_ctx *ctx, bool confirm)
 	if (confirm) {
 		char *confirm = sodium_malloc(PASSWORD_MAX_SIZE);
 		if (readpassphrase(PASSWORD_CONFIRM_PROMPT, confirm,
-					PASSWORD_MAX_SIZE, RPP_ECHO_OFF)
+					PASSWORD_MAX_SIZE,
+					RPP_ECHO_OFF | RPP_REQUIRE_TTY)
 				== NULL) {
 			warnx("cannot read password");
 			sodium_free(confirm);
