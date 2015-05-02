@@ -32,6 +32,7 @@
 #include "command/create.h"
 #include "command/edit.h"
 #include "command/init.h"
+#include "command/list.h"
 #include "command/open.h"
 
 static int        cmd_cmp(const void *, const void *);
@@ -62,13 +63,17 @@ static struct cmd cmds[] = {
 	{ "open",   &kp_cmd_open },
 	{ "cat",    &kp_cmd_open },
 
-	/* kp_cmp_edit */
+	/* kp_cmd_edit */
 	{ "edit",   &kp_cmd_edit },
 
 #ifdef HAS_X11
-	/* kp_cmp_copy */
+	/* kp_cmd_copy */
 	{ "copy",   &kp_cmd_copy },
 #endif /* HAS_X11 */
+
+	/* kp_cmd_list */
+	{ "ls",     &kp_cmd_list },
+	{ "list",   &kp_cmd_list },
 };
 
 /*
