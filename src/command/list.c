@@ -97,8 +97,7 @@ list_dir(char ***safes, int *nsafes, char *root)
 
 		switch (dirent->d_type) {
 		case DT_REG:
-			/* Should use reallocarray */
-			if ((*safes = realloc(*safes, (*nsafes + 1) * sizeof(char *)))
+			if ((*safes = reallocarray(*safes, *nsafes + 1, sizeof(char *)))
 					== NULL) {
 				warnx("memory error");
 				ret = KP_ENOMEM;
