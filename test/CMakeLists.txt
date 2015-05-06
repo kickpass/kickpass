@@ -17,5 +17,6 @@
 include(Test)
 
 UNIT_TEST(NAME storage FILE storage.c LIBS ${LIBS})
+UNIT_TEST(NAME safe FILE safe.c LIBS ${LIBS})
 INTEGRATION_TEST(NAME init FILE init.sh)
 INTEGRATION_TEST(NAME create FILE create.sh)
