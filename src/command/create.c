@@ -50,7 +50,6 @@ kp_error_t
 create(struct kp_ctx *ctx, int argc, char **argv)
 {
 	kp_error_t ret;
-	char path[PATH_MAX];
 	struct kp_safe safe;
 	char *password = "";
 
@@ -65,23 +64,6 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 		return KP_EINPUT;
 	}
 
-	if (strlcpy(path, ctx->ws_path, PATH_MAX) >= PATH_MAX) {
-		warnx("memory error");
-		return KP_ENOMEM;
-	}
-
-	if (strlcat(path, "/", PATH_MAX) >= PATH_MAX) {
-		warnx("memory error");
-		ret = KP_ENOMEM;
-		return ret;
-	}
-
-	if (strlcat(path, argv[optind], PATH_MAX) >= PATH_MAX) {
-		warnx("memory error");
-		ret = KP_ENOMEM;
-		return ret;
-	}
-
 	if ((ret = kp_load_passwd(ctx, true)) != KP_SUCCESS) {
 		return ret;
 	}
@@ -91,7 +73,7 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 		kp_password_generate(password, password_len);
 	}
 
-	if ((ret = kp_safe_create(ctx, &safe, path, password)) != KP_SUCCESS) {
+	if ((ret = kp_safe_create(ctx, &safe, argv[optind], password)) != KP_SUCCESS) {
 		if (ret == KP_EEXIST) {
 			warnx("please use edit command to edit an existing safe");
 		} else {

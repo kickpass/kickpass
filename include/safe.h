@@ -35,7 +35,7 @@
  */
 struct kp_safe {
 	bool           open;            /* whether the safe is open or not */
-	char           path[PATH_MAX];  /* path to the cipher file */
+	char           name[PATH_MAX];  /* name of the safe */
 	int            cipher;          /* fd of the cipher file if the safe is open */
 	size_t         plain_size;      /* size of the plaintext safe */
 	unsigned char *plain;           /* data of the plaintext safe */
@@ -44,6 +44,8 @@ struct kp_safe {
 kp_error_t kp_safe_load(struct kp_ctx *, struct kp_safe *, const char *);
 kp_error_t kp_safe_create(struct kp_ctx *, struct kp_safe *, const char *, const char *);
 kp_error_t kp_safe_close(struct kp_ctx *, struct kp_safe *);
-size_t     kp_safe_password_len(const struct kp_safe *safe);
+size_t     kp_safe_password_len(const struct kp_safe *);
+kp_error_t kp_safe_get_path(struct kp_ctx *, struct kp_safe *, char *, size_t);
+
 
 #endif /* KP_SAFE_H */
