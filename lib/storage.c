@@ -175,10 +175,15 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 	size_t cipher_size;
 	struct kp_storage_header header = KP_STORAGE_HEADER_INIT;
 	unsigned char packed_header[KP_STORAGE_HEADER_SIZE];
+	char path[PATH_MAX];
 
 	assert(ctx);
 	assert(safe);
 	assert(safe->open == true);
+
+	if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
+		return ret;
+	}
 
 	/* alloc cipher to max size */
 	cipher = malloc(safe->plain_size+crypto_aead_chacha20poly1305_ABYTES);
@@ -209,14 +214,14 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 
 	if (write(safe->cipher, packed_header, KP_STORAGE_HEADER_SIZE)
 			< KP_STORAGE_HEADER_SIZE) {
-		warn("cannot write safe to file %s", safe->path);
+		warn("cannot write safe to file %s", path);
 		ret = errno;
 		goto out;
 	}
 
 	if (write(safe->cipher, cipher, cipher_size)
 			< cipher_size) {
-		warn("cannot write safe to file %s", safe->path);
+		warn("cannot write safe to file %s", path);
 		ret = errno;
 		goto out;
 	}

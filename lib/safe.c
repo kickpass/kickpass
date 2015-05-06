@@ -38,23 +38,28 @@ static kp_error_t kp_safe_init(struct kp_safe *, const char *, bool);
  * The returned safe is closed.
  */
 kp_error_t
-kp_safe_load(struct kp_ctx *ctx, struct kp_safe *safe, const char *path)
+kp_safe_load(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 {
 	kp_error_t ret;
 	struct stat stats;
+	char path[PATH_MAX];
 
-	if ((ret = kp_safe_init(safe, path, false)) != KP_SUCCESS) {
+	if ((ret = kp_safe_init(safe, name, false)) != KP_SUCCESS) {
+		return ret;
+	}
+
+	if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
 		return ret;
 	}
 
 	if (stat(path, &stats) != 0) {
-		warn("unknown safe %s", path);
+		warn("unknown safe %s", name);
 		return KP_EINPUT;
 	}
 
-	safe->cipher = open(safe->path, O_RDWR | O_NONBLOCK);
+	safe->cipher = open(path, O_RDWR | O_NONBLOCK);
 	if (safe->cipher < 0) {
-		warn("cannot open safe %s", safe->path);
+		warn("cannot open safe %s", name);
 		return KP_EINPUT;
 	}
 
@@ -66,27 +71,33 @@ kp_safe_load(struct kp_ctx *ctx, struct kp_safe *safe, const char *path)
  * The returned safe is opened.
  */
 kp_error_t
-kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *path,
+kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *name,
 		const char *password)
 {
-	kp_error_t ret;
-	struct stat stats;
+	kp_error_t   ret;
+	struct stat  stats;
+	char         path[PATH_MAX];
+	char        *rdir;
 
-	if ((ret = kp_safe_init(safe, path, true)) != KP_SUCCESS) {
+	if ((ret = kp_safe_init(safe, name, true)) != KP_SUCCESS) {
+		return ret;
+	}
+
+	if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
 		return ret;
 	}
 
 	if (stat(path, &stats) == 0) {
-		warnx("safe %s already exists", path);
+		warnx("safe %s already exists", name);
 		return KP_EEXIST;
 	} else if (errno != ENOENT) {
-		warn("cannot create safe %s", path);
+		warn("cannot create safe %s", name);
 		return KP_EINPUT;
 	}
 
-	safe->cipher = open(safe->path, O_RDWR | O_NONBLOCK | O_CREAT, S_IRUSR | S_IWUSR);
+	safe->cipher = open(path, O_RDWR | O_NONBLOCK | O_CREAT, S_IRUSR | S_IWUSR);
 	if (safe->cipher < 0) {
-		warn("cannot open safe %s", safe->path);
+		warn("cannot open safe %s", name);
 		return KP_EINPUT;
 	}
 
@@ -117,15 +128,37 @@ kp_safe_close(struct kp_ctx *ctx, struct kp_safe *safe)
 }
 
 static kp_error_t
-kp_safe_init(struct kp_safe *safe, const char *path, bool open)
+kp_safe_init(struct kp_safe *safe, const char *name, bool open)
 {
-	if (strlcpy(safe->path, path, PATH_MAX) >= PATH_MAX) {
+	if (strlcpy(safe->name, name, PATH_MAX) >= PATH_MAX) {
 		warnx("memory error");
 		return KP_ENOMEM;
 	}
 
 	safe->open = open;
 	safe->plain = sodium_malloc(KP_PLAIN_MAX_SIZE);
+
+	return KP_SUCCESS;
+}
+
+kp_error_t
+kp_safe_get_path(struct kp_ctx *ctx, struct kp_safe *safe, char *path, size_t size)
+{
+
+	if (strlcpy(path, ctx->ws_path, size) >= size) {
+		warnx("memory error");
+		return KP_ENOMEM;
+	}
+
+	if (strlcat(path, "/", size) >= size) {
+		warnx("memory error");
+		return KP_ENOMEM;
+	}
+
+	if (strlcat(path, safe->name, size) >= size) {
+		warnx("memory error");
+		return KP_ENOMEM;
+	}
 
 	return KP_SUCCESS;
 }

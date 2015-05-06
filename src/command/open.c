@@ -42,7 +42,6 @@ kp_error_t
 open(struct kp_ctx *ctx, int argc, char **argv)
 {
 	kp_error_t ret;
-	char path[PATH_MAX];
 	struct kp_safe safe;
 
 	if (argc - optind != 1) {
@@ -50,22 +49,7 @@ open(struct kp_ctx *ctx, int argc, char **argv)
 		return KP_EINPUT;
 	}
 
-	if (strlcpy(path, ctx->ws_path, PATH_MAX) >= PATH_MAX) {
-		warnx("memory error");
-		return KP_ENOMEM;
-	}
-
-	if (strlcat(path, "/", PATH_MAX) >= PATH_MAX) {
-		warnx("memory error");
-		return KP_ENOMEM;
-	}
-
-	if (strlcat(path, argv[optind], PATH_MAX) >= PATH_MAX) {
-		warnx("memory error");
-		return KP_ENOMEM;
-	}
-
-	if ((ret = kp_safe_load(ctx, &safe, path)) != KP_SUCCESS) {
+	if ((ret = kp_safe_load(ctx, &safe, argv[optind])) != KP_SUCCESS) {
 		warnx("cannot load safe");
 		return ret;
 	}
