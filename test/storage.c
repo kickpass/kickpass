@@ -18,6 +18,7 @@
 
 #include "check_compat.h"
 
+#include "../lib/safe.c"
 #include "../lib/storage.c"
 
 START_TEST(test_storage_header_pack_should_be_successful)
