@@ -87,6 +87,25 @@ kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *name,
 		return ret;
 	}
 
+	rdir = path + strlen(ctx->ws_path);
+	rdir++; /* Skip first / as it is part of the ctx->ws */
+	while ((rdir = strchr(rdir, '/'))) {
+		*rdir = '\0';
+		if (stat(path, &stats) != 0) {
+			if (errno == ENOENT) {
+				if (mkdir(path, 0700) < 0) {
+					warn("cannot create dir %s", path);
+					return errno;
+				}
+			} else {
+				warn("cannot create dir %s", path);
+				return errno;
+			}
+		}
+		*rdir = '/';
+		rdir++;
+	}
+
 	if (stat(path, &stats) == 0) {
 		warnx("safe %s already exists", name);
 		return KP_EEXIST;
