@@ -127,5 +127,5 @@ out:
 int
 path_sort(const void *a, const void *b)
 {
-	return strncmp((const char *)a, (const char *)b, PATH_MAX);
+	return strncmp(*(const char **)a, *(const char **)b, PATH_MAX);
 }
