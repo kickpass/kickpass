@@ -16,7 +16,14 @@
 
 include(Test)
 
-UNIT_TEST(NAME storage FILE storage.c LIBS ${LIBS})
-UNIT_TEST(NAME safe FILE safe.c LIBS ${LIBS})
+find_library(M_LIB m)
+set(TEST_LIBS ${LIBS} ${M_LIB})
+find_library(RT_LIB rt)
+set(TEST_LIBS ${TEST_LIBS} ${RT_LIB})
+find_library(PTHREAD_LIB pthread)
+set(TEST_LIBS ${TEST_LIBS} ${PTHREAD_LIB})
+
+UNIT_TEST(NAME storage FILE storage.c LIBS ${TEST_LIBS})
+UNIT_TEST(NAME safe FILE safe.c LIBS ${TEST_LIBS})
 INTEGRATION_TEST(NAME init FILE init.sh)
 INTEGRATION_TEST(NAME create FILE create.sh)
