@@ -55,14 +55,16 @@ kp_edit(struct kp_ctx *ctx, struct kp_safe *safe)
 	pid = fork();
 
 	if (pid == 0) {
-		execlp(editor, editor, path, NULL);
+		if (execlp(editor, editor, path, NULL) < 0) {
+			warn("cannot run editor");
+			goto clean;
+		}
 	} else {
 		wait(NULL);
 
 		fd = open(path, O_RDONLY);
 		if (fd < 0) {
-			warn("cannot open temporary clear text file %s",
-					path);
+			warn("cannot open temporary clear text file %s", path);
 			ret = errno;
 			goto clean;
 		}
@@ -74,7 +76,7 @@ kp_edit(struct kp_ctx *ctx, struct kp_safe *safe)
 			goto clean;
 		}
 	}
-	
+
 clean:
 	if (unlink(path) < 0) {
 		warn("cannot delete temporary clear text file %s",
