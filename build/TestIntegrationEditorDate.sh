@@ -1,3 +1,3 @@
 #!/bin/sh
 
-date > $1
+date +%s > $1
