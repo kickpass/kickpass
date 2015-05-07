@@ -2,6 +2,7 @@
 set -e
 
 # Given
+export EDITOR="$EDITOR_PATH/TestIntegrationEditorDate.sh"
 $KP init
 
 # When
