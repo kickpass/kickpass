@@ -5,7 +5,7 @@ set -e
 $KP init
 
 # When
-$EXPECT $SRC/create.expect
+$EXPECT $SRC/create.expect create test
 
 # Then
 [ -f $HOME/.kickpass/test ] || abort "missing kickpass safe"

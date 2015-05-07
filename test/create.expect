@@ -1,4 +1,4 @@
-spawn $::env(KP) create test
+spawn $::env(KP) {*}$argv
 expect {
 	password: { send "test password\n" }
 }
