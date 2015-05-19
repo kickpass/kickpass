@@ -52,7 +52,10 @@ list(struct kp_ctx *ctx, int argc, char **argv)
 	ignore = strlen(ctx->ws_path) + 1;
 	for (i = 0; i < nsafes; i++) {
 		printf("%s\n", safes[i] + ignore);
+		free(safes[i]);
 	}
+
+	free(safes);
 
 	return KP_SUCCESS;
 }
