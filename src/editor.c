@@ -57,6 +57,7 @@ kp_edit(struct kp_ctx *ctx, struct kp_safe *safe)
 	if (pid == 0) {
 		if (execlp(editor, editor, path, NULL) < 0) {
 			warn("cannot run editor");
+			ret = KP_EINPUT;
 			goto clean;
 		}
 	} else {
@@ -75,6 +76,8 @@ kp_edit(struct kp_ctx *ctx, struct kp_safe *safe)
 			ret = errno;
 			goto clean;
 		}
+
+		ret = KP_SUCCESS;
 	}
 
 clean:
