@@ -1,0 +1,32 @@
+# Expect
+{
+   <expect_TclpAlloc>
+   Memcheck:Leak
+   ...
+   fun:TclpAlloc
+   ...
+}
+
+{
+   <expect_NewStringObj>
+   Memcheck:Leak
+   ...
+   fun:Tcl_NewStringObj
+   ...
+}
+
+{
+   <expect_NewObj>
+   Memcheck:Leak
+   ...
+   fun:Tcl_NewObj
+   ...
+}
+
+{
+   <expect_CreateInterp>
+   Memcheck:Leak
+   ...
+   fun:Tcl_CreateInterp
+   ...
+}

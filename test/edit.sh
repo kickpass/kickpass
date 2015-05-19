@@ -8,7 +8,7 @@ $EXPECT $SRC/password-confirm.expect create test
 export EDITOR="$EDITOR_PATH/TestIntegrationEditorSave.sh"
 
 # When
-$EXPECT $SRC/password.expect edit test
+do_test $EXPECT $SRC/password.expect edit test
 
 # Then
 [ -f $HOME/.kickpass/test ] || abort "missing kickpass safe"

@@ -6,7 +6,7 @@ export EDITOR="$EDITOR_PATH/TestIntegrationEditorSave.sh"
 $KP init
 
 # When
-$EXPECT $SRC/password-confirm.expect create -g -l 42 test
+do_test $EXPECT $SRC/password-confirm.expect create -g -l 42 test
 
 # Then
 [ -f $HOME/.kickpass/test ] || abort "missing kickpass safe"

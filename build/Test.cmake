@@ -16,6 +16,11 @@
 
 find_package(Check)
 find_program(EXPECT expect)
+find_program(VALGRIND_COMMAND valgrind)
+
+if (VALGRIND_COMMAND)
+	set(VALGRIND_OPTIONS "-q --tool=memcheck --show-reachable=yes --leak-check=full --gen-suppressions=all --track-origins=yes --error-exitcode=1")
+endif()
 
 if (CHECK_FOUND)
 	macro(UNIT_TEST)
@@ -51,6 +56,11 @@ if (EXPECT)
 		list(APPEND TEST_ENV "SRC=${CMAKE_CURRENT_SOURCE_DIR}")
 		list(APPEND TEST_ENV "EDITOR_PATH=${CTEST_MODULE_PATH}")
 		list(APPEND TEST_ENV "EXPECT=${EXPECT}")
+		if (VALGRIND_COMMAND)
+			set(VALGRIND_OPTIONS "${VALGRIND_OPTIONS} --suppressions=${CTEST_MODULE_PATH}/test-integration.sup")
+			list(APPEND TEST_ENV "VALGRIND_COMMAND=${VALGRIND_COMMAND}")
+			list(APPEND TEST_ENV "VALGRIND_OPTIONS=${VALGRIND_OPTIONS}")
+		endif()
 		set_tests_properties(${TEST_NAME} PROPERTIES ENVIRONMENT "${TEST_ENV}")
 	endmacro(INTEGRATION_TEST)
 else()
