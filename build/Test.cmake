@@ -15,11 +15,12 @@
 #
 
 find_package(Check)
-find_program(EXPECT expect)
 find_program(VALGRIND_COMMAND valgrind)
+find_program(PYTHON_COMMAND python)
 
 if (VALGRIND_COMMAND)
 	set(VALGRIND_OPTIONS "-q --tool=memcheck --show-reachable=yes --leak-check=full --gen-suppressions=all --track-origins=yes --error-exitcode=1")
+	set(VALGRIND_OPTIONS "${VALGRIND_OPTIONS} --suppressions=${CTEST_MODULE_PATH}/test-integration.sup")
 endif()
 
 if (CHECK_FOUND)
@@ -42,29 +43,27 @@ else()
 	endmacro(UNIT_TEST)
 endif()
 
-if (EXPECT)
+if (PYTHON_COMMAND)
 	macro(INTEGRATION_TEST)
 		set(oneValueArgs NAME FILE)
 		cmake_parse_arguments(INTEGRATION_TEST "" "${oneValueArgs}" "" ${ARGN})
 		set(TEST_NAME test-integration-${INTEGRATION_TEST_NAME})
 
 		add_test(NAME ${TEST_NAME}
-			COMMAND ${CTEST_MODULE_PATH}/TestIntegrationRun.sh $<TARGET_FILE:kickpass> "${TEST_NAME}" "${CMAKE_CURRENT_SOURCE_DIR}/${INTEGRATION_TEST_FILE}")
+			COMMAND ${CTEST_MODULE_PATH}/TestIntegrationDriver.sh $<TARGET_FILE:kickpass> "${TEST_NAME}" "${CMAKE_CURRENT_SOURCE_DIR}/${INTEGRATION_TEST_FILE}")
 
 		set(TEST_ENV "")
+		list(APPEND TEST_ENV "PYTHON=${PYTHON_COMMAND}")
 		list(APPEND TEST_ENV "HOME=${CMAKE_CURRENT_BINARY_DIR}/workspace")
-		list(APPEND TEST_ENV "SRC=${CMAKE_CURRENT_SOURCE_DIR}")
 		list(APPEND TEST_ENV "EDITOR_PATH=${CTEST_MODULE_PATH}")
-		list(APPEND TEST_ENV "EXPECT=${EXPECT}")
 		if (VALGRIND_COMMAND)
-			set(VALGRIND_OPTIONS "${VALGRIND_OPTIONS} --suppressions=${CTEST_MODULE_PATH}/test-integration.sup")
 			list(APPEND TEST_ENV "VALGRIND_COMMAND=${VALGRIND_COMMAND}")
 			list(APPEND TEST_ENV "VALGRIND_OPTIONS=${VALGRIND_OPTIONS}")
 		endif()
 		set_tests_properties(${TEST_NAME} PROPERTIES ENVIRONMENT "${TEST_ENV}")
 	endmacro(INTEGRATION_TEST)
 else()
-	message(WARNING "Expect not found. Skipping integration tests !")
+	message(WARNING "Python not found. Skipping integration tests !")
 	macro(INTEGRATION_TEST)
 	endmacro(INTEGRATION_TEST)
 endif()
