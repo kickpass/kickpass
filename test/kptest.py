@@ -55,6 +55,9 @@ class KPTestCase(unittest.TestCase):
     def assertSafeIsBigEnough(self, safe, size=20):
         self.assertGreater(os.path.getsize(os.path.join(self.kp_ws, safe)), size)
 
+    def assertClearTextExists(self):
+        self.assertTrue(os.path.isfile(self.clear_text))
+
     def assertClearTextPasswordSizeEquals(self, size):
         with open(self.clear_text) as f:
                 clear = f.read().splitlines()
@@ -86,3 +89,9 @@ class KPTestCase(unittest.TestCase):
         if options:
             cmd = cmd + options
         self.cmd(cmd + [name], password=password, confirm=True)
+
+    def edit(self, name, options=None, password="test password"):
+        cmd = ['edit']
+        if options:
+            cmd = cmd + options
+        self.cmd(cmd + [name], password=password, confirm=False)
