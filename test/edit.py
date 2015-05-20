@@ -21,7 +21,7 @@ class TestEditCommand(kptest.KPTestCase):
     def test_edit_is_successful(self):
         # Given
         self.init()
-        self.editor('date')
+        self.editor('env', env="But a RocknRolla, oh, he's different. Why? Because a real RocknRolla wants the fucking lot.")
         self.create("test")
         self.editor('save')
 
@@ -32,6 +32,7 @@ class TestEditCommand(kptest.KPTestCase):
         self.assertSafeExists("test")
         self.assertSafeIsBigEnough("test")
         self.assertClearTextExists()
+        self.assertClearTextEquals("But a RocknRolla, oh, he's different. Why? Because a real RocknRolla wants the fucking lot.")
 
 if __name__ == '__main__':
         unittest.main()

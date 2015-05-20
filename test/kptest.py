@@ -23,6 +23,7 @@ import unittest
 
 class KPTestCase(unittest.TestCase):
     EDITORS = {
+            'env': 'TestIntegrationEditorEnv.sh',
             'date': 'TestIntegrationEditorDate.sh',
             'save': 'TestIntegrationEditorSave.sh',
         }
@@ -39,8 +40,10 @@ class KPTestCase(unittest.TestCase):
         shutil.rmtree(self.kp_ws, ignore_errors=True)
 
     # Env
-    def editor(self, editor):
+    def editor(self, editor, env=None):
         os.environ['EDITOR'] = os.path.join(self.editor_path, KPTestCase.EDITORS[editor])
+        if env:
+            os.environ['EDITOR_ENV'] = env
 
     # Assertions
     def assertStdoutEquals(self, *refs):
@@ -62,6 +65,10 @@ class KPTestCase(unittest.TestCase):
         with open(self.clear_text) as f:
                 clear = f.read().splitlines()
         self.assertEqual(len(clear[0]), size)
+
+    def assertClearTextEquals(self, *refs):
+        with open(self.clear_text) as f:
+            self.assertEqual(f.read().splitlines(), list(refs))
 
     def assertWsExists(self):
         self.assertTrue(os.path.isdir(self.kp_ws))
@@ -92,6 +99,12 @@ class KPTestCase(unittest.TestCase):
 
     def edit(self, name, options=None, password="test password"):
         cmd = ['edit']
+        if options:
+            cmd = cmd + options
+        self.cmd(cmd + [name], password=password, confirm=False)
+
+    def open(self, name, options=None, password="test password"):
+        cmd = ['open']
         if options:
             cmd = cmd + options
         self.cmd(cmd + [name], password=password, confirm=False)

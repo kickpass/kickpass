@@ -13,20 +13,22 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
+import unittest
+import kptest
 
-include(Test)
+class TestOpenCommand(kptest.KPTestCase):
 
-find_library(M_LIB m)
-set(TEST_LIBS ${LIBS} ${M_LIB})
-find_library(RT_LIB rt)
-set(TEST_LIBS ${TEST_LIBS} ${RT_LIB})
-find_library(PTHREAD_LIB pthread)
-set(TEST_LIBS ${TEST_LIBS} ${PTHREAD_LIB})
+    def test_open_is_successful(self):
+        # Given
+        self.init()
+        self.editor('env', env="Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
+        self.create("test")
 
-UNIT_TEST(NAME storage FILE storage.c LIBS ${TEST_LIBS})
-UNIT_TEST(NAME safe FILE safe.c LIBS ${TEST_LIBS})
-INTEGRATION_TEST(NAME init FILE init.py)
-INTEGRATION_TEST(NAME create FILE create.py)
-INTEGRATION_TEST(NAME edit FILE edit.py)
-INTEGRATION_TEST(NAME list FILE list.py)
-INTEGRATION_TEST(NAME open FILE open.py)
+        # When
+        self.open("test")
+
+        # Then
+        self.assertStdoutEquals(" ", "Watch out for turtles. They'll bite you if you put your fingers in their mouths.", "")
+
+if __name__ == '__main__':
+        unittest.main()
