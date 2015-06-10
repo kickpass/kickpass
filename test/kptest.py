@@ -55,6 +55,9 @@ class KPTestCase(unittest.TestCase):
     def assertSafeExists(self, safe):
         self.assertTrue(os.path.isfile(os.path.join(self.kp_ws, safe)))
 
+    def assertSafeDoesntExists(self, safe):
+        self.assertFalse(os.path.isfile(os.path.join(self.kp_ws, safe)))
+
     def assertSafeIsBigEnough(self, safe, size=20):
         self.assertGreater(os.path.getsize(os.path.join(self.kp_ws, safe)), size)
 
@@ -105,6 +108,12 @@ class KPTestCase(unittest.TestCase):
 
     def open(self, name, options=None, password="test password"):
         cmd = ['open']
+        if options:
+            cmd = cmd + options
+        self.cmd(cmd + [name], password=password, confirm=False)
+
+    def delete(self, name, options=None, password=None):
+        cmd = ['delete']
         if options:
             cmd = cmd + options
         self.cmd(cmd + [name], password=password, confirm=False)

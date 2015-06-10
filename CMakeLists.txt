@@ -42,6 +42,7 @@ set(SRCS
 	src/command/init.c
 	src/command/open.c
 	src/command/list.c
+	src/command/delete.c
 )
 
 # Configure dependencies

@@ -30,6 +30,7 @@
 #include "command/copy.h"
 #endif /* HAS_X11 */
 #include "command/create.h"
+#include "command/delete.h"
 #include "command/edit.h"
 #include "command/init.h"
 #include "command/list.h"
@@ -51,29 +52,35 @@ struct cmd {
 
 static struct cmd cmds[] = {
 	/* kp_cmd_init */
-	{ "init",   &kp_cmd_init },
+	{ "init",    &kp_cmd_init },
 
 	/* kp_cmd_create */
-	{ "create", &kp_cmd_create },
-	{ "new",    &kp_cmd_create },
-	{ "insert", &kp_cmd_create },
+	{ "create",  &kp_cmd_create },
+	{ "new",     &kp_cmd_create },
+	{ "insert",  &kp_cmd_create },
 
 	/* kp_cmd_open */
-	{ "show",   &kp_cmd_open },
-	{ "open",   &kp_cmd_open },
-	{ "cat",    &kp_cmd_open },
+	{ "show",    &kp_cmd_open },
+	{ "open",    &kp_cmd_open },
+	{ "cat",     &kp_cmd_open },
 
 	/* kp_cmd_edit */
-	{ "edit",   &kp_cmd_edit },
+	{ "edit",    &kp_cmd_edit },
 
 #ifdef HAS_X11
 	/* kp_cmd_copy */
-	{ "copy",   &kp_cmd_copy },
+	{ "copy",    &kp_cmd_copy },
 #endif /* HAS_X11 */
 
 	/* kp_cmd_list */
-	{ "ls",     &kp_cmd_list },
-	{ "list",   &kp_cmd_list },
+	{ "ls",      &kp_cmd_list },
+	{ "list",    &kp_cmd_list },
+
+	/* kp_cmd_delete */
+	{ "delete",  &kp_cmd_delete },
+	{ "rm",      &kp_cmd_delete },
+	{ "remove",  &kp_cmd_delete },
+	{ "destroy", &kp_cmd_delete },
 };
 
 /*
