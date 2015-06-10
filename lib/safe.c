@@ -134,14 +134,14 @@ kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *name,
 kp_error_t
 kp_safe_close(struct kp_ctx *ctx, struct kp_safe *safe)
 {
+	sodium_free(safe->plain);
+
 	if (close(safe->cipher) < 0) {
 		warn("cannot close safe");
 		return errno;
 	}
 
 	safe->cipher = 0;
-
-	sodium_free(safe->plain);
 
 	return KP_SUCCESS;
 }
