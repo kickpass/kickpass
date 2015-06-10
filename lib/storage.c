@@ -276,7 +276,7 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 					safe->plain, &safe->plain_size,
 					cipher, cipher_size))
 			!= KP_SUCCESS) {
-		warnx("cannot decrypt safe");
+		warnx("cannot decrypt safe. Bad password ?");
 		goto out;
 	}
 
