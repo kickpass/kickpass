@@ -76,25 +76,19 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 	if ((ret = kp_safe_create(ctx, &safe, argv[optind], password)) != KP_SUCCESS) {
 		if (ret == KP_EEXIST) {
 			warnx("please use edit command to edit an existing safe");
-		} else {
-			warnx("cannot create safe");
 		}
 		goto out;
 	}
 
 	if ((ret = kp_edit(ctx, &safe)) != KP_SUCCESS) {
-		warnx("cannot edit safe");
 		goto out;
 	}
 
 	if ((ret = kp_storage_save(ctx, &safe)) != KP_SUCCESS) {
-		warnx("cannot save safe");
 		goto out;
 	}
 
 	if ((ret = kp_safe_close(ctx, &safe)) != KP_SUCCESS) {
-		warnx("cannot cleanly close safe");
-		warnx("clear text password might have leaked");
 		goto out;
 	}
 

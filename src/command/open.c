@@ -50,7 +50,6 @@ open(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	if ((ret = kp_safe_load(ctx, &safe, argv[optind])) != KP_SUCCESS) {
-		warnx("cannot load safe");
 		return ret;
 	}
 
@@ -59,7 +58,6 @@ open(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	if ((ret = kp_storage_open(ctx, &safe)) != KP_SUCCESS) {
-		warnx("cannot save safe");
 		return ret;
 	}
 

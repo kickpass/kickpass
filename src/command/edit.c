@@ -50,7 +50,6 @@ edit(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	if ((ret = kp_safe_load(ctx, &safe, argv[optind])) != KP_SUCCESS) {
-		warnx("cannot load safe");
 		return ret;
 	}
 
@@ -59,12 +58,10 @@ edit(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	if ((ret = kp_storage_open(ctx, &safe)) != KP_SUCCESS) {
-		warnx("cannot save safe");
 		return ret;
 	}
 
 	if ((ret = kp_edit(ctx, &safe)) != KP_SUCCESS) {
-		warnx("cannot edit safe");
 		return ret;
 	}
 
@@ -79,13 +76,10 @@ edit(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	if ((ret = kp_storage_save(ctx, &safe)) != KP_SUCCESS) {
-		warnx("cannot save safe");
 		return ret;
 	}
 
 	if ((ret = kp_safe_close(ctx, &safe)) != KP_SUCCESS) {
-		warnx("cannot cleanly close safe");
-		warnx("clear text password might have leaked");
 		return ret;
 	}
 

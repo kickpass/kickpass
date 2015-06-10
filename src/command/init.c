@@ -53,7 +53,6 @@ init(struct kp_ctx *ctx, int argc, char **argv)
 		goto out;
 	}
 
-	/* TODO create gpg config (force-mdc) */
 	/* TODO git init */
 
 out:
