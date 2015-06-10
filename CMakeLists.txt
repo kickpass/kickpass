@@ -46,7 +46,7 @@ set(SRCS
 )
 
 # Configure dependencies
-find_package(Sodium 1.0.2 REQUIRED)
+find_package(Sodium 1.0.0 REQUIRED)
 message(STATUS "Libsodium version: ${SODIUM_VERSION}")
 include_directories(${SODIUM_INCLUDE_DIRS})
 set(LIBS ${LIBS} ${SODIUM_LIBRARIES})
