@@ -25,7 +25,7 @@
 #include "kickpass.h"
 
 #define PASSWORD_MAX_SIZE       1024
-#define PASSWORD_PROMPT         "[kickpass] password: "
+#define PASSWORD_PROMPT         "[kickpass] master password: "
 #define PASSWORD_CONFIRM_PROMPT "[kickpass] confirm: "
 
 kp_error_t
