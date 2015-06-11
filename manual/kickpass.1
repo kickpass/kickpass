@@ -1,0 +1,158 @@
+.\"
+.\" Copyright (c) 2015 Paul Fariello <paul@fariello.eu>
+.\"
+.\" Permission to use, copy, modify, and distribute this software for any
+.\" purpose with or without fee is hereby granted, provided that the above
+.\" copyright notice and this permission notice appear in all copies.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+.\" WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+.\" MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+.\" ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+.\" WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+.\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+.\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.Dd $Mdocdate$
+.Dt KICKPASS 1
+.Os
+.Sh NAME
+.Nm kickpass
+.Nd a stupid simple password safe
+.Sh SYNOPSIS
+.Nm kickpass Oo Fl hv Oc
+.Nm kickpass Cm init
+.Nm kickpass Cm create Oo Fl hgl Ar len Oc Ar safe
+.Nm kickpass Cm open Ar safe
+.Nm kickpass Cm edit Ar safe
+.Nm kickpass Cm copy Ar safe
+.Nm kickpass Cm list Oo Ar path Oc
+.Nm kickpass Cm delete Oo Fl f Oc Ar safe
+.Sh DESCRIPTION
+.Nm
+is a stupid simple password safe. It keep each password in a specific
+safe, protected with modern cryptography. Command line interface is splited
+into different command. Each is described in the following subsections.
+.Ss WORKSPACE
+All safes are stored in kickpass workspace. Default workspace is
+.Pa $HOME/.kickpass/
+\&.
+.Ss SAFE NAMING
+Safe name can contains any character allowed by the file system containing the
+kickpass workspace. If safe name contains
+.Sq /
+then corresponding directories will be created under kickpass workspace.
+For example the following command
+.Bd -literal -offset indent
+kickpass create www/my-personnal-website
+.Ed
+.Pp
+will create a safe in
+.Pa $HOME/.kickpass/www/my-personnal-website
+\&. While following command
+.Bd -literal -offset indent
+kickpass list www
+.Ed
+.Pp
+will list all safe under the directory
+.Pa $HOME/.kickpass/www/
+\&.
+.Ss Nm kickpass Oo Fl hv Oc
+Don't do anything
+.Bl -tag -width flag
+.It Fl v Fl -version
+Print kickpass version
+.It Fl h Fl -help
+Print kickpass help
+.El
+.Ss Nm kickpass Cm init
+Initialize a kickpass workspace.
+.Ss Nm kickpass Cm create Oo Fl hgl Oc Ar safe
+Create a new password safe.
+.Bl -tag -width flag
+.It Fl h Fl -help
+Print kickpass create help
+.It Fl g Fl -generate
+Create a new safe with a generated random password
+.It Fl l Fl -length Ar len
+Generate a random password of
+.Ar len
+length
+.El
+.Ss Nm kickpass Cm open Ar safe
+Open
+.Ar safe
+and print
+.Ar safe
+content on stdout
+.Ss Nm kickpass Cm edit Ar safe
+Edit
+.Ar safe
+using
+.Ev EDITOR
+environment variable
+.Ss Nm kickpass Cm copy Ar safe
+Copy
+.Ar safe
+password into X primary and secondary clipboards. Password can be pasted only
+once.
+.Ss Nm kickpass Cm list Oo Ar path Oc
+List available safes starting from
+.Ar path
+relatively to kickpass workspace or from root of kickpass workspace if
+.Ar path
+is not given.
+.Ss Nm kickpass Cm delete Oo Fl f Oc Ar safe
+Delete
+.Ar safe
+\&.
+.Bl -tag -width flag
+.It Fl f Fl -force
+Delete
+.Ar safe
+without asking for password
+.El
+.Sh ENVIRONMENT
+The following variables are used by kickpass:
+.Bl -tag -width BLOCKSIZE
+.It Ev HOME
+The user's login directory. Used to compute kickpass workspace path.
+.It Ev EDITOR
+The user's preferred utility to edit text files. Used to edit safe.
+.El
+.Sh FILES
+The following files and directories are used by kickpass:
+.Bl -tag -width BLOCKSIZE
+.It Pa $HOME/.kickpass/
+The kickpass working directory.
+.El
+.Sh EXAMPLES
+Initialize a kickpass workspace.
+.Bd -literal -offset indent
+kickpass init
+.Ed
+Create a new safe with a random password.
+.Bd -literal -offset indent
+kickpass create -g www/my_safe
+.Ed
+Display safe content on stdout.
+.Bd -literal -offset indent
+kickpass open www/my_safe
+.Ed
+Edit a safe.
+.Bd -literal -offset indent
+kickpass edit www/my_safe
+.Ed
+Copy password contained in safe into X clipboards.
+.Bd -literal -offset indent
+kickpass copy www/my_safe
+.Ed
+Force deletion of safe.
+.Bd -literal -offset indent
+kickpass delete -f www/my_safe
+.Ed
+.Sh AUTHORS
+.Nm
+is written by
+.An Paul Fariello Aq Mt paul@fariello.eu
+\&.

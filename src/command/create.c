@@ -139,7 +139,7 @@ usage(void)
 
 	printf("usage: %s %s\n", __progname, kp_cmd_create.opts);
 	printf("options:\n");
-	printf("    -h, --help         Display this help\n");
+	printf("    -h, --help         Print this help\n");
 	printf("    -g, --generate     Randomly generate a password\n");
 	printf("    -l, --length=len   Length of the generated passwerd. Default to 20\n");
 

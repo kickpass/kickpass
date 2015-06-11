@@ -184,11 +184,11 @@ usage(struct kp_ctx *ctx)
 	int i;
 	extern char *__progname;
 	char usage[] =
-		"usage: %s [-hv] <command> [<args>]\n"
+		"usage: %s [-hv] <command> [<cmd_opts>] [<args>]\n"
 		"\n"
 		"options:\n"
-		"    -h, --help     Display this help\n"
-		"    -v, --version  Show %s version\n"
+		"    -h, --help     Print this help\n"
+		"    -v, --version  Print %s version\n"
 		"\n"
 		"commands:\n";
 	printf(usage, __progname, __progname);
