@@ -19,14 +19,11 @@ include(FindPackageHandleStandardArgs)
 find_path(SODIUM_INCLUDE_DIRS NAMES sodium.h)
 find_library(SODIUM_LIBRARIES NAMES sodium)
 
-find_package_handle_standard_args(SODIUM
-	REQUIRED_VARS SODIUM_INCLUDE_DIRS SODIUM_LIBRARIES)
-
-if (SODIUM_FOUND)
+if (SODIUM_INCLUDE_DIRS)
 	file(STRINGS "${SODIUM_INCLUDE_DIRS}/sodium/version.h" _SODIUM_VERSION_H_CONTENT REGEX "#define SODIUM_VERSION_STRING ")
 	STRING (REGEX MATCH "([0-9]+\\.[0-9]+\\.[0-9]+)" SODIUM_VERSION "${_SODIUM_VERSION_H_CONTENT}")
-
-	if ("${Sodium_FIND_VERSION}" VERSION_GREATER "${SODIUM_VERSION}")
-		message(SEND_ERROR "Invalid sodium version found ${SODIUM_VERSION} expecting at least ${Sodium_FIND_VERSION}")
-	endif()
 endif()
+
+find_package_handle_standard_args(Sodium
+	REQUIRED_VARS SODIUM_INCLUDE_DIRS SODIUM_LIBRARIES
+	VERSION_VAR SODIUM_VERSION)
