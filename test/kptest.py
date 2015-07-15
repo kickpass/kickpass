@@ -89,7 +89,7 @@ class KPTestCase(unittest.TestCase):
                 self.child.sendline(password)
 
         for line in self.child:
-            self.stdout = self.stdout + line
+            self.stdout = self.stdout + line.decode(sys.stdout.encoding)
 
     def init(self):
         self.cmd(['init'])
