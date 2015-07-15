@@ -109,3 +109,5 @@ install(FILES manual/kickpass.1 DESTINATION share/man/man1/)
 enable_testing()
 add_subdirectory(test)
 
+# Packaging
+include(Package)
