@@ -60,14 +60,14 @@ static void kp_storage_header_unpack(struct kp_storage_header *,
 		const unsigned char *);
 static kp_error_t kp_storage_encrypt(struct kp_ctx *,
 		struct kp_storage_header *,
-		const unsigned char *, size_t,
-		const unsigned char *, size_t,
-		unsigned char *, size_t *);
+		const unsigned char *, unsigned long long,
+		const unsigned char *, unsigned long long,
+		unsigned char *, unsigned long long *);
 static kp_error_t kp_storage_decrypt(struct kp_ctx *,
 		struct kp_storage_header *,
-		const unsigned char *, size_t,
-		unsigned char *, size_t *,
-		const unsigned char *, size_t);
+		const unsigned char *, unsigned long long,
+		unsigned char *, unsigned long long *,
+		const unsigned char *, unsigned long long);
 
 #define READ_HEADER(s, packed, field) do {\
 	memcpy(&(field), (packed), (s)/8);\
@@ -116,9 +116,9 @@ kp_storage_header_unpack(struct kp_storage_header *header,
 
 static kp_error_t
 kp_storage_encrypt(struct kp_ctx *ctx, struct kp_storage_header *header,
-		const unsigned char *packed_header, size_t header_size,
-		const unsigned char *plain, size_t plain_size,
-		unsigned char *cipher, size_t *cipher_size)
+		const unsigned char *packed_header, unsigned long long header_size,
+		const unsigned char *plain, unsigned long long plain_size,
+		unsigned char *cipher, unsigned long long *cipher_size)
 {
 	unsigned char key[crypto_aead_chacha20poly1305_KEYBYTES];
 
@@ -127,14 +127,10 @@ kp_storage_encrypt(struct kp_ctx *ctx, struct kp_storage_header *header,
 			ctx->password, strlen(ctx->password),
 			header->salt, header->opslimit, header->memlimit);
 
-	if (crypto_aead_chacha20poly1305_encrypt(cipher,
-				(unsigned long long *)cipher_size,
-				plain,
-				(unsigned long long)plain_size,
-				packed_header,
-				(unsigned long long)header_size,
-				NULL,
-				header->nonce, key) != 0) {
+	if (crypto_aead_chacha20poly1305_encrypt(cipher, cipher_size,
+				plain, plain_size,
+				packed_header, header_size,
+				NULL, header->nonce, key) != 0) {
 		return KP_EINTERNAL;
 	}
 
@@ -142,9 +138,9 @@ kp_storage_encrypt(struct kp_ctx *ctx, struct kp_storage_header *header,
 }
 static kp_error_t
 kp_storage_decrypt(struct kp_ctx *ctx, struct kp_storage_header *header,
-		const unsigned char *packed_header, size_t header_size,
-		unsigned char *plain, size_t *plain_size,
-		const unsigned char *cipher, size_t cipher_size)
+		const unsigned char *packed_header, unsigned long long header_size,
+		unsigned char *plain, unsigned long long *plain_size,
+		const unsigned char *cipher, unsigned long long cipher_size)
 {
 	unsigned char key[crypto_aead_chacha20poly1305_KEYBYTES];
 
@@ -153,13 +149,9 @@ kp_storage_decrypt(struct kp_ctx *ctx, struct kp_storage_header *header,
 			ctx->password, strlen(ctx->password),
 			header->salt, header->opslimit, header->memlimit);
 
-	if (crypto_aead_chacha20poly1305_decrypt(plain,
-				(unsigned long long *)plain_size,
-				NULL,
-				cipher,
-				(unsigned long long)cipher_size,
-				packed_header,
-				(unsigned long long)header_size,
+	if (crypto_aead_chacha20poly1305_decrypt(plain, plain_size,
+				NULL, cipher, cipher_size,
+				packed_header, header_size,
 				header->nonce, key) != 0) {
 		return KP_EINTERNAL;
 	}
@@ -172,7 +164,7 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 {
 	kp_error_t ret = KP_SUCCESS;
 	unsigned char *cipher = NULL;
-	size_t cipher_size;
+	unsigned long long cipher_size;
 	struct kp_storage_header header = KP_STORAGE_HEADER_INIT;
 	unsigned char packed_header[KP_STORAGE_HEADER_SIZE];
 	char path[PATH_MAX];
@@ -237,7 +229,7 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 {
 	kp_error_t ret = KP_SUCCESS;
 	unsigned char *cipher = NULL;
-	size_t cipher_size;
+	unsigned long long cipher_size, plain_size;
 	struct kp_storage_header header = KP_STORAGE_HEADER_INIT;
 	unsigned char packed_header[KP_STORAGE_HEADER_SIZE];
 
@@ -264,6 +256,12 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 	cipher_size = read(safe->cipher, cipher,
 			KP_PLAIN_MAX_SIZE+crypto_aead_chacha20poly1305_ABYTES);
 
+	if (cipher_size <= crypto_aead_chacha20poly1305_ABYTES) {
+		warnx("invalid safe size");
+		ret = KP_EINPUT;
+		goto out;
+	}
+
 	if (cipher_size - crypto_aead_chacha20poly1305_ABYTES
 			> KP_PLAIN_MAX_SIZE) {
 		warnx("safe too long");
@@ -273,13 +271,14 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 
 	if ((ret = kp_storage_decrypt(ctx, &header,
 					packed_header, KP_STORAGE_HEADER_SIZE,
-					safe->plain, &safe->plain_size,
+					safe->plain, &plain_size,
 					cipher, cipher_size))
 			!= KP_SUCCESS) {
 		warnx("cannot decrypt safe. Bad password ?");
 		goto out;
 	}
 
+	safe->plain_size = plain_size;
 	safe->plain[safe->plain_size] = '\0';
 	safe->open = true;
 

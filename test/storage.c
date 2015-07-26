@@ -108,7 +108,7 @@ START_TEST(test_storage_encrypt_should_be_successful)
 	unsigned char packed_header[KP_STORAGE_HEADER_SIZE] = { 0 };
 	unsigned char plain[] = "the quick brown fox jumps over the lobster dog";
 	unsigned char cipher[sizeof(plain)+crypto_aead_chacha20poly1305_ABYTES] = { 0 };
-	size_t cipher_size;
+	unsigned long long cipher_size;
 
 	header.version = 0xde;
 	header.sodium_version = 0xad;
@@ -160,7 +160,7 @@ START_TEST(test_storage_decrypt_should_be_successful)
 		0xe9, 0x7c, 0x21, 0xd5, 0xf3, 0xfe, 0x44,
 	};
 	unsigned char plain[sizeof(cipher)-crypto_aead_chacha20poly1305_ABYTES] = { 0 };
-	size_t plain_size;
+	unsigned long long plain_size;
 
 	header.version = 0xde;
 	header.sodium_version = 0xad;
