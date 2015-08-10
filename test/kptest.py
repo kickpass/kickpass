@@ -106,6 +106,12 @@ class KPTestCase(unittest.TestCase):
             cmd = cmd + options
         self.cmd(cmd + [name], password=password, confirm=False)
 
+    def rename(self, old, new, options=None, password="test password"):
+        cmd = ['rename']
+        if options:
+            cmd = cmd + options
+        self.cmd(cmd + [old, new], password=password, confirm=False)
+
     def open(self, name, options=None, password="test password"):
         cmd = ['open']
         if options:

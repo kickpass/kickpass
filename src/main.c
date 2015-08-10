@@ -35,6 +35,7 @@
 #include "command/init.h"
 #include "command/list.h"
 #include "command/open.h"
+#include "command/rename.h"
 
 static int        cmd_cmp(const void *, const void *);
 static int        cmd_sort(const void *, const void *);
@@ -81,6 +82,11 @@ static struct cmd cmds[] = {
 	{ "rm",      &kp_cmd_delete },
 	{ "remove",  &kp_cmd_delete },
 	{ "destroy", &kp_cmd_delete },
+
+	/* kp_cmd_rename */
+	{ "rename",  &kp_cmd_rename },
+	{ "mv",      &kp_cmd_rename },
+	{ "move",    &kp_cmd_rename },
 };
 
 /*

@@ -44,11 +44,12 @@ set(SRCS
 	src/prompt.c
 	# commands
 	src/command/create.c
+	src/command/delete.c
 	src/command/edit.c
 	src/command/init.c
-	src/command/open.c
 	src/command/list.c
-	src/command/delete.c
+	src/command/open.c
+	src/command/rename.c
 )
 
 # Configure dependencies

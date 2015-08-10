@@ -161,6 +161,33 @@ kp_safe_init(struct kp_safe *safe, const char *name, bool open)
 }
 
 kp_error_t
+kp_safe_rename(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
+{
+	kp_error_t ret;
+	char oldpath[PATH_MAX], newpath[PATH_MAX];
+
+	if ((ret = kp_safe_get_path(ctx, safe, oldpath, PATH_MAX)) != KP_SUCCESS) {
+		return ret;
+	}
+
+	if (strlcpy(safe->name, name, PATH_MAX) >= PATH_MAX) {
+		warnx("memory error");
+		return KP_ENOMEM;
+	}
+
+	if ((ret = kp_safe_get_path(ctx, safe, newpath, PATH_MAX)) != KP_SUCCESS) {
+		return ret;
+	}
+
+	if (rename(oldpath, newpath) != 0) {
+		warn("cannot rename safe from %s to %s", oldpath, newpath);
+		return KP_EINPUT;
+	}
+
+	return KP_SUCCESS;
+}
+
+kp_error_t
 kp_safe_get_path(struct kp_ctx *ctx, struct kp_safe *safe, char *path, size_t size)
 {
 
