@@ -19,14 +19,15 @@
 
 #include "kickpass.h"
 
-#ifndef KP_SAFE_TEMPLATE
-#define KP_SAFE_TEMPLATE "%s\n"                                                \
-                         "url: \n"                                             \
+#ifndef KP_INFO_TEMPLATE
+#define KP_INFO_TEMPLATE "url: \n"                                             \
                          "username: \n"                                        \
                          "comment: \n"
 #endif
 
-#define KP_PLAIN_MAX_SIZE 4096
+#define KP_PASSWORD_MAX_LEN 4096
+#define KP_INFO_MAX_LEN 4096
+#define KP_PLAIN_MAX_SIZE (KP_PASSWORD_MAX_LEN + KP_INFO_MAX_LEN + 2)
 
 /*
  * A safe is either open or close.
@@ -37,14 +38,15 @@ struct kp_safe {
 	bool           open;            /* whether the safe is open or not */
 	char           name[PATH_MAX];  /* name of the safe */
 	int            cipher;          /* fd of the cipher file if the safe is open */
-	size_t         plain_size;      /* size of the plaintext safe */
-	unsigned char *plain;           /* data of the plaintext safe */
+	size_t         password_len;    /* size of the password excluding the terminating null byte */
+	unsigned char *password;        /* plain text password */
+	size_t         info_len;        /* size of the info excluding the terminating null byte */
+	unsigned char *info;            /* plain text info */
 };
 
 kp_error_t kp_safe_load(struct kp_ctx *, struct kp_safe *, const char *);
 kp_error_t kp_safe_create(struct kp_ctx *, struct kp_safe *, const char *, const char *);
 kp_error_t kp_safe_close(struct kp_ctx *, struct kp_safe *);
-size_t     kp_safe_password_len(const struct kp_safe *);
 kp_error_t kp_safe_get_path(struct kp_ctx *, struct kp_safe *, char *, size_t);
 kp_error_t kp_safe_rename(struct kp_ctx *, struct kp_safe *, const char *);
 

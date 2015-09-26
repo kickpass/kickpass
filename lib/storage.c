@@ -163,8 +163,8 @@ kp_error_t
 kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 {
 	kp_error_t ret = KP_SUCCESS;
-	unsigned char *cipher = NULL;
-	unsigned long long cipher_size;
+	unsigned char *cipher = NULL, *plain = NULL;
+	unsigned long long cipher_size, plain_size;
 	struct kp_storage_header header = KP_STORAGE_HEADER_INIT;
 	unsigned char packed_header[KP_STORAGE_HEADER_SIZE];
 	char path[PATH_MAX];
@@ -172,13 +172,23 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 	assert(ctx);
 	assert(safe);
 	assert(safe->open == true);
+	assert(safe->password_len <= KP_PASSWORD_MAX_LEN);
+	assert(safe->info_len <= KP_INFO_MAX_LEN);
 
 	if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
 		return ret;
 	}
 
+	/* construct full plain */
+	plain_size = safe->password_len + safe->info_len + 2;
+	plain = sodium_malloc(plain_size);
+	strncpy((char *)plain, (char *)safe->password, safe->password_len);
+	plain[safe->password_len] = '\0';
+	strncpy((char *)&plain[safe->password_len+1], (char *)safe->info, safe->info_len);
+	plain[plain_size] = '\0';
+
 	/* alloc cipher to max size */
-	cipher = malloc(safe->plain_size+crypto_aead_chacha20poly1305_ABYTES);
+	cipher = malloc(plain_size+crypto_aead_chacha20poly1305_ABYTES);
 	if (!cipher) {
 		warnx("memory error");
 		ret = KP_ENOMEM;
@@ -197,7 +207,7 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 
 	if ((ret = kp_storage_encrypt(ctx, &header,
 					packed_header, KP_STORAGE_HEADER_SIZE,
-					safe->plain, safe->plain_size,
+					plain, plain_size,
 					cipher, &cipher_size))
 		!= KP_SUCCESS) {
 		warnx("cannot encrypt safe");
@@ -219,6 +229,7 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 	}
 
 out:
+	sodium_free(plain);
 	free(cipher);
 
 	return ret;
@@ -228,7 +239,7 @@ kp_error_t
 kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 {
 	kp_error_t ret = KP_SUCCESS;
-	unsigned char *cipher = NULL;
+	unsigned char *cipher = NULL, *plain = NULL;
 	unsigned long long cipher_size, plain_size;
 	struct kp_storage_header header = KP_STORAGE_HEADER_INIT;
 	unsigned char packed_header[KP_STORAGE_HEADER_SIZE];
@@ -252,6 +263,10 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 
 	kp_storage_header_unpack(&header, packed_header);
 
+	/* alloc plain to max size */
+	plain = sodium_malloc(KP_PLAIN_MAX_SIZE);
+
+	/* alloc cipher to max size */
 	cipher = malloc(KP_PLAIN_MAX_SIZE+crypto_aead_chacha20poly1305_ABYTES);
 	cipher_size = read(safe->cipher, cipher,
 			KP_PLAIN_MAX_SIZE+crypto_aead_chacha20poly1305_ABYTES);
@@ -271,18 +286,27 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 
 	if ((ret = kp_storage_decrypt(ctx, &header,
 					packed_header, KP_STORAGE_HEADER_SIZE,
-					safe->plain, &plain_size,
+					plain, &plain_size,
 					cipher, cipher_size))
 			!= KP_SUCCESS) {
 		warnx("cannot decrypt safe. Bad password ?");
 		goto out;
 	}
 
-	safe->plain_size = plain_size;
-	safe->plain[safe->plain_size] = '\0';
+	strncpy((char *)safe->password, (char *)plain, KP_PASSWORD_MAX_LEN);
+	/* ensure null termination */
+	safe->password[KP_PASSWORD_MAX_LEN] = '\0';
+	safe->password_len = strlen((char *)safe->password);
+
+	strncpy((char *)safe->info, (char *)&plain[safe->password_len+1], KP_INFO_MAX_LEN);
+	/* ensure null termination */
+	safe->info[KP_INFO_MAX_LEN] = '\0';
+	safe->info_len = strlen((char *)safe->info);
+
 	safe->open = true;
 
 out:
+	sodium_free(plain);
 	free(cipher);
 
 	return ret;

@@ -120,8 +120,8 @@ kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *name,
 		return KP_EINPUT;
 	}
 
-	safe->plain_size = snprintf((char *)safe->plain, KP_PLAIN_MAX_SIZE,
-			KP_SAFE_TEMPLATE, password);
+	safe->password_len = snprintf((char *)safe->password, KP_PASSWORD_MAX_LEN, password);
+	safe->info_len = snprintf((char *)safe->info, KP_INFO_MAX_LEN, KP_INFO_TEMPLATE);
 
 	return KP_SUCCESS;
 }
@@ -134,7 +134,8 @@ kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *name,
 kp_error_t
 kp_safe_close(struct kp_ctx *ctx, struct kp_safe *safe)
 {
-	sodium_free(safe->plain);
+	sodium_free(safe->password);
+	sodium_free(safe->info);
 
 	if (close(safe->cipher) < 0) {
 		warn("cannot close safe");
@@ -155,7 +156,10 @@ kp_safe_init(struct kp_safe *safe, const char *name, bool open)
 	}
 
 	safe->open = open;
-	safe->plain = sodium_malloc(KP_PLAIN_MAX_SIZE);
+	safe->password = sodium_malloc(KP_PASSWORD_MAX_LEN+1);
+	safe->password_len = 0;
+	safe->info = sodium_malloc(KP_INFO_MAX_LEN+1);
+	safe->info_len = 0;
 
 	return KP_SUCCESS;
 }
@@ -207,26 +211,4 @@ kp_safe_get_path(struct kp_ctx *ctx, struct kp_safe *safe, char *path, size_t si
 	}
 
 	return KP_SUCCESS;
-}
-
-size_t
-kp_safe_password_len(const struct kp_safe *safe)
-{
-	char *end;
-
-	assert(safe);
-	assert(safe->open);
-
-	if ((end = strchr((char *)safe->plain, '\r')) != NULL) {
-		goto out;
-	}
-
-	if ((end = strchr((char *)safe->plain, '\n')) != NULL) {
-		goto out;
-	}
-
-	return strlen((char *)safe->plain);
-
-out:
-	return end - (char *)safe->plain;
 }

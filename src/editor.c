@@ -70,9 +70,8 @@ kp_edit(struct kp_ctx *ctx, struct kp_safe *safe)
 			goto clean;
 		}
 
-		if ((safe->plain_size = read(fd, safe->plain, KP_PLAIN_MAX_SIZE)) < 0) {
-			warn("cannot read temporary clear text file %s",
-					path);
+		if ((safe->info_len = read(fd, safe->info, KP_INFO_MAX_LEN)) < 0) {
+			warn("cannot read temporary clear text file %s", path);
 			ret = errno;
 			goto clean;
 		}
@@ -82,8 +81,7 @@ kp_edit(struct kp_ctx *ctx, struct kp_safe *safe)
 
 clean:
 	if (unlink(path) < 0) {
-		warn("cannot delete temporary clear text file %s",
-				path);
+		warn("cannot delete temporary clear text file %s", path);
 		warnx("ensure to delete it manually to avoid password leak");
 	}
 
@@ -115,7 +113,7 @@ kp_editor_get_tmp(struct kp_ctx *ctx, struct kp_safe *safe, char *path, size_t s
 		return errno;
 	}
 
-	if (write(fd, safe->plain, safe->plain_size) != safe->plain_size) {
+	if (write(fd, safe->info, safe->info_len) != safe->info_len) {
 		warn("cannot dump safe on temp file %s for edition", path);
 		return errno;
 	}

@@ -127,8 +127,8 @@ copy(struct kp_ctx *ctx, int argc, char **argv)
 			XChangeProperty(display, request->requestor,
 					request->property, request->target,
 					8, PropModeReplace,
-					safe.plain,
-					kp_safe_password_len(&safe));
+					safe.password,
+					safe.password_len);
 			replied = true;
 		} else {
 			warnx("don't know what to answer");
