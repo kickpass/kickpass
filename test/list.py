@@ -26,7 +26,7 @@ class TestListCommand(kptest.KPTestCase):
         self.create("subdir/other")
 
         # When
-        self.cmd(["ls"])
+        self.cmd(["ls"], master="test master password")
 
         # Then
         self.assertStdoutContains("subdir/other", "subdir/test")
@@ -39,7 +39,7 @@ class TestListCommand(kptest.KPTestCase):
         self.create("subdir/other")
 
         # When
-        self.cmd(["ls"])
+        self.cmd(["ls"], master="test master password")
 
         # Then
         self.assertStdoutEquals("subdir/other", "subdir/test")

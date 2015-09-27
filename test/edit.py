@@ -34,5 +34,35 @@ class TestEditCommand(kptest.KPTestCase):
         self.assertClearTextExists()
         self.assertClearTextEquals("But a RocknRolla, oh, he's different. Why? Because a real RocknRolla wants the fucking lot.")
 
+    def test_edit_only_password_is_successful(self):
+        # Given
+        self.init()
+        self.editor('env', env="But a RocknRolla, oh, he's different. Why? Because a real RocknRolla wants the fucking lot.")
+        self.create("test")
+
+        # When
+        self.edit("test", password="RocknRolla", options=["-p"])
+
+        # Then
+        self.open("test", options=["-p"])
+        password = self.stdout.splitlines()[1]
+        self.assertEqual(password, "RocknRolla")
+
+    def test_edit_only_metadata_is_successful(self):
+        # Given
+        self.init()
+        self.editor('env', env="But a RocknRolla, oh, he's different. Why? Because a real RocknRolla wants the fucking lot.")
+        self.create("test")
+        self.editor('env', env="Oh, you are something special, Mr. Johnny Quid.")
+
+        # When
+        self.edit("test", password=None, options=["-m"])
+
+        # Then
+        self.open("test")
+        password = self.stdout.splitlines()[1]
+        self.assertEqual(password, "Oh, you are something special, Mr. Johnny Quid.")
+
+
 if __name__ == '__main__':
         unittest.main()

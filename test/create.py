@@ -48,10 +48,12 @@ class TestCreateCommand(kptest.KPTestCase):
         self.editor('save')
 
         # When
-        self.create("test", options=["-g", "-l", "42"])
+        self.create("test", options=["-g", "-l", "42"], password=None)
 
         # Then
-        self.assertClearTextPasswordSizeEquals(42)
+        self.open("test", options=["-p"])
+        passwd = self.stdout.splitlines()[1]
+        self.assertEqual(len(passwd), 42)
 
 if __name__ == '__main__':
         unittest.main()

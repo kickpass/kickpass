@@ -22,10 +22,10 @@ class TestDeleteCommand(kptest.KPTestCase):
         # Given
         self.init()
         self.editor('date')
-        self.create("test", password="MyT0pS3cr3tP4ssw0rd")
+        self.create("test", master="MyT0pS3cr3tP4ssw0rd")
 
         # When
-        self.delete("test", password="MyT0pS3cr3tP4ssw0rd")
+        self.delete("test", master="MyT0pS3cr3tP4ssw0rd")
 
         # Then
         self.assertSafeDoesntExists("test")
@@ -34,10 +34,10 @@ class TestDeleteCommand(kptest.KPTestCase):
         # Given
         self.init()
         self.editor('date')
-        self.create("test", password="MyT0pS3cr3tP4ssw0rd")
+        self.create("test", master="MyT0pS3cr3tP4ssw0rd")
 
         # When
-        self.delete("test", password="Il0v3ST20")
+        self.delete("test", master="Il0v3ST20")
 
         # Then
         self.assertSafeExists("test")
@@ -46,10 +46,10 @@ class TestDeleteCommand(kptest.KPTestCase):
         # Given
         self.init()
         self.editor('date')
-        self.create("test", password="MyT0pS3cr3tP4ssw0rd")
+        self.create("test", master="MyT0pS3cr3tP4ssw0rd")
 
         # When
-        self.delete("test", options=['-f'])
+        self.delete("test", options=['-f'], master=None)
 
         # Then
         self.assertSafeDoesntExists("test")

@@ -47,10 +47,12 @@ class KPTestCase(unittest.TestCase):
 
     # Assertions
     def assertStdoutEquals(self, *refs):
-        self.assertEqual(self.stdout.splitlines(), list(refs))
+        lines = [l for l in self.stdout.splitlines() if len(l.strip()) > 0]
+        self.assertEqual(lines, list(refs))
 
     def assertStdoutContains(self, *refs):
-        self.assertEqual(collections.Counter(self.stdout.splitlines()), collections.Counter(list(refs)))
+        lines = [l for l in self.stdout.splitlines() if len(l.strip()) > 0]
+        self.assertEqual(collections.Counter(lines), collections.Counter(list(refs)))
 
     def assertSafeExists(self, safe):
         self.assertTrue(os.path.isfile(os.path.join(self.kp_ws, safe)))
@@ -64,11 +66,6 @@ class KPTestCase(unittest.TestCase):
     def assertClearTextExists(self):
         self.assertTrue(os.path.isfile(self.clear_text))
 
-    def assertClearTextPasswordSizeEquals(self, size):
-        with open(self.clear_text) as f:
-                clear = f.read().splitlines()
-        self.assertEqual(len(clear[0]), size)
-
     def assertClearTextEquals(self, *refs):
         with open(self.clear_text) as f:
             self.assertEqual(f.read().splitlines(), list(refs))
@@ -77,14 +74,21 @@ class KPTestCase(unittest.TestCase):
         self.assertTrue(os.path.isdir(self.kp_ws))
 
     # Run commands
-    def cmd(self, args, password=None, confirm=False):
+    def cmd(self, args, master=None, confirm_master=False, password=None, confirm_password=False):
         self.stdout = ""
         self.child = pexpect.spawn(self.kp, args)
+
+        if master:
+            self.child.expect('password:')
+            self.child.sendline(master)
+            if confirm_master:
+                self.child.expect('confirm:')
+                self.child.sendline(master)
 
         if password:
             self.child.expect('password:')
             self.child.sendline(password)
-            if confirm:
+            if confirm_password:
                 self.child.expect('confirm:')
                 self.child.sendline(password)
 
@@ -94,32 +98,32 @@ class KPTestCase(unittest.TestCase):
     def init(self):
         self.cmd(['init'])
 
-    def create(self, name, options=None, password="test password"):
+    def create(self, name, options=None, master="test master password", password="test password"):
         cmd = ['create']
         if options:
             cmd = cmd + options
-        self.cmd(cmd + [name], password=password, confirm=True)
+        self.cmd(cmd + [name], master=master, confirm_master=False, password=password, confirm_password=True)
 
-    def edit(self, name, options=None, password="test password"):
+    def edit(self, name, options=None, master="test master password", password="test password"):
         cmd = ['edit']
         if options:
             cmd = cmd + options
-        self.cmd(cmd + [name], password=password, confirm=False)
+        self.cmd(cmd + [name], master=master, confirm_master=False, password=password, confirm_password=True)
 
-    def rename(self, old, new, options=None, password="test password"):
+    def rename(self, old, new, options=None, master="test master password"):
         cmd = ['rename']
         if options:
             cmd = cmd + options
-        self.cmd(cmd + [old, new], password=password, confirm=False)
+        self.cmd(cmd + [old, new], master=master, confirm_master=False)
 
-    def open(self, name, options=None, password="test password"):
+    def open(self, name, options=None, master="test master password"):
         cmd = ['open']
         if options:
             cmd = cmd + options
-        self.cmd(cmd + [name], password=password, confirm=False)
+        self.cmd(cmd + [name], master=master, confirm_master=False)
 
-    def delete(self, name, options=None, password=None):
+    def delete(self, name, options=None, master=None):
         cmd = ['delete']
         if options:
             cmd = cmd + options
-        self.cmd(cmd + [name], password=password, confirm=False)
+        self.cmd(cmd + [name], master=master, confirm_master=False)
