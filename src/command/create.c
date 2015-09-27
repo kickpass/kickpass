@@ -108,10 +108,10 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 {
 	int opt;
 	static struct option longopts[] = {
-		{ "help",     no_argument, NULL, 'h' },
-		{ "generate", no_argument, NULL, 'g' },
-		{ "length",   no_argument, NULL, 'l' },
-		{ NULL,       0,           NULL, 0   },
+		{ "help",     no_argument,       NULL, 'h' },
+		{ "generate", no_argument,       NULL, 'g' },
+		{ "length",   required_argument, NULL, 'l' },
+		{ NULL,       0,                 NULL, 0   },
 	};
 
 	while ((opt = getopt_long(argc, argv, "hgl:", longopts, NULL)) != -1) {

@@ -31,18 +31,30 @@
 #include "storage.h"
 
 static kp_error_t edit(struct kp_ctx *ctx, int argc, char **argv);
+static kp_error_t parse_opt(struct kp_ctx *, int, char **);
+static kp_error_t usage(void);
 
 struct kp_cmd kp_cmd_edit = {
 	.main  = edit,
-	.opts  = "edit <safe>",
+	.opts  = "edit [-pm] <safe>",
 	.desc  = "Edit a password safe with $EDIT",
 };
+
+static bool help = false;
+static bool password = false;
+static bool metadata = false;
 
 kp_error_t
 edit(struct kp_ctx *ctx, int argc, char **argv)
 {
 	kp_error_t ret = KP_SUCCESS;
 	struct kp_safe safe;
+
+	if ((ret = parse_opt(ctx, argc, argv)) != KP_SUCCESS) {
+		return ret;
+	}
+
+	if (help) return usage();
 
 	if (argc - optind != 1) {
 		warnx("missing safe name");
@@ -57,18 +69,17 @@ edit(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	if ((ret = kp_edit(ctx, &safe)) != KP_SUCCESS) {
-		return ret;
+	if (password) {
+		if ((ret = kp_prompt_password("safe", true, (char *)safe.password)) != KP_SUCCESS) {
+			return ret;
+		}
+		safe.password_len = strlen((char *)safe.password);
 	}
 
-	if (lseek(safe.cipher, 0, SEEK_SET) != 0) {
-		warn("cannot save safe");
-		return errno;
-	}
-
-	if (ftruncate(safe.cipher, 0) != 0) {
-		warn("cannot save safe");
-		return errno;
+	if (metadata) {
+		if ((ret = kp_edit(ctx, &safe)) != KP_SUCCESS) {
+			return ret;
+		}
 	}
 
 	if ((ret = kp_storage_save(ctx, &safe)) != KP_SUCCESS) {
@@ -80,4 +91,59 @@ edit(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	return KP_SUCCESS;
+}
+
+static kp_error_t
+parse_opt(struct kp_ctx *ctx, int argc, char **argv)
+{
+	int opt;
+	static struct option longopts[] = {
+		{ "help",     no_argument, NULL, 'h' },
+		{ "password", no_argument, NULL, 'p' },
+		{ "metadata", no_argument, NULL, 'm' },
+		{ NULL,       0,           NULL, 0   },
+	};
+
+	while ((opt = getopt_long(argc, argv, "hpm", longopts, NULL)) != -1) {
+		switch (opt) {
+		case 'h':
+			help = true;
+			break;
+		case 'p':
+			password = true;
+			break;
+		case 'm':
+			metadata = true;
+			break;
+		default:
+			warnx("unknown option %c", opt);
+			return KP_EINPUT;
+		}
+	}
+
+	if (password && metadata) {
+		warnx("Editing both password and metadata is default behavior. So you can ommit options.");
+	}
+
+	/* Default edit all */
+	if (!password && !metadata) {
+		password = true;
+		metadata = true;
+	}
+
+	return KP_SUCCESS;
+}
+
+kp_error_t
+usage(void)
+{
+	extern char *__progname;
+
+	printf("usage: %s %s\n", __progname, kp_cmd_edit.opts);
+	printf("options:\n");
+	printf("    -h, --help         Print this help\n");
+	printf("    -p, --password     Edit only password\n");
+	printf("    -m, --metadata     Edit only metadata\n");
+
+	return KP_EINPUT;
 }

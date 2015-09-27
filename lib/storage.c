@@ -175,6 +175,17 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 	assert(safe->password_len <= KP_PASSWORD_MAX_LEN);
 	assert(safe->metadata_len <= KP_METADATA_MAX_LEN);
 
+	/* Ensure we are at the beginning of the safe */
+	if (lseek(safe->cipher, 0, SEEK_SET) != 0) {
+		warn("cannot save safe");
+		return errno;
+	}
+
+	if (ftruncate(safe->cipher, 0) != 0) {
+		warn("cannot save safe");
+		return errno;
+	}
+
 	if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
 		return ret;
 	}

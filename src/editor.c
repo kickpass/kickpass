@@ -40,7 +40,7 @@ kp_error_t
 kp_edit(struct kp_ctx *ctx, struct kp_safe *safe)
 {
 	kp_error_t ret;
-	int fd;
+	FILE *fd;
 	const char *editor;
 	char path[PATH_MAX];
 	pid_t pid;
@@ -60,26 +60,35 @@ kp_edit(struct kp_ctx *ctx, struct kp_safe *safe)
 			ret = KP_EINPUT;
 			goto clean;
 		}
-	} else {
-		wait(NULL);
-
-		fd = open(path, O_RDONLY);
-		if (fd < 0) {
-			warn("cannot open temporary clear text file %s", path);
-			ret = errno;
-			goto clean;
-		}
-
-		if ((safe->metadata_len = read(fd, safe->metadata, KP_METADATA_MAX_LEN)) < 0) {
-			warn("cannot read temporary clear text file %s", path);
-			ret = errno;
-			goto clean;
-		}
-
-		ret = KP_SUCCESS;
 	}
 
+	wait(NULL);
+
+	fd = fopen(path, "r");
+	if (fd == NULL) {
+		warn("cannot open temporary clear text file %s", path);
+		ret = errno;
+		goto clean;
+	}
+
+	clearerr(fd);
+	safe->metadata_len = fread(safe->metadata, 1, KP_METADATA_MAX_LEN, fd);
+
+	if (ferror(fd) != 0) {
+		warn("error while reading temporary clear text file %s", path);
+		ret = errno;
+		goto clean;
+	}
+	if (!feof(fd)) {
+		warnx("safe too long, storing only %lu bytes", safe->metadata_len);
+		ret = KP_ENOMEM;
+		goto clean;
+	}
+
+	ret = KP_SUCCESS;
+
 clean:
+	fclose(fd);
 	if (unlink(path) < 0) {
 		warn("cannot delete temporary clear text file %s", path);
 		warnx("ensure to delete it manually to avoid password leak");
