@@ -25,7 +25,6 @@
                          "comment: \n"
 #endif
 
-#define KP_PASSWORD_MAX_LEN 4096
 #define KP_INFO_MAX_LEN 4096
 #define KP_PLAIN_MAX_SIZE (KP_PASSWORD_MAX_LEN + KP_INFO_MAX_LEN + 2)
 

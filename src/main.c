@@ -19,11 +19,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sodium.h>
 
 #include "kickpass.h"
 
 #include "command.h"
-#include "storage.h"
+#include "safe.h"
+#include "prompt.h"
 
 /* commands */
 #ifdef HAS_X11
@@ -154,6 +156,7 @@ cmd_sort(const void *a, const void *b)
 static kp_error_t
 command(struct kp_ctx *ctx, int argc, char **argv)
 {
+	kp_error_t ret;
 	const struct cmd *cmd;
 
 	if (optind >= argc)
@@ -166,6 +169,22 @@ command(struct kp_ctx *ctx, int argc, char **argv)
 		errx(KP_EINPUT, "unknown command %s", argv[optind]);
 
 	optind++;
+
+	/* Only init cannot load main config */
+	if (cmd->cmd != &kp_cmd_init) {
+		char *master;
+		master = sodium_malloc(KP_PASSWORD_MAX_LEN);
+		if (!master) {
+			warnx("memory error");
+			return KP_ENOMEM;
+		}
+		kp_prompt_password("master", false, master);
+		ret = kp_load(ctx, master);
+		sodium_free(master);
+		if (ret != KP_SUCCESS) {
+			return ret;
+		}
+	}
 
 	return cmd->cmd->main(ctx, argc, argv);
 }

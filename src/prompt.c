@@ -16,6 +16,7 @@
 
 #include <stddef.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include <err.h>
 #include <readpassphrase.h>
@@ -23,46 +24,67 @@
 #include <string.h>
 
 #include "kickpass.h"
+#include "safe.h"
 
-#define PASSWORD_MAX_SIZE       1024
-#define PASSWORD_PROMPT         "[kickpass] master password: "
+#define PASSWORD_PROMPT         "[kickpass] %s password: "
 #define PASSWORD_CONFIRM_PROMPT "[kickpass] confirm: "
 
 kp_error_t
-kp_load_passwd(struct kp_ctx *ctx, bool confirm)
+kp_prompt_password(const char *type, bool confirm, char *password)
 {
-	ctx->password = sodium_malloc(PASSWORD_MAX_SIZE);
-	if (!ctx->password) {
+	kp_error_t ret = KP_SUCCESS;
+	char *prompt = NULL;
+	size_t prompt_size;
+	char *confirmation = NULL;
+
+	assert(type);
+	assert(password);
+
+	/* Prompt is PASSWORD_PROMPT - '%s' + type + '\0' */
+	prompt_size = strlen(PASSWORD_PROMPT) - 2 + strlen(type) + 1;
+	prompt = malloc(prompt_size);
+	if (!prompt) {
 		warnx("memory error");
-		return KP_ENOMEM;
+		ret = KP_ENOMEM;
+		goto out;
 	}
 
-	if (readpassphrase(PASSWORD_PROMPT, ctx->password,
-				PASSWORD_MAX_SIZE,
+	snprintf(prompt, prompt_size, PASSWORD_PROMPT, type);
+
+	if (readpassphrase(prompt, password, KP_PASSWORD_MAX_LEN,
 				RPP_ECHO_OFF | RPP_REQUIRE_TTY) == NULL) {
 		warnx("cannot read password");
-		return KP_EINPUT;
+		ret = KP_EINPUT;
+		goto out;
 	}
 
 	if (confirm) {
-		char *confirm = sodium_malloc(PASSWORD_MAX_SIZE);
-		if (readpassphrase(PASSWORD_CONFIRM_PROMPT, confirm,
-					PASSWORD_MAX_SIZE,
+		confirmation = sodium_malloc(KP_PASSWORD_MAX_LEN+1);
+		if (!confirmation) {
+			warnx("memory error");
+			ret = KP_ENOMEM;
+			goto out;
+		}
+
+		if (readpassphrase(PASSWORD_CONFIRM_PROMPT, confirmation,
+					KP_PASSWORD_MAX_LEN,
 					RPP_ECHO_OFF | RPP_REQUIRE_TTY)
 				== NULL) {
 			warnx("cannot read password");
-			sodium_free(confirm);
-			return KP_EINPUT;
+			ret = KP_EINPUT;
+			goto out;
 		}
 
-		if (strncmp(ctx->password, confirm, PASSWORD_MAX_SIZE) != 0) {
+		if (strncmp(password, confirmation, KP_PASSWORD_MAX_LEN) != 0) {
 			warnx("mismatching password");
-			sodium_free(confirm);
-			return KP_EINPUT;
+			ret = KP_EINPUT;
+			goto out;
 		}
-
-		sodium_free(confirm);
 	}
 
-	return KP_SUCCESS;
+out:
+	free(prompt);
+	sodium_free(confirmation);
+
+	return ret;
 }

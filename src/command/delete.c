@@ -64,10 +64,6 @@ delete(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	if (!force) {
-		if ((ret = kp_load_passwd(ctx, false)) != KP_SUCCESS) {
-			return ret;
-		}
-
 		if ((ret = kp_storage_open(ctx, &safe)) != KP_SUCCESS) {
 			warnx("don't delete safe");
 			return ret;

@@ -51,7 +51,7 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 {
 	kp_error_t ret;
 	struct kp_safe safe;
-	char *password = "";
+	char *password = NULL;
 
 	if ((ret = parse_opt(ctx, argc, argv)) != KP_SUCCESS) {
 		return ret;
@@ -64,13 +64,17 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 		return KP_EINPUT;
 	}
 
-	if ((ret = kp_load_passwd(ctx, true)) != KP_SUCCESS) {
-		return ret;
+	password = sodium_malloc(KP_PASSWORD_MAX_LEN+1);
+	if (!password) {
+		warnx("memory error");
+		goto out;
 	}
-
 	if (generate) {
-		password = sodium_malloc(password_len+1);
 		kp_password_generate(password, password_len);
+	} else {
+		if ((ret = kp_prompt_password("safe", true, password)) != KP_SUCCESS) {
+			goto out;
+		}
 	}
 
 	if ((ret = kp_safe_create(ctx, &safe, argv[optind], password)) != KP_SUCCESS) {
@@ -92,12 +96,10 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 		goto out;
 	}
 
-	return KP_SUCCESS;
+	ret = KP_SUCCESS;
 
 out:
-	if (generate) {
-		sodium_free(password);
-	}
+	sodium_free(password);
 	return ret;
 }
 

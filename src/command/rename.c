@@ -56,11 +56,6 @@ do_rename(struct kp_ctx *ctx, int argc, char **argv)
 
 	optind++;
 
-	/* Make sure one has right to change safe name */
-	if ((ret = kp_load_passwd(ctx, false)) != KP_SUCCESS) {
-		goto fail;
-	}
-
 	if ((ret = kp_storage_open(ctx, &safe)) != KP_SUCCESS) {
 		warnx("cannot open safe");
 		goto fail;

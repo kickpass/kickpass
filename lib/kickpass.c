@@ -24,6 +24,9 @@
 
 #include "kickpass.h"
 
+/*
+ * Init kickpass with a working directory and its corresponding master password.
+ */
 kp_error_t
 kp_init(struct kp_ctx *ctx)
 {
@@ -42,8 +45,27 @@ kp_init(struct kp_ctx *ctx)
 	if (sodium_init() != 0)
 		err(KP_EINTERNAL, "cannot initialize sodium");
 
+	ctx->password = sodium_malloc(KP_PASSWORD_MAX_LEN);
+	if (!ctx->password) {
+		warnx("memory error");
+		return KP_ENOMEM;
+	}
+
 	ctx->memlimit = crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_SENSITIVE/5;
 	ctx->opslimit = crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_SENSITIVE/5;
+
+	return KP_SUCCESS;
+}
+
+/*
+ * Open the main configuration with the master password.
+ */
+kp_error_t
+kp_load(struct kp_ctx *ctx, char *password)
+{
+	/* TODO: try to decrypt config */
+	/* if successful store password */
+	strncpy(ctx->password, password, KP_PASSWORD_MAX_LEN);
 
 	return KP_SUCCESS;
 }
@@ -51,5 +73,7 @@ kp_init(struct kp_ctx *ctx)
 kp_error_t
 kp_fini(struct kp_ctx *ctx)
 {
+	sodium_free(ctx->password);
+
 	return KP_SUCCESS;
 }

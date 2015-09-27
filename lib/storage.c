@@ -180,12 +180,13 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 	}
 
 	/* construct full plain */
+	/* plain is password + '\0' + info + '\0' */
 	plain_size = safe->password_len + safe->info_len + 2;
 	plain = sodium_malloc(plain_size);
 	strncpy((char *)plain, (char *)safe->password, safe->password_len);
 	plain[safe->password_len] = '\0';
 	strncpy((char *)&plain[safe->password_len+1], (char *)safe->info, safe->info_len);
-	plain[plain_size] = '\0';
+	plain[plain_size-1] = '\0';
 
 	/* alloc cipher to max size */
 	cipher = malloc(plain_size+crypto_aead_chacha20poly1305_ABYTES);

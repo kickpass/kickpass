@@ -24,6 +24,6 @@
 #include "error.h"
 #include "kickpass_config.h"
 
-kp_error_t kp_load_passwd(struct kp_ctx *, bool);
+kp_error_t kp_prompt_password(const char *type, bool, char *);
 
 #endif /* KP_PROMPT_H */
