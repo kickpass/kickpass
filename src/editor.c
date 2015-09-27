@@ -70,7 +70,7 @@ kp_edit(struct kp_ctx *ctx, struct kp_safe *safe)
 			goto clean;
 		}
 
-		if ((safe->info_len = read(fd, safe->info, KP_INFO_MAX_LEN)) < 0) {
+		if ((safe->metadata_len = read(fd, safe->metadata, KP_METADATA_MAX_LEN)) < 0) {
 			warn("cannot read temporary clear text file %s", path);
 			ret = errno;
 			goto clean;
@@ -113,7 +113,7 @@ kp_editor_get_tmp(struct kp_ctx *ctx, struct kp_safe *safe, char *path, size_t s
 		return errno;
 	}
 
-	if (write(fd, safe->info, safe->info_len) != safe->info_len) {
+	if (write(fd, safe->metadata, safe->metadata_len) != safe->metadata_len) {
 		warn("cannot dump safe on temp file %s for edition", path);
 		return errno;
 	}

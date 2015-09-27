@@ -121,7 +121,7 @@ kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *name,
 	}
 
 	safe->password_len = snprintf((char *)safe->password, KP_PASSWORD_MAX_LEN, password);
-	safe->info_len = snprintf((char *)safe->info, KP_INFO_MAX_LEN, KP_INFO_TEMPLATE);
+	safe->metadata_len = snprintf((char *)safe->metadata, KP_METADATA_MAX_LEN, KP_METADATA_TEMPLATE);
 
 	return KP_SUCCESS;
 }
@@ -135,7 +135,7 @@ kp_error_t
 kp_safe_close(struct kp_ctx *ctx, struct kp_safe *safe)
 {
 	sodium_free(safe->password);
-	sodium_free(safe->info);
+	sodium_free(safe->metadata);
 
 	if (close(safe->cipher) < 0) {
 		warn("cannot close safe");
@@ -158,8 +158,8 @@ kp_safe_init(struct kp_safe *safe, const char *name, bool open)
 	safe->open = open;
 	safe->password = sodium_malloc(KP_PASSWORD_MAX_LEN+1);
 	safe->password_len = 0;
-	safe->info = sodium_malloc(KP_INFO_MAX_LEN+1);
-	safe->info_len = 0;
+	safe->metadata = sodium_malloc(KP_METADATA_MAX_LEN+1);
+	safe->metadata_len = 0;
 
 	return KP_SUCCESS;
 }

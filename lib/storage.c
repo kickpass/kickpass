@@ -173,19 +173,19 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 	assert(safe);
 	assert(safe->open == true);
 	assert(safe->password_len <= KP_PASSWORD_MAX_LEN);
-	assert(safe->info_len <= KP_INFO_MAX_LEN);
+	assert(safe->metadata_len <= KP_METADATA_MAX_LEN);
 
 	if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
 		return ret;
 	}
 
 	/* construct full plain */
-	/* plain is password + '\0' + info + '\0' */
-	plain_size = safe->password_len + safe->info_len + 2;
+	/* plain is password + '\0' + metadata + '\0' */
+	plain_size = safe->password_len + safe->metadata_len + 2;
 	plain = sodium_malloc(plain_size);
 	strncpy((char *)plain, (char *)safe->password, safe->password_len);
 	plain[safe->password_len] = '\0';
-	strncpy((char *)&plain[safe->password_len+1], (char *)safe->info, safe->info_len);
+	strncpy((char *)&plain[safe->password_len+1], (char *)safe->metadata, safe->metadata_len);
 	plain[plain_size-1] = '\0';
 
 	/* alloc cipher to max size */
@@ -299,10 +299,10 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 	safe->password[KP_PASSWORD_MAX_LEN] = '\0';
 	safe->password_len = strlen((char *)safe->password);
 
-	strncpy((char *)safe->info, (char *)&plain[safe->password_len+1], KP_INFO_MAX_LEN);
+	strncpy((char *)safe->metadata, (char *)&plain[safe->password_len+1], KP_METADATA_MAX_LEN);
 	/* ensure null termination */
-	safe->info[KP_INFO_MAX_LEN] = '\0';
-	safe->info_len = strlen((char *)safe->info);
+	safe->metadata[KP_METADATA_MAX_LEN] = '\0';
+	safe->metadata_len = strlen((char *)safe->metadata);
 
 	safe->open = true;
 

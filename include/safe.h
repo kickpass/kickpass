@@ -19,14 +19,14 @@
 
 #include "kickpass.h"
 
-#ifndef KP_INFO_TEMPLATE
-#define KP_INFO_TEMPLATE "url: \n"                                             \
-                         "username: \n"                                        \
-                         "comment: \n"
+#ifndef KP_METADATA_TEMPLATE
+#define KP_METADATA_TEMPLATE "url: \n"                                         \
+                             "username: \n"                                    \
+                             "comment: \n"
 #endif
 
-#define KP_INFO_MAX_LEN 4096
-#define KP_PLAIN_MAX_SIZE (KP_PASSWORD_MAX_LEN + KP_INFO_MAX_LEN + 2)
+#define KP_METADATA_MAX_LEN 4096
+#define KP_PLAIN_MAX_SIZE (KP_PASSWORD_MAX_LEN + KP_METADATA_MAX_LEN + 2)
 
 /*
  * A safe is either open or close.
@@ -39,8 +39,8 @@ struct kp_safe {
 	int            cipher;          /* fd of the cipher file if the safe is open */
 	size_t         password_len;    /* size of the password excluding the terminating null byte */
 	unsigned char *password;        /* plain text password */
-	size_t         info_len;        /* size of the info excluding the terminating null byte */
-	unsigned char *info;            /* plain text info */
+	size_t         metadata_len;    /* size of the metadata excluding the terminating null byte */
+	unsigned char *metadata;        /* plain text metadata */
 };
 
 kp_error_t kp_safe_load(struct kp_ctx *, struct kp_safe *, const char *);

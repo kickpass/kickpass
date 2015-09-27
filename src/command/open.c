@@ -57,7 +57,7 @@ open(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	printf("%s\n", safe.info);
+	printf("%s\n", safe.metadata);
 
 	if ((ret = kp_safe_close(ctx, &safe)) != KP_SUCCESS) {
 		warnx("cannot cleanly close safe");
