@@ -28,17 +28,13 @@
 #include "safe.h"
 
 static kp_error_t delete(struct kp_ctx *, int, char **);
-static kp_error_t parse_opt(struct kp_ctx *, int, char **);
-static kp_error_t usage(void);
 
 struct kp_cmd kp_cmd_delete = {
 	.main  = delete,
-	.opts  = "delete [-f] <safe>",
+	.usage = NULL,
+	.opts  = "delete <safe>",
 	.desc  = "Delete a password safe after password confirmation",
 };
-
-static bool help = false;
-static bool force = false;
 
 kp_error_t
 delete(struct kp_ctx *ctx, int argc, char **argv)
@@ -46,12 +42,6 @@ delete(struct kp_ctx *ctx, int argc, char **argv)
 	kp_error_t ret;
 	struct kp_safe safe;
 	char path[PATH_MAX];
-
-	if ((ret = parse_opt(ctx, argc, argv)) != KP_SUCCESS) {
-		return ret;
-	}
-
-	if (help) return usage();
 
 	if (argc - optind != 1) {
 		warnx("missing safe name");
@@ -63,15 +53,9 @@ delete(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	if (!force) {
-		if ((ret = kp_load_passwd(ctx, false)) != KP_SUCCESS) {
-			return ret;
-		}
-
-		if ((ret = kp_storage_open(ctx, &safe)) != KP_SUCCESS) {
-			warnx("don't delete safe");
-			return ret;
-		}
+	if ((ret = kp_storage_open(ctx, &safe)) != KP_SUCCESS) {
+		warnx("don't delete safe");
+		return ret;
 	}
 
 	if (kp_safe_get_path(ctx, &safe, path, PATH_MAX) != KP_SUCCESS) {
@@ -87,39 +71,4 @@ delete(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	return KP_SUCCESS;
-}
-
-static kp_error_t
-parse_opt(struct kp_ctx *ctx, int argc, char **argv)
-{
-	int opt;
-	static struct option longopts[] = {
-		{ "force",    no_argument, NULL, 'f' },
-		{ NULL,       0,           NULL, 0   },
-	};
-
-	while ((opt = getopt_long(argc, argv, "f", longopts, NULL)) != -1) {
-		switch (opt) {
-		case 'f':
-			force = true;
-			break;
-		default:
-			warnx("unknown option %c", opt);
-			return KP_EINPUT;
-		}
-	}
-
-	return KP_SUCCESS;
-}
-
-kp_error_t
-usage(void)
-{
-	extern char *__progname;
-
-	printf("usage: %s %s\n", __progname, kp_cmd_delete.opts);
-	printf("options:\n");
-	printf("    -f, --force        Force deletion of the safe without asking for password\n");
-
-	return KP_EINPUT;
 }

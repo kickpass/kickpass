@@ -24,6 +24,8 @@
 #include "error.h"
 #include "kickpass_config.h"
 
+#define KP_PASSWORD_MAX_LEN 4096
+
 struct kp_ctx {
 	char                ws_path[PATH_MAX];
 	char               *password;
@@ -32,6 +34,7 @@ struct kp_ctx {
 };
 
 kp_error_t kp_init(struct kp_ctx *);
+kp_error_t kp_load(struct kp_ctx *, char *);
 kp_error_t kp_fini(struct kp_ctx *);
 
 #endif /* KP_KICKPASS_H */

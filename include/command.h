@@ -21,6 +21,7 @@
 
 struct kp_cmd {
 	kp_error_t (*main)(struct kp_ctx *, int, char **);
+	void       (*usage)(void);
 	char        *opts;
 	char        *desc;
 };

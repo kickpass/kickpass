@@ -28,7 +28,7 @@ class TestOpenCommand(kptest.KPTestCase):
         self.open("test")
 
         # Then
-        self.assertStdoutEquals(" ", "Watch out for turtles. They'll bite you if you put your fingers in their mouths.", "")
+        self.assertStdoutEquals("Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
 
 if __name__ == '__main__':
         unittest.main()

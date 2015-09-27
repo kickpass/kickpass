@@ -21,13 +21,14 @@
 .Nd a stupid simple password safe
 .Sh SYNOPSIS
 .Nm kickpass Oo Fl hv Oc
+.Nm kickpass Cm help Oo Ar command Oc
 .Nm kickpass Cm init
-.Nm kickpass Cm create Oo Fl hgl Ar len Oc Ar safe
-.Nm kickpass Cm open Ar safe
-.Nm kickpass Cm edit Ar safe
+.Nm kickpass Cm create Oo Fl gl Ar len Oc Ar safe
+.Nm kickpass Cm open Oo Fl pm Oc Ar safe
+.Nm kickpass Cm edit Oo Fl pm Oc Ar safe
 .Nm kickpass Cm copy Ar safe
 .Nm kickpass Cm list Oo Ar path Oc
-.Nm kickpass Cm delete Oo Fl f Oc Ar safe
+.Nm kickpass Cm delete Ar safe
 .Sh DESCRIPTION
 .Nm
 is a stupid simple password safe. It keep each password in a specific
@@ -65,13 +66,13 @@ Print kickpass version
 .It Fl h Fl -help
 Print kickpass help
 .El
+.Ss Nm kickpass Cm help Oo Ar command Oc
+Print general help or command help.
 .Ss Nm kickpass Cm init
 Initialize a kickpass workspace.
-.Ss Nm kickpass Cm create Oo Fl hgl Oc Ar safe
+.Ss Nm kickpass Cm create Oo Fl gl Oc Ar safe
 Create a new password safe.
 .Bl -tag -width flag
-.It Fl h Fl -help
-Print kickpass create help
 .It Fl g Fl -generate
 Create a new safe with a generated random password
 .It Fl l Fl -length Ar len
@@ -79,18 +80,30 @@ Generate a random password of
 .Ar len
 length
 .El
-.Ss Nm kickpass Cm open Ar safe
+.Ss Nm kickpass Cm open Oo Fl pm Oc Ar safe
 Open
 .Ar safe
 and print
 .Ar safe
-content on stdout
-.Ss Nm kickpass Cm edit Ar safe
-Edit
+metada on stdout
+.Bl -tag -width flag
+.It Fl p Fl -password
+Print password
+.It Fl m Fl -metadata
+Print metadata
+.El
+.Ss Nm kickpass Cm edit Oo Fl pm Oc Ar safe
+Prompt for a new password and edit metadata from
 .Ar safe
 using
 .Ev EDITOR
 environment variable
+.Bl -tag -width flag
+.It Fl p Fl -password
+Edit only password
+.It Fl m Fl -metadata
+Edit only metadata
+.El
 .Ss Nm kickpass Cm copy Ar safe
 Copy
 .Ar safe
@@ -106,12 +119,6 @@ is not given.
 Delete
 .Ar safe
 \&.
-.Bl -tag -width flag
-.It Fl f Fl -force
-Delete
-.Ar safe
-without asking for password
-.El
 .Sh ENVIRONMENT
 The following variables are used by kickpass:
 .Bl -tag -width BLOCKSIZE
@@ -146,10 +153,6 @@ kickpass edit www/my_safe
 Copy password contained in safe into X clipboards.
 .Bd -literal -offset indent
 kickpass copy www/my_safe
-.Ed
-Force deletion of safe.
-.Bd -literal -offset indent
-kickpass delete -f www/my_safe
 .Ed
 .Sh AUTHORS
 .Nm

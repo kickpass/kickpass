@@ -19,11 +19,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sodium.h>
 
 #include "kickpass.h"
 
 #include "command.h"
-#include "storage.h"
+#include "safe.h"
+#include "prompt.h"
 
 /* commands */
 #ifdef HAS_X11
@@ -42,7 +44,8 @@ static int        cmd_sort(const void *, const void *);
 static kp_error_t command(struct kp_ctx *, int, char **);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
 static kp_error_t show_version(struct kp_ctx *);
-static kp_error_t usage(struct kp_ctx *);
+static void       usage(void);
+static kp_error_t help(struct kp_ctx *, int, char **);
 
 struct cmd {
 	const char    *name;
@@ -51,7 +54,16 @@ struct cmd {
 
 #define CMD_COUNT (sizeof(cmds)/sizeof(cmds[0]))
 
+static struct kp_cmd kp_cmd_help = {
+	.main  = help,
+	.usage = NULL,
+	.opts  = "help <command>",
+	.desc  = "Print help for given command",
+};
+
 static struct cmd cmds[] = {
+	/* kp_cmd_help */
+	{ "help",    &kp_cmd_help },
 	/* kp_cmd_init */
 	{ "init",    &kp_cmd_init },
 
@@ -126,7 +138,8 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 		case 'v':
 			return show_version(ctx);
 		case 'h':
-			return usage(ctx);
+			usage();
+			return KP_SUCCESS;
 		default:
 			warnx("unknown option %c", opt);
 			return KP_EINPUT;
@@ -149,25 +162,60 @@ cmd_sort(const void *a, const void *b)
 }
 
 /*
+ * Find command
+ */
+static struct kp_cmd *
+find_command(const char *command)
+{
+	const struct cmd *cmd;
+
+	qsort(cmds, CMD_COUNT, sizeof(struct cmd), cmd_sort);
+	cmd = bsearch(command, cmds, CMD_COUNT, sizeof(struct cmd), cmd_cmp);
+
+	if (!cmd)
+		errx(KP_EINPUT, "unknown command %s", command);
+
+	return cmd->cmd;
+}
+
+/*
  * Call given command and let it parse its own arguments.
  */
 static kp_error_t
 command(struct kp_ctx *ctx, int argc, char **argv)
 {
-	const struct cmd *cmd;
+	kp_error_t ret;
+	struct kp_cmd *cmd;
 
 	if (optind >= argc)
 		errx(KP_EINPUT, "missing command");
 
-	qsort(cmds, CMD_COUNT, sizeof(struct cmd), cmd_sort);
-	cmd = bsearch(argv[optind], cmds, CMD_COUNT, sizeof(struct cmd), cmd_cmp);
-
-	if (!cmd)
-		errx(KP_EINPUT, "unknown command %s", argv[optind]);
+	/* Test for help first so we don't mess with cmds */
+	if (strncmp(argv[optind], "help", 4) == 0) {
+		cmd = &kp_cmd_help;
+	} else {
+		cmd = find_command(argv[optind]);
+	}
 
 	optind++;
 
-	return cmd->cmd->main(ctx, argc, argv);
+	/* Only init and help cannot load main config */
+	if (cmd != &kp_cmd_init && cmd != &kp_cmd_help) {
+		char *master;
+		master = sodium_malloc(KP_PASSWORD_MAX_LEN);
+		if (!master) {
+			warnx("memory error");
+			return KP_ENOMEM;
+		}
+		kp_prompt_password("master", false, master);
+		ret = kp_load(ctx, master);
+		sodium_free(master);
+		if (ret != KP_SUCCESS) {
+			return ret;
+		}
+	}
+
+	return cmd->main(ctx, argc, argv);
 }
 
 static kp_error_t
@@ -181,13 +229,33 @@ show_version(struct kp_ctx *ctx)
 	return KP_SUCCESS;
 }
 
+static kp_error_t
+help(struct kp_ctx *ctx, int argc, char **argv)
+{
+	extern char *__progname;
+	struct kp_cmd *cmd;
+
+	if (optind >= argc) {
+		usage();
+		return KP_EINPUT;
+	}
+
+	cmd = find_command(argv[optind]);
+
+	printf("usage: %s %s\n"
+	       "\n", __progname, cmd->opts);
+	if (cmd->usage) cmd->usage();
+
+	return KP_SUCCESS;
+}
+
 /*
  * Print global usage by calling each command own usage function.
  */
-static kp_error_t
-usage(struct kp_ctx *ctx)
+static void
+usage(void)
 {
-	int i;
+	int i, opts_max_len = 0;
 	extern char *__progname;
 	char usage[] =
 		"usage: %s [-hv] <command> [<cmd_opts>] [<args>]\n"
@@ -198,10 +266,16 @@ usage(struct kp_ctx *ctx)
 		"\n"
 		"commands:\n";
 	printf(usage, __progname, __progname);
+
 	for (i = 0; i < CMD_COUNT; i++) {
-		if (cmds[i-1].cmd == cmds[i].cmd) continue;
-		printf("    %-20s%s\n", cmds[i].cmd->opts, cmds[i].cmd->desc);
+		size_t opts_len = strlen(cmds[i].cmd->opts);
+		if (opts_len > opts_max_len) opts_max_len = opts_len;
 	}
 
-	return KP_SUCCESS;
+	opts_max_len++;
+
+	for (i = 0; i < CMD_COUNT; i++) {
+		if (cmds[i-1].cmd == cmds[i].cmd) continue;
+		printf("    %*s%s\n", -opts_max_len, cmds[i].cmd->opts, cmds[i].cmd->desc);
+	}
 }

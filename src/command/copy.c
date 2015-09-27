@@ -36,6 +36,7 @@ static kp_error_t copy(struct kp_ctx *ctx, int argc, char **argv);
 
 struct kp_cmd kp_cmd_copy = {
 	.main  = copy,
+	.usage = NULL,
 	.opts  = "copy <safe>",
 	.desc  = "Copy a password (first line of safe) into X clipboard",
 };
@@ -58,10 +59,6 @@ copy(struct kp_ctx *ctx, int argc, char **argv)
 	if ((ret = kp_safe_load(ctx, &safe, argv[optind])) != KP_SUCCESS) {
 		warnx("cannot load safe");
 		return ret;
-	}
-
-	if ((ret = kp_load_passwd(ctx, false)) != KP_SUCCESS) {
-		goto out;
 	}
 
 	if ((ret = kp_storage_open(ctx, &safe)) != KP_SUCCESS) {
@@ -127,8 +124,8 @@ copy(struct kp_ctx *ctx, int argc, char **argv)
 			XChangeProperty(display, request->requestor,
 					request->property, request->target,
 					8, PropModeReplace,
-					safe.plain,
-					kp_safe_password_len(&safe));
+					safe.password,
+					safe.password_len);
 			replied = true;
 		} else {
 			warnx("don't know what to answer");

@@ -29,6 +29,7 @@ static kp_error_t init(struct kp_ctx *ctx, int argc, char **argv);
 
 struct kp_cmd kp_cmd_init = {
 	.main  = init,
+	.usage = NULL,
 	.opts  = "init",
 	.desc  = "Initialize a new password safe directory. "
 	         "Default to ~/" KP_PATH,
