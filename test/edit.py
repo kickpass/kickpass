@@ -37,7 +37,7 @@ class TestEditCommand(kptest.KPTestCase):
     def test_edit_only_password_is_successful(self):
         # Given
         self.init()
-        self.editor('env', env="But a RocknRolla, oh, he's different. Why? Because a real RocknRolla wants the fucking lot.")
+        self.editor('date')
         self.create("test")
 
         # When
@@ -45,13 +45,12 @@ class TestEditCommand(kptest.KPTestCase):
 
         # Then
         self.open("test", options=["-p"])
-        password = self.stdout.splitlines()[1]
-        self.assertEqual(password, "RocknRolla")
+        self.assertStdoutEquals("RocknRolla")
 
     def test_edit_only_metadata_is_successful(self):
         # Given
         self.init()
-        self.editor('env', env="But a RocknRolla, oh, he's different. Why? Because a real RocknRolla wants the fucking lot.")
+        self.editor('date')
         self.create("test")
         self.editor('env', env="Oh, you are something special, Mr. Johnny Quid.")
 
@@ -60,9 +59,33 @@ class TestEditCommand(kptest.KPTestCase):
 
         # Then
         self.open("test")
-        password = self.stdout.splitlines()[1]
-        self.assertEqual(password, "Oh, you are something special, Mr. Johnny Quid.")
+        self.assertStdoutEquals("Oh, you are something special, Mr. Johnny Quid.")
 
+    def test_edit_with_empty_password(self):
+        # Given
+        self.init()
+        self.editor('date')
+        self.create("test", password="RocknRolla")
+
+        # When
+        self.edit("test", password="", options=["-p"], yesno="n")
+
+        # Then
+        self.open("test", options=["-p"])
+        self.assertStdoutEquals("RocknRolla")
+
+    def test_edit_with_empty_password_erased(self):
+        # Given
+        self.init()
+        self.editor('date')
+        self.create("test", password="RocknRolla")
+
+        # When
+        self.edit("test", password="", options=["-p"], yesno="y")
+
+        # Then
+        self.open("test", options=["-p"])
+        self.assertStdoutEquals()
 
 if __name__ == '__main__':
         unittest.main()

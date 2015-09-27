@@ -74,23 +74,27 @@ class KPTestCase(unittest.TestCase):
         self.assertTrue(os.path.isdir(self.kp_ws))
 
     # Run commands
-    def cmd(self, args, master=None, confirm_master=False, password=None, confirm_password=False):
+    def cmd(self, args, master=None, confirm_master=False, password=None, confirm_password=False, yesno=None):
         self.stdout = ""
         self.child = pexpect.spawn(self.kp, args)
 
-        if master:
+        if master is not None:
             self.child.expect('password:')
             self.child.sendline(master)
             if confirm_master:
                 self.child.expect('confirm:')
                 self.child.sendline(master)
 
-        if password:
+        if password is not None:
             self.child.expect('password:')
             self.child.sendline(password)
             if confirm_password:
                 self.child.expect('confirm:')
                 self.child.sendline(password)
+
+        if yesno is not None:
+            self.child.expect('(y/n)')
+            self.child.sendline(yesno)
 
         for line in self.child:
             self.stdout = self.stdout + line.decode(sys.stdin.encoding)
@@ -104,11 +108,11 @@ class KPTestCase(unittest.TestCase):
             cmd = cmd + options
         self.cmd(cmd + [name], master=master, confirm_master=False, password=password, confirm_password=True)
 
-    def edit(self, name, options=None, master="test master password", password="test password"):
+    def edit(self, name, options=None, master="test master password", password="test password", yesno=None):
         cmd = ['edit']
         if options:
             cmd = cmd + options
-        self.cmd(cmd + [name], master=master, confirm_master=False, password=password, confirm_password=True)
+        self.cmd(cmd + [name], master=master, confirm_master=False, password=password, confirm_password=True, yesno=yesno)
 
     def rename(self, old, new, options=None, master="test master password"):
         cmd = ['rename']

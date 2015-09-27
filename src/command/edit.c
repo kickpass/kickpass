@@ -20,6 +20,7 @@
 #include <getopt.h>
 #include <stdio.h>
 #include <string.h>
+#include <sodium.h>
 
 #include "kickpass.h"
 
@@ -32,6 +33,8 @@
 
 static kp_error_t edit(struct kp_ctx *ctx, int argc, char **argv);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
+static kp_error_t edit_password(struct kp_safe *);
+static kp_error_t confirm_empty_password(bool *);
 static void usage(void);
 
 struct kp_cmd kp_cmd_edit = {
@@ -68,10 +71,9 @@ edit(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	if (password) {
-		if ((ret = kp_prompt_password("safe", true, (char *)safe.password)) != KP_SUCCESS) {
+		if ((ret = edit_password(&safe)) != KP_SUCCESS) {
 			return ret;
 		}
-		safe.password_len = strlen((char *)safe.password);
 	}
 
 	if (metadata) {
@@ -88,6 +90,64 @@ edit(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
+	return KP_SUCCESS;
+}
+
+static kp_error_t
+edit_password(struct kp_safe *safe)
+{
+	kp_error_t ret = KP_SUCCESS;
+	char *password;
+	size_t password_len;
+	bool confirm = true;
+
+	password = sodium_malloc(KP_PASSWORD_MAX_LEN+1);
+	if ((ret = kp_prompt_password("safe", true, password)) != KP_SUCCESS) {
+		goto out;
+	}
+
+	password_len = strlen(password);
+	if (password_len == 0) {
+		if ((ret = confirm_empty_password(&confirm)) != KP_SUCCESS) {
+			sodium_free(password);
+			return ret;
+		}
+	}
+
+	if (confirm) {
+		memcpy(safe->password, password, password_len);
+		safe->password[password_len] = '\0';
+		safe->password_len = password_len;
+	}
+
+out:
+	sodium_free(password);
+	return ret;
+}
+
+static kp_error_t
+confirm_empty_password(bool *confirm)
+{
+	char *prompt = "Empty password. Do you really want to update password ? (y/n) [n] ";
+	char *response;
+	size_t response_len;
+	FILE *tty;
+
+	*confirm = false;
+
+	tty = fopen("/dev/tty", "r+");
+	if (!tty) {
+		warn("cannot access /dev/tty");
+		return KP_EINPUT;
+	}
+
+	fprintf(tty, "%s", prompt);
+	fflush(tty);
+	response = fgetln(stdin, &response_len);
+
+	if (response[0] == 'y') *confirm = true;
+
+	fclose(tty);
 	return KP_SUCCESS;
 }
 
