@@ -122,7 +122,7 @@ class KPTestCase(unittest.TestCase):
             cmd = cmd + options
         self.cmd(cmd + [name], master=master, confirm_master=False)
 
-    def delete(self, name, options=None, master=None):
+    def delete(self, name, options=None, master="test master password"):
         cmd = ['delete']
         if options:
             cmd = cmd + options

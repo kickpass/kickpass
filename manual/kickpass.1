@@ -28,7 +28,7 @@
 .Nm kickpass Cm edit Oo Fl pm Oc Ar safe
 .Nm kickpass Cm copy Ar safe
 .Nm kickpass Cm list Oo Ar path Oc
-.Nm kickpass Cm delete Oo Fl f Oc Ar safe
+.Nm kickpass Cm delete Ar safe
 .Sh DESCRIPTION
 .Nm
 is a stupid simple password safe. It keep each password in a specific
@@ -119,12 +119,6 @@ is not given.
 Delete
 .Ar safe
 \&.
-.Bl -tag -width flag
-.It Fl f Fl -force
-Delete
-.Ar safe
-without asking for password
-.El
 .Sh ENVIRONMENT
 The following variables are used by kickpass:
 .Bl -tag -width BLOCKSIZE
@@ -159,10 +153,6 @@ kickpass edit www/my_safe
 Copy password contained in safe into X clipboards.
 .Bd -literal -offset indent
 kickpass copy www/my_safe
-.Ed
-Force deletion of safe.
-.Bd -literal -offset indent
-kickpass delete -f www/my_safe
 .Ed
 .Sh AUTHORS
 .Nm

@@ -97,7 +97,6 @@ _kp-list()
 _kp-delete()
 {
 	_arguments \
-		-f:'Force deletion of safe without asking for master password' \
 		:'Safe to delete:->safe' && return
 
 	case $state in
