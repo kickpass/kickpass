@@ -42,6 +42,8 @@ _kp-create()
 _kp-open()
 {
 	_arguments \
+		{-p,--password}'[Print password]' \
+		{-m,--metadata}='[Print metadata]' \
 		:'Safe to open:->safe' && return
 
 	case $state in
@@ -57,6 +59,8 @@ _kp-open()
 _kp-edit()
 {
 	_arguments \
+		{-p,--password}'[Edit password]' \
+		{-m,--metadata}='[Edit metadata]' \
 		:'Safe to edit:->safe' && return
 
 	case $state in

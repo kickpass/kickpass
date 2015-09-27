@@ -116,7 +116,7 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	if (password && metadata) {
-		warnx("Editing both password and metadata is default behavior. So you can ommit options.");
+		warnx("Editing both password and metadata is default behavior. You can ommit options.");
 	}
 
 	/* Default edit all */

@@ -24,8 +24,8 @@
 .Nm kickpass Cm help Oo Ar command Oc
 .Nm kickpass Cm init
 .Nm kickpass Cm create Oo Fl gl Ar len Oc Ar safe
-.Nm kickpass Cm open Ar safe
-.Nm kickpass Cm edit Ar safe
+.Nm kickpass Cm open Oo Fl pm Oc Ar safe
+.Nm kickpass Cm edit Oo Fl pm Oc Ar safe
 .Nm kickpass Cm copy Ar safe
 .Nm kickpass Cm list Oo Ar path Oc
 .Nm kickpass Cm delete Oo Fl f Oc Ar safe
@@ -80,18 +80,30 @@ Generate a random password of
 .Ar len
 length
 .El
-.Ss Nm kickpass Cm open Ar safe
+.Ss Nm kickpass Cm open Oo Fl pm Oc Ar safe
 Open
 .Ar safe
 and print
 .Ar safe
-content on stdout
-.Ss Nm kickpass Cm edit Ar safe
-Edit
+metada on stdout
+.Bl -tag -width flag
+.It Fl p Fl -password
+Print password
+.It Fl m Fl -metadata
+Print metadata
+.El
+.Ss Nm kickpass Cm edit Oo Fl pm Oc Ar safe
+Prompt for a new password and edit metadata from
 .Ar safe
 using
 .Ev EDITOR
 environment variable
+.Bl -tag -width flag
+.It Fl p Fl -password
+Edit only password
+.It Fl m Fl -metadata
+Edit only metadata
+.El
 .Ss Nm kickpass Cm copy Ar safe
 Copy
 .Ar safe

@@ -31,19 +31,28 @@
 #include "storage.h"
 
 static kp_error_t open(struct kp_ctx *ctx, int argc, char **argv);
+static kp_error_t parse_opt(struct kp_ctx *, int, char **);
+static void usage(void);
 
 struct kp_cmd kp_cmd_open = {
 	.main  = open,
-	.usage = NULL,
+	.usage = usage,
 	.opts  = "open <safe>",
 	.desc  = "Open a password safe and print its content on stdout",
 };
+
+static bool password = false;
+static bool metadata = false;
 
 kp_error_t
 open(struct kp_ctx *ctx, int argc, char **argv)
 {
 	kp_error_t ret;
 	struct kp_safe safe;
+
+	if ((ret = parse_opt(ctx, argc, argv)) != KP_SUCCESS) {
+		return ret;
+	}
 
 	if (argc - optind != 1) {
 		warnx("missing safe name");
@@ -58,7 +67,12 @@ open(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	printf("%s\n", safe.metadata);
+	if (password) {
+		printf("%s\n", safe.password);
+	}
+	if (metadata) {
+		printf("%s\n", safe.metadata);
+	}
 
 	if ((ret = kp_safe_close(ctx, &safe)) != KP_SUCCESS) {
 		warnx("cannot cleanly close safe");
@@ -67,4 +81,48 @@ open(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	return KP_SUCCESS;
+}
+
+static kp_error_t
+parse_opt(struct kp_ctx *ctx, int argc, char **argv)
+{
+	int opt;
+	static struct option longopts[] = {
+		{ "password", no_argument, NULL, 'p' },
+		{ NULL,       0,           NULL, 0   },
+	};
+
+	while ((opt = getopt_long(argc, argv, "pm", longopts, NULL)) != -1) {
+		switch (opt) {
+		case 'p':
+			password = true;
+			break;
+		case 'm':
+			metadata = true;
+			break;
+		default:
+			warnx("unknown option %c", opt);
+			return KP_EINPUT;
+		}
+	}
+
+	if (!password && metadata) {
+		warnx("Opening only metadata is default behavior. You can ommit option.");
+	}
+
+	/* Default open only metadata */
+	if (!password && !metadata) {
+		password = false;
+		metadata = true;
+	}
+
+	return KP_SUCCESS;
+}
+
+void
+usage(void)
+{
+	printf("options:\n");
+	printf("    -p, --password     Open password (This should be used very carefully)\n");
+	printf("    -m, --metadata     Open metadata\n");
 }
