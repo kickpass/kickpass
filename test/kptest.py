@@ -23,9 +23,9 @@ import unittest
 
 class KPTestCase(unittest.TestCase):
     EDITORS = {
-            'env': 'TestIntegrationEditorEnv.sh',
-            'date': 'TestIntegrationEditorDate.sh',
-            'save': 'TestIntegrationEditorSave.sh',
+            'env': 'TestFunctionalEditorEnv.sh',
+            'date': 'TestFunctionalEditorDate.sh',
+            'save': 'TestFunctionalEditorSave.sh',
         }
 
     def __init__(self, *args, **kwargs):
