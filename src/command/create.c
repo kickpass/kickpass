@@ -34,15 +34,15 @@
 
 static kp_error_t create(struct kp_ctx *, int, char **);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
-static kp_error_t usage(void);
+static void       usage(void);
 
 struct kp_cmd kp_cmd_create = {
 	.main  = create,
+	.usage = usage,
 	.opts  = "create [-hgl] <safe>",
 	.desc  = "Create a new password safe",
 };
 
-static bool help = false;
 static bool generate = false;
 static int  password_len = 20;
 
@@ -56,8 +56,6 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 	if ((ret = parse_opt(ctx, argc, argv)) != KP_SUCCESS) {
 		return ret;
 	}
-
-	if (help) return usage();
 
 	if (argc - optind != 1) {
 		warnx("missing safe name");
@@ -108,17 +106,13 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 {
 	int opt;
 	static struct option longopts[] = {
-		{ "help",     no_argument,       NULL, 'h' },
 		{ "generate", no_argument,       NULL, 'g' },
 		{ "length",   required_argument, NULL, 'l' },
 		{ NULL,       0,                 NULL, 0   },
 	};
 
-	while ((opt = getopt_long(argc, argv, "hgl:", longopts, NULL)) != -1) {
+	while ((opt = getopt_long(argc, argv, "gl:", longopts, NULL)) != -1) {
 		switch (opt) {
-		case 'h':
-			help = true;
-			break;
 		case 'g':
 			generate = true;
 			break;
@@ -134,16 +128,10 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 	return KP_SUCCESS;
 }
 
-kp_error_t
+void
 usage(void)
 {
-	extern char *__progname;
-
-	printf("usage: %s %s\n", __progname, kp_cmd_create.opts);
 	printf("options:\n");
-	printf("    -h, --help         Print this help\n");
 	printf("    -g, --generate     Randomly generate a password\n");
 	printf("    -l, --length=len   Length of the generated passwerd. Default to 20\n");
-
-	return KP_EINPUT;
 }

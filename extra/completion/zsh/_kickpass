@@ -9,6 +9,20 @@ _kp_safes()
 	_wanted safe expl "Safe" _multi_parts / files
 }
 
+(( $+functions[_kp-help] )) ||
+_kp-help()
+{
+	_arguments \
+		'(-): :->command' \
+		&& return
+
+	case $state in
+		(command)
+			_kp_commands
+			;;
+	esac
+}
+
 (( $+functions[_kp-init] )) ||
 _kp-init()
 {
@@ -19,7 +33,6 @@ _kp-init()
 _kp-create()
 {
 	_arguments \
-		{-h,--help}'[Print help]' \
 		{-g,--generate}'[Randomly generate a password]' \
 		{-l,--length}='[Length of the generated passwerd]' \
 		*:'Safe name:' && return
@@ -113,6 +126,7 @@ _kp_commands()
 {
 	local -a kp_commands
 	kp_commands=(
+		help:'Get some help' \
 		init:'Initialize a new password safe directory' \
 		{create,new,insert}:'Create a new password safe' \
 		{open,show,cat}:'Open a password safe and print its content on stdout' \
@@ -150,6 +164,9 @@ _kickpass()
 
 			# Define aliases
 			cmds=()
+
+			# help
+			cmds[help]=help
 
 			# init
 			cmds[init]=init

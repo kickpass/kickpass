@@ -29,15 +29,15 @@
 
 static kp_error_t delete(struct kp_ctx *, int, char **);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
-static kp_error_t usage(void);
+static void       usage(void);
 
 struct kp_cmd kp_cmd_delete = {
 	.main  = delete,
+	.usage = usage,
 	.opts  = "delete [-f] <safe>",
 	.desc  = "Delete a password safe after password confirmation",
 };
 
-static bool help = false;
 static bool force = false;
 
 kp_error_t
@@ -50,8 +50,6 @@ delete(struct kp_ctx *ctx, int argc, char **argv)
 	if ((ret = parse_opt(ctx, argc, argv)) != KP_SUCCESS) {
 		return ret;
 	}
-
-	if (help) return usage();
 
 	if (argc - optind != 1) {
 		warnx("missing safe name");
@@ -108,14 +106,9 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 	return KP_SUCCESS;
 }
 
-kp_error_t
+void
 usage(void)
 {
-	extern char *__progname;
-
-	printf("usage: %s %s\n", __progname, kp_cmd_delete.opts);
 	printf("options:\n");
 	printf("    -f, --force        Force deletion of the safe without asking for password\n");
-
-	return KP_EINPUT;
 }

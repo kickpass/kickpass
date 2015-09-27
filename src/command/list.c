@@ -33,6 +33,7 @@ static int        path_sort(const void *, const void *);
 
 struct kp_cmd kp_cmd_list = {
 	.main  = list,
+	.usage = NULL,
 	.opts  = "list",
 	.desc  = "List available safes",
 };

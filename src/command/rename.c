@@ -34,6 +34,7 @@ static kp_error_t do_rename(struct kp_ctx *ctx, int argc, char **argv);
 
 struct kp_cmd kp_cmd_rename = {
 	.main  = do_rename,
+	.usage = NULL,
 	.opts  = "rename <old_safe> <new_safe>",
 	.desc  = "Rename a password safe",
 };

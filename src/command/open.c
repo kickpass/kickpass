@@ -34,6 +34,7 @@ static kp_error_t open(struct kp_ctx *ctx, int argc, char **argv);
 
 struct kp_cmd kp_cmd_open = {
 	.main  = open,
+	.usage = NULL,
 	.opts  = "open <safe>",
 	.desc  = "Open a password safe and print its content on stdout",
 };

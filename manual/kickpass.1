@@ -21,8 +21,9 @@
 .Nd a stupid simple password safe
 .Sh SYNOPSIS
 .Nm kickpass Oo Fl hv Oc
+.Nm kickpass Cm help Oo Ar command Oc
 .Nm kickpass Cm init
-.Nm kickpass Cm create Oo Fl hgl Ar len Oc Ar safe
+.Nm kickpass Cm create Oo Fl gl Ar len Oc Ar safe
 .Nm kickpass Cm open Ar safe
 .Nm kickpass Cm edit Ar safe
 .Nm kickpass Cm copy Ar safe
@@ -65,13 +66,13 @@ Print kickpass version
 .It Fl h Fl -help
 Print kickpass help
 .El
+.Ss Nm kickpass Cm help Oo Ar command Oc
+Print general help or command help.
 .Ss Nm kickpass Cm init
 Initialize a kickpass workspace.
-.Ss Nm kickpass Cm create Oo Fl hgl Oc Ar safe
+.Ss Nm kickpass Cm create Oo Fl gl Oc Ar safe
 Create a new password safe.
 .Bl -tag -width flag
-.It Fl h Fl -help
-Print kickpass create help
 .It Fl g Fl -generate
 Create a new safe with a generated random password
 .It Fl l Fl -length Ar len

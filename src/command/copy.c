@@ -36,6 +36,7 @@ static kp_error_t copy(struct kp_ctx *ctx, int argc, char **argv);
 
 struct kp_cmd kp_cmd_copy = {
 	.main  = copy,
+	.usage = NULL,
 	.opts  = "copy <safe>",
 	.desc  = "Copy a password (first line of safe) into X clipboard",
 };

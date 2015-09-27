@@ -32,15 +32,15 @@
 
 static kp_error_t edit(struct kp_ctx *ctx, int argc, char **argv);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
-static kp_error_t usage(void);
+static void usage(void);
 
 struct kp_cmd kp_cmd_edit = {
 	.main  = edit,
+	.usage = usage,
 	.opts  = "edit [-pm] <safe>",
 	.desc  = "Edit a password safe with $EDIT",
 };
 
-static bool help = false;
 static bool password = false;
 static bool metadata = false;
 
@@ -53,8 +53,6 @@ edit(struct kp_ctx *ctx, int argc, char **argv)
 	if ((ret = parse_opt(ctx, argc, argv)) != KP_SUCCESS) {
 		return ret;
 	}
-
-	if (help) return usage();
 
 	if (argc - optind != 1) {
 		warnx("missing safe name");
@@ -98,17 +96,13 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 {
 	int opt;
 	static struct option longopts[] = {
-		{ "help",     no_argument, NULL, 'h' },
 		{ "password", no_argument, NULL, 'p' },
 		{ "metadata", no_argument, NULL, 'm' },
 		{ NULL,       0,           NULL, 0   },
 	};
 
-	while ((opt = getopt_long(argc, argv, "hpm", longopts, NULL)) != -1) {
+	while ((opt = getopt_long(argc, argv, "pm", longopts, NULL)) != -1) {
 		switch (opt) {
-		case 'h':
-			help = true;
-			break;
 		case 'p':
 			password = true;
 			break;
@@ -134,16 +128,10 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 	return KP_SUCCESS;
 }
 
-kp_error_t
+void
 usage(void)
 {
-	extern char *__progname;
-
-	printf("usage: %s %s\n", __progname, kp_cmd_edit.opts);
 	printf("options:\n");
-	printf("    -h, --help         Print this help\n");
 	printf("    -p, --password     Edit only password\n");
 	printf("    -m, --metadata     Edit only metadata\n");
-
-	return KP_EINPUT;
 }
