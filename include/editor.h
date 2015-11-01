@@ -20,7 +20,6 @@
 #include "kickpass.h"
 
 #include "safe.h"
-#include "storage.h"
 
 kp_error_t kp_edit(struct kp_ctx *, struct kp_safe *);
 

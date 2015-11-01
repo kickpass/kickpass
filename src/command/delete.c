@@ -24,7 +24,6 @@
 
 #include "delete.h"
 #include "prompt.h"
-#include "storage.h"
 #include "safe.h"
 
 static kp_error_t delete(struct kp_ctx *, int, char **);
@@ -53,7 +52,7 @@ delete(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	if ((ret = kp_storage_open(ctx, &safe)) != KP_SUCCESS) {
+	if ((ret = kp_safe_open(ctx, &safe)) != KP_SUCCESS) {
 		warnx("don't delete safe");
 		return ret;
 	}

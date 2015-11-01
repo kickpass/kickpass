@@ -71,8 +71,7 @@ kp_safe_load(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
  * The returned safe is opened.
  */
 kp_error_t
-kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *name,
-		const char *password)
+kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 {
 	kp_error_t   ret;
 	struct stat  stats;
@@ -120,10 +119,25 @@ kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *name,
 		return KP_EINPUT;
 	}
 
-	safe->password_len = snprintf((char *)safe->password, KP_PASSWORD_MAX_LEN, password);
-	safe->metadata_len = snprintf((char *)safe->metadata, KP_METADATA_MAX_LEN, KP_METADATA_TEMPLATE);
-
 	return KP_SUCCESS;
+}
+
+/*
+ * Open a safe.
+ */
+kp_error_t
+kp_safe_open(struct kp_ctx *ctx, struct kp_safe *safe)
+{
+	return kp_storage_open(ctx, safe);
+}
+
+/*
+ * Save a safe.
+ */
+kp_error_t
+kp_safe_save(struct kp_ctx *ctx, struct kp_safe *safe)
+{
+	return kp_storage_save(ctx, safe);
 }
 
 /*
@@ -157,9 +171,9 @@ kp_safe_init(struct kp_safe *safe, const char *name, bool open)
 
 	safe->open = open;
 	safe->password = sodium_malloc(KP_PASSWORD_MAX_LEN+1);
-	safe->password_len = 0;
+	safe->password[0] = '\0';
 	safe->metadata = sodium_malloc(KP_METADATA_MAX_LEN+1);
-	safe->metadata_len = 0;
+	safe->metadata[0] = '\0';
 
 	return KP_SUCCESS;
 }

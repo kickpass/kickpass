@@ -27,7 +27,6 @@
 
 #include "editor.h"
 #include "error.h"
-#include "storage.h"
 
 static kp_error_t kp_editor_get_tmp(struct kp_ctx *, struct kp_safe *, char *, size_t);
 
@@ -44,6 +43,7 @@ kp_edit(struct kp_ctx *ctx, struct kp_safe *safe)
 	const char *editor;
 	char path[PATH_MAX];
 	pid_t pid;
+	size_t metadata_len;
 
 	assert(safe->open);
 
@@ -72,7 +72,8 @@ kp_edit(struct kp_ctx *ctx, struct kp_safe *safe)
 	}
 
 	clearerr(fd);
-	safe->metadata_len = fread(safe->metadata, 1, KP_METADATA_MAX_LEN, fd);
+	metadata_len = fread(safe->metadata, 1, KP_METADATA_MAX_LEN, fd);
+	safe->metadata[metadata_len] = '\0';
 
 	if (ferror(fd) != 0) {
 		warn("error while reading temporary clear text file %s", path);
@@ -80,7 +81,7 @@ kp_edit(struct kp_ctx *ctx, struct kp_safe *safe)
 		goto clean;
 	}
 	if (!feof(fd)) {
-		warnx("safe too long, storing only %lu bytes", safe->metadata_len);
+		warnx("safe too long, storing only %lu bytes", metadata_len);
 		ret = KP_ENOMEM;
 		goto clean;
 	}
@@ -104,6 +105,7 @@ static kp_error_t
 kp_editor_get_tmp(struct kp_ctx *ctx, struct kp_safe *safe, char *path, size_t size)
 {
 	int fd;
+	size_t metadata_len;
 
 	if (strlcpy(path, ctx->ws_path, size) >= size) {
 		warnx("memory error");
@@ -122,7 +124,8 @@ kp_editor_get_tmp(struct kp_ctx *ctx, struct kp_safe *safe, char *path, size_t s
 		return errno;
 	}
 
-	if (write(fd, safe->metadata, safe->metadata_len) != safe->metadata_len) {
+	metadata_len = strlen(safe->metadata);
+	if (write(fd, safe->metadata, metadata_len) != metadata_len) {
 		warn("cannot dump safe on temp file %s for edition", path);
 		return errno;
 	}

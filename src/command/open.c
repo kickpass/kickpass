@@ -28,7 +28,6 @@
 #include "editor.h"
 #include "prompt.h"
 #include "safe.h"
-#include "storage.h"
 
 static kp_error_t open(struct kp_ctx *ctx, int argc, char **argv);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
@@ -63,7 +62,7 @@ open(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	if ((ret = kp_storage_open(ctx, &safe)) != KP_SUCCESS) {
+	if ((ret = kp_safe_open(ctx, &safe)) != KP_SUCCESS) {
 		return ret;
 	}
 

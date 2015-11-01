@@ -30,7 +30,6 @@
 #include "copy.h"
 #include "prompt.h"
 #include "safe.h"
-#include "storage.h"
 
 static kp_error_t copy(struct kp_ctx *ctx, int argc, char **argv);
 
@@ -50,6 +49,7 @@ copy(struct kp_ctx *ctx, int argc, char **argv)
 	Window window;
 	Atom XA_CLIPBOARD, XA_COMPOUND_TEXT, XA_UTF8_STRING, XA_TARGETS;
 	bool replied = false;
+	size_t password_len;
 
 	if (argc - optind != 1) {
 		warnx("missing safe name");
@@ -61,11 +61,12 @@ copy(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	if ((ret = kp_storage_open(ctx, &safe)) != KP_SUCCESS) {
+	if ((ret = kp_safe_open(ctx, &safe)) != KP_SUCCESS) {
 		warnx("cannot open safe");
 		goto out;
 	}
 
+	password_len = strlen(safe.password);
 
 	display = XOpenDisplay(NULL);
 
@@ -124,8 +125,8 @@ copy(struct kp_ctx *ctx, int argc, char **argv)
 			XChangeProperty(display, request->requestor,
 					request->property, request->target,
 					8, PropModeReplace,
-					safe.password,
-					safe.password_len);
+					(unsigned char *)safe.password,
+					password_len);
 			replied = true;
 		} else {
 			warnx("don't know what to answer");

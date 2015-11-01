@@ -30,7 +30,6 @@
 #include "password.h"
 #include "prompt.h"
 #include "safe.h"
-#include "storage.h"
 
 static kp_error_t create(struct kp_ctx *, int, char **);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
@@ -62,31 +61,28 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 		return KP_EINPUT;
 	}
 
-	password = sodium_malloc(KP_PASSWORD_MAX_LEN+1);
-	if (!password) {
-		warnx("memory error");
-		goto out;
-	}
-	if (generate) {
-		kp_password_generate(password, password_len);
-	} else {
-		if ((ret = kp_prompt_password("safe", true, password)) != KP_SUCCESS) {
-			goto out;
-		}
-	}
-
-	if ((ret = kp_safe_create(ctx, &safe, argv[optind], password)) != KP_SUCCESS) {
+	if ((ret = kp_safe_create(ctx, &safe, argv[optind])) != KP_SUCCESS) {
 		if (ret == KP_EEXIST) {
 			warnx("please use edit command to edit an existing safe");
 		}
 		goto out;
 	}
 
+	if (generate) {
+		kp_password_generate(safe.password, password_len);
+	} else {
+		if ((ret = kp_prompt_password("safe", true, safe.password)) != KP_SUCCESS) {
+			goto out;
+		}
+	}
+
+	snprintf((char *)safe.metadata, KP_METADATA_MAX_LEN, KP_METADATA_TEMPLATE);
+
 	if ((ret = kp_edit(ctx, &safe)) != KP_SUCCESS) {
 		goto out;
 	}
 
-	if ((ret = kp_storage_save(ctx, &safe)) != KP_SUCCESS) {
+	if ((ret = kp_safe_save(ctx, &safe)) != KP_SUCCESS) {
 		goto out;
 	}
 

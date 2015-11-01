@@ -28,7 +28,6 @@
 #include "rename.h"
 #include "prompt.h"
 #include "safe.h"
-#include "storage.h"
 
 static kp_error_t do_rename(struct kp_ctx *ctx, int argc, char **argv);
 
@@ -57,7 +56,7 @@ do_rename(struct kp_ctx *ctx, int argc, char **argv)
 
 	optind++;
 
-	if ((ret = kp_storage_open(ctx, &safe)) != KP_SUCCESS) {
+	if ((ret = kp_safe_open(ctx, &safe)) != KP_SUCCESS) {
 		warnx("cannot open safe");
 		goto fail;
 	}

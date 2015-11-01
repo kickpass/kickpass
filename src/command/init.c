@@ -23,7 +23,6 @@
 
 #include "command.h"
 #include "init.h"
-#include "storage.h"
 
 static kp_error_t init(struct kp_ctx *ctx, int argc, char **argv);
 
