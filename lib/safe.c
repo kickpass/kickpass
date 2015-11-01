@@ -54,13 +54,13 @@ kp_safe_load(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 
 	if (stat(path, &stats) != 0) {
 		warn("unknown safe %s", name);
-		return KP_EINPUT;
+		return ENOENT;
 	}
 
 	safe->cipher = open(path, O_RDWR | O_NONBLOCK);
 	if (safe->cipher < 0) {
 		warn("cannot open safe %s", name);
-		return KP_EINPUT;
+		return errno;
 	}
 
 	return KP_SUCCESS;
