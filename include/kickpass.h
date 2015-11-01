@@ -17,7 +17,7 @@
 #ifndef KP_KICKPASS_H
 #define KP_KICKPASS_H
 
-#include <stdbool.h>
+#include <stddef.h>
 #include <err.h>
 #include <limits.h>
 
@@ -36,5 +36,6 @@ struct kp_ctx {
 kp_error_t kp_init(struct kp_ctx *);
 kp_error_t kp_load(struct kp_ctx *, char *);
 kp_error_t kp_fini(struct kp_ctx *);
+kp_error_t kp_init_workspace(struct kp_ctx *);
 
 #endif /* KP_KICKPASS_H */

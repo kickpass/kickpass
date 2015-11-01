@@ -17,6 +17,8 @@
 #ifndef KP_SAFE_H
 #define KP_SAFE_H
 
+#include <stdbool.h>
+
 #include "kickpass.h"
 
 #ifndef KP_METADATA_TEMPLATE
