@@ -201,16 +201,9 @@ command(struct kp_ctx *ctx, int argc, char **argv)
 
 	/* Only init and help cannot load main config */
 	if (cmd != &kp_cmd_init && cmd != &kp_cmd_help) {
-		char *master;
-		master = sodium_malloc(KP_PASSWORD_MAX_LEN);
-		if (!master) {
-			warnx("memory error");
-			return KP_ENOMEM;
-		}
-		kp_prompt_password("master", false, master);
-		ret = kp_load(ctx, master);
-		sodium_free(master);
-		if (ret != KP_SUCCESS) {
+		kp_prompt_password("master", false, (char *)ctx->password);
+		if ((ret = kp_load(ctx)) != KP_SUCCESS) {
+			warnx("Cannot unlock workspace. Bad password ?");
 			return ret;
 		}
 	}

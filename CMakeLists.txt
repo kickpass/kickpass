@@ -81,6 +81,7 @@ target_link_libraries(kickpass ${LIBS})
 
 # kickpass lib
 add_library(libkickpass SHARED
+	lib/config.c
 	lib/kickpass.c
 	lib/password.c
 	lib/safe.c

@@ -214,8 +214,8 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 	header.version = kp_storage_version;
 	header.sodium_version = SODIUM_LIBRARY_VERSION_MAJOR << 8 |
 		SODIUM_LIBRARY_VERSION_MINOR;
-	header.opslimit = ctx->opslimit;
-	header.memlimit = ctx->memlimit;
+	header.opslimit = ctx->cfg.opslimit;
+	header.memlimit = ctx->cfg.memlimit;
 	randombytes_buf(header.salt, KP_STORAGE_SALT_SIZE);
 	randombytes_buf(header.nonce, KP_STORAGE_NONCE_SIZE);
 

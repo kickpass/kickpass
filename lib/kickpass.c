@@ -24,6 +24,8 @@
 
 #include "kickpass.h"
 
+#include "config.h"
+
 /*
  * Init kickpass with a working directory and its corresponding master password.
  */
@@ -54,8 +56,8 @@ kp_init(struct kp_ctx *ctx)
 		return KP_ENOMEM;
 	}
 
-	ctx->memlimit = crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_SENSITIVE/5;
-	ctx->opslimit = crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_SENSITIVE/5;
+	ctx->cfg.memlimit = crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_SENSITIVE/5;
+	ctx->cfg.opslimit = crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_SENSITIVE/5;
 
 	return KP_SUCCESS;
 }
@@ -64,11 +66,13 @@ kp_init(struct kp_ctx *ctx)
  * Open the main configuration with the master password.
  */
 kp_error_t
-kp_load(struct kp_ctx *ctx, char *password)
+kp_load(struct kp_ctx *ctx)
 {
-	/* TODO: try to decrypt config */
-	/* if successful store password */
-	strncpy(ctx->password, password, KP_PASSWORD_MAX_LEN);
+	kp_error_t ret;
+
+	if ((ret = kp_cfg_load(ctx)) != KP_SUCCESS) {
+		return ret;
+	}
 
 	return KP_SUCCESS;
 }
@@ -79,4 +83,27 @@ kp_fini(struct kp_ctx *ctx)
 	sodium_free(ctx->password);
 
 	return KP_SUCCESS;
+}
+
+kp_error_t
+kp_init_workspace(struct kp_ctx *ctx)
+{
+	kp_error_t ret = KP_SUCCESS;
+	struct stat stats;
+
+	if (stat(ctx->ws_path, &stats) == 0) {
+		warnx("workspace already exists");
+		ret = KP_EINPUT;
+		goto out;
+	} else if (errno & ENOENT) {
+		printf("creating workspace %s\n", ctx->ws_path);
+		mkdir(ctx->ws_path, 0700);
+	} else {
+		warn("invalid workspace %s", ctx->ws_path);
+		ret = errno;
+		goto out;
+	}
+
+out:
+	return ret;
 }

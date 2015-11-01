@@ -29,12 +29,14 @@
 struct kp_ctx {
 	char ws_path[PATH_MAX];
 	char * const password;
-	unsigned long long opslimit;
-	size_t memlimit;
+	struct {
+		unsigned long long opslimit;
+		size_t memlimit;
+	} cfg;
 };
 
 kp_error_t kp_init(struct kp_ctx *);
-kp_error_t kp_load(struct kp_ctx *, char *);
+kp_error_t kp_load(struct kp_ctx *);
 kp_error_t kp_fini(struct kp_ctx *);
 kp_error_t kp_init_workspace(struct kp_ctx *);
 
