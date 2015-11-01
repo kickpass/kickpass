@@ -36,11 +36,11 @@
  * Cipher data are stored in file.
  */
 struct kp_safe {
-	bool           open;            /* whether the safe is open or not */
-	char           name[PATH_MAX];  /* name of the safe */
-	int            cipher;          /* fd of the cipher file if the safe is open */
-	char          *password;        /* plain text password (null terminated) */
-	char          *metadata;        /* plain text metadata (null terminated) */
+	bool open;           /* whether the safe is open or not */
+	char name[PATH_MAX]; /* name of the safe */
+	int cipher;          /* fd of the cipher file if the safe is open */
+	char * const password;      /* plain text password (null terminated) */
+	char * const metadata;      /* plain text metadata (null terminated) */
 };
 
 kp_error_t kp_safe_create(struct kp_ctx *, struct kp_safe *, const char *);

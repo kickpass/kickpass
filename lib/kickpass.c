@@ -31,6 +31,9 @@ kp_error_t
 kp_init(struct kp_ctx *ctx)
 {
 	const char *home;
+	char **password;
+
+	password = (char **)&ctx->password;
 
 	home = getenv("HOME");
 	if (!home)
@@ -45,7 +48,7 @@ kp_init(struct kp_ctx *ctx)
 	if (sodium_init() != 0)
 		err(KP_EINTERNAL, "cannot initialize sodium");
 
-	ctx->password = sodium_malloc(KP_PASSWORD_MAX_LEN);
+	*password = sodium_malloc(KP_PASSWORD_MAX_LEN);
 	if (!ctx->password) {
 		warnx("memory error");
 		return KP_ENOMEM;

@@ -27,10 +27,10 @@
 #define KP_PASSWORD_MAX_LEN 4096
 
 struct kp_ctx {
-	char                ws_path[PATH_MAX];
-	char               *password;
-	unsigned long long  opslimit;
-	size_t              memlimit;
+	char ws_path[PATH_MAX];
+	char * const password;
+	unsigned long long opslimit;
+	size_t memlimit;
 };
 
 kp_error_t kp_init(struct kp_ctx *);

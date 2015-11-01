@@ -148,8 +148,8 @@ kp_safe_save(struct kp_ctx *ctx, struct kp_safe *safe)
 kp_error_t
 kp_safe_close(struct kp_ctx *ctx, struct kp_safe *safe)
 {
-	sodium_free(safe->password);
-	sodium_free(safe->metadata);
+	sodium_free((char *)safe->password);
+	sodium_free((char *)safe->metadata);
 
 	if (close(safe->cipher) < 0) {
 		warn("cannot close safe");
@@ -164,15 +164,22 @@ kp_safe_close(struct kp_ctx *ctx, struct kp_safe *safe)
 static kp_error_t
 kp_safe_init(struct kp_safe *safe, const char *name, bool open)
 {
+	char **password;
+	char **metadata;
+
+	/* Init is the only able to set password and metadata memory */
+	password = (char **)&safe->password;
+	metadata = (char **)&safe->metadata;
+
 	if (strlcpy(safe->name, name, PATH_MAX) >= PATH_MAX) {
 		warnx("memory error");
 		return KP_ENOMEM;
 	}
 
 	safe->open = open;
-	safe->password = sodium_malloc(KP_PASSWORD_MAX_LEN+1);
+	*password = sodium_malloc(KP_PASSWORD_MAX_LEN+1);
 	safe->password[0] = '\0';
-	safe->metadata = sodium_malloc(KP_METADATA_MAX_LEN+1);
+	*metadata = sodium_malloc(KP_METADATA_MAX_LEN+1);
 	safe->metadata[0] = '\0';
 
 	return KP_SUCCESS;
