@@ -30,6 +30,7 @@
 #include "password.h"
 #include "prompt.h"
 #include "safe.h"
+#include "log.h"
 
 static kp_error_t create(struct kp_ctx *, int, char **);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
@@ -57,13 +58,14 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	if (argc - optind != 1) {
-		warnx("missing safe name");
-		return KP_EINPUT;
+		ret = KP_EINPUT;
+		kp_warn(ret, "missing safe name");
+		return ret;
 	}
 
 	if ((ret = kp_safe_create(ctx, &safe, argv[optind])) != KP_SUCCESS) {
-		if (ret == KP_EEXIST) {
-			warnx("please use edit command to edit an existing safe");
+		if (ret == KP_ERRNO && errno == EEXIST) {
+			kp_warn(ret, "use 'edit' command to edit an existing safe");
 		}
 		goto out;
 	}
@@ -101,6 +103,7 @@ static kp_error_t
 parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 {
 	int opt;
+	kp_error_t ret = KP_SUCCESS;
 	static struct option longopts[] = {
 		{ "generate", no_argument,       NULL, 'g' },
 		{ "length",   required_argument, NULL, 'l' },
@@ -116,12 +119,12 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 			password_len = atoi(optarg);
 			break;
 		default:
-			warnx("unknown option %c", opt);
-			return KP_EINPUT;
+			ret = KP_EINPUT;
+			kp_warn(ret, "unknown option %c", opt);
 		}
 	}
 
-	return KP_SUCCESS;
+	return ret;
 }
 
 void

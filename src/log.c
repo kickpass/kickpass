@@ -14,15 +14,60 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef KP_PROMPT_H
-#define KP_PROMPT_H
-
-#include <stdbool.h>
-#include <limits.h>
+#include <stdarg.h>
+#include <err.h>
+#include <stdio.h>
 
 #include "error.h"
-#include "kickpass_config.h"
 
-kp_error_t kp_prompt_password(const char *type, bool, char *);
+__attribute__((format(printf, 2, 3)))
+void
+kp_err(kp_error_t err, const char *fmt, ...)
+{
+	va_list ap;
 
-#endif /* KP_PROMPT_H */
+	va_start(ap, fmt);
+	if (err == KP_ERRNO) {
+		verr(err, fmt, ap);
+	} else {
+		verrx(err, fmt, ap);
+	}
+	va_end(ap);
+}
+
+__attribute__((format(printf, 2, 3)))
+void
+kp_warn(kp_error_t err, const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	if (err == KP_ERRNO) {
+		vwarn(fmt, ap);
+	} else {
+		vwarnx(fmt, ap);
+	}
+	va_end(ap);
+}
+
+__attribute__((format(printf, 2, 3)))
+void
+kp_errx(kp_error_t err, const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	verrx(err, fmt, ap);
+	va_end(ap);
+}
+
+__attribute__((format(printf, 2, 3)))
+void
+kp_warnx(kp_error_t err, const char *fmt, ...)
+{
+	va_list ap;
+
+	va_start(ap, fmt);
+	vwarnx(fmt, ap);
+	va_end(ap);
+}

@@ -28,6 +28,7 @@
 #include "rename.h"
 #include "prompt.h"
 #include "safe.h"
+#include "log.h"
 
 static kp_error_t do_rename(struct kp_ctx *ctx, int argc, char **argv);
 
@@ -45,30 +46,31 @@ do_rename(struct kp_ctx *ctx, int argc, char **argv)
 	struct kp_safe safe;
 
 	if (argc - optind != 2) {
-		warnx("missing safe name");
-		return KP_EINPUT;
+		ret = KP_EINPUT;
+		kp_warn(ret, "missing safe name");
+		return ret;
 	}
 
 	if ((ret = kp_safe_load(ctx, &safe, argv[optind])) != KP_SUCCESS) {
-		warnx("cannot load safe");
+		kp_warn(ret, "cannot load safe");
 		return ret;
 	}
 
 	optind++;
 
 	if ((ret = kp_safe_open(ctx, &safe)) != KP_SUCCESS) {
-		warnx("cannot open safe");
+		kp_warn(ret, "cannot open safe");
 		goto fail;
 	}
 
 	if ((ret = kp_safe_close(ctx, &safe)) != KP_SUCCESS) {
-		warnx("cannot cleanly close safe");
-		warnx("clear text password might have leaked");
+		kp_warn(ret, "cannot cleanly close safe"
+			"clear text password might have leaked");
 		return ret;
 	}
 
 	if ((ret = kp_safe_rename(ctx, &safe, argv[optind])) != KP_SUCCESS) {
-		warnx("cannot change safe name");
+		kp_warn(ret, "cannot change safe name");
 		return ret;
 	}
 
@@ -76,8 +78,8 @@ do_rename(struct kp_ctx *ctx, int argc, char **argv)
 
 fail:
 	if ((ret = kp_safe_close(ctx, &safe)) != KP_SUCCESS) {
-		warnx("cannot cleanly close safe");
-		warnx("clear text password might have leaked");
+		kp_warn(ret, "cannot cleanly close safe"
+			"clear text password might have leaked");
 		return ret;
 	}
 

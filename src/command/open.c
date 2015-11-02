@@ -28,6 +28,7 @@
 #include "editor.h"
 #include "prompt.h"
 #include "safe.h"
+#include "log.h"
 
 static kp_error_t open(struct kp_ctx *ctx, int argc, char **argv);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
@@ -54,8 +55,9 @@ open(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	if (argc - optind != 1) {
-		warnx("missing safe name");
-		return KP_EINPUT;
+		ret = KP_EINPUT;
+		kp_warn(ret, "missing safe name");
+		return ret;
 	}
 
 	if ((ret = kp_safe_load(ctx, &safe, argv[optind])) != KP_SUCCESS) {
@@ -74,8 +76,8 @@ open(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	if ((ret = kp_safe_close(ctx, &safe)) != KP_SUCCESS) {
-		warnx("cannot cleanly close safe");
-		warnx("clear text password might have leaked");
+		kp_warn(ret, "cannot cleanly close safe"
+			"clear text password might have leaked");
 		return ret;
 	}
 
@@ -85,6 +87,7 @@ open(struct kp_ctx *ctx, int argc, char **argv)
 static kp_error_t
 parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 {
+	kp_error_t ret = KP_SUCCESS;
 	int opt;
 	static struct option longopts[] = {
 		{ "password", no_argument, NULL, 'p' },
@@ -100,13 +103,15 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 			metadata = true;
 			break;
 		default:
-			warnx("unknown option %c", opt);
-			return KP_EINPUT;
+			ret = KP_EINPUT;
+			kp_warn(ret, "unknown option %c", opt);
+			return ret;
 		}
 	}
 
 	if (!password && metadata) {
-		warnx("Opening only metadata is default behavior. You can ommit option.");
+		kp_warnx(KP_EINPUT, "Opening only metadata is default behavior."
+				"You can ommit option.");
 	}
 
 	/* Default open only metadata */
@@ -115,7 +120,7 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 		metadata = true;
 	}
 
-	return KP_SUCCESS;
+	return ret;
 }
 
 void

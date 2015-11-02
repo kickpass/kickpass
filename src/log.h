@@ -14,15 +14,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef KP_PROMPT_H
-#define KP_PROMPT_H
+#ifndef KP_LOG_H
+#define KP_LOG_H
 
-#include <stdbool.h>
-#include <limits.h>
+void kp_err(kp_error_t, const char *, ...);
+void kp_warn(kp_error_t, const char *, ...);
+void kp_errx(kp_error_t, const char *, ...);
+void kp_warnx(kp_error_t, const char *, ...);
 
-#include "error.h"
-#include "kickpass_config.h"
-
-kp_error_t kp_prompt_password(const char *type, bool, char *);
-
-#endif /* KP_PROMPT_H */
+#endif /* KP_LOG_H */

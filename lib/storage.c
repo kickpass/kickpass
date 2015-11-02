@@ -181,12 +181,10 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 
 	/* Ensure we are at the beginning of the safe */
 	if (lseek(safe->cipher, 0, SEEK_SET) != 0) {
-		warn("cannot save safe");
 		return errno;
 	}
 
 	if (ftruncate(safe->cipher, 0) != 0) {
-		warn("cannot save safe");
 		return errno;
 	}
 
@@ -206,8 +204,7 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 	/* alloc cipher to max size */
 	cipher = malloc(plain_size+crypto_aead_chacha20poly1305_ABYTES);
 	if (!cipher) {
-		warnx("memory error");
-		ret = KP_ENOMEM;
+		ret = ENOMEM;
 		goto out;
 	}
 
@@ -226,20 +223,17 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 					plain, plain_size,
 					cipher, &cipher_size))
 		!= KP_SUCCESS) {
-		warnx("cannot encrypt safe");
 		goto out;
 	}
 
 	if (write(safe->cipher, packed_header, KP_STORAGE_HEADER_SIZE)
 			< KP_STORAGE_HEADER_SIZE) {
-		warn("cannot write safe to file %s", path);
 		ret = errno;
 		goto out;
 	}
 
 	if (write(safe->cipher, cipher, cipher_size)
 			< cipher_size) {
-		warn("cannot write safe to file %s", path);
 		ret = errno;
 		goto out;
 	}
@@ -269,11 +263,9 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 	if (read(safe->cipher, packed_header, KP_STORAGE_HEADER_SIZE)
 			!= KP_STORAGE_HEADER_SIZE) {
 		if (errno != 0) {
-			warn("cannot read safe");
 			ret = errno;
 		} else {
-			warnx("cannot read safe");
-			ret = KP_EINPUT;
+			ret = KP_INVALID_STORAGE;
 		}
 		goto out;
 	}
@@ -289,15 +281,13 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 			KP_PLAIN_MAX_SIZE+crypto_aead_chacha20poly1305_ABYTES);
 
 	if (cipher_size <= crypto_aead_chacha20poly1305_ABYTES) {
-		warnx("invalid safe size");
-		ret = KP_EINPUT;
+		ret = KP_INVALID_STORAGE;
 		goto out;
 	}
 
 	if (cipher_size - crypto_aead_chacha20poly1305_ABYTES
 			> KP_PLAIN_MAX_SIZE) {
-		warnx("safe too long");
-		ret = KP_EINPUT;
+		ret = ENOMEM;
 		goto out;
 	}
 
@@ -306,7 +296,6 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 					plain, &plain_size,
 					cipher, cipher_size))
 			!= KP_SUCCESS) {
-		warnx("cannot decrypt safe. Bad password ?");
 		goto out;
 	}
 

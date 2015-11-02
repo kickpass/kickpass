@@ -18,7 +18,6 @@
 #define KP_KICKPASS_H
 
 #include <stddef.h>
-#include <err.h>
 #include <limits.h>
 
 #include "error.h"

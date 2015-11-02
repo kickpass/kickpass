@@ -53,14 +53,12 @@ kp_safe_load(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 	}
 
 	if (stat(path, &stats) != 0) {
-		warn("unknown safe %s", name);
-		return ENOENT;
+		return KP_ERRNO;
 	}
 
 	safe->cipher = open(path, O_RDWR | O_NONBLOCK);
 	if (safe->cipher < 0) {
-		warn("cannot open safe %s", name);
-		return errno;
+		return KP_ERRNO;
 	}
 
 	return KP_SUCCESS;
@@ -93,11 +91,9 @@ kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 		if (stat(path, &stats) != 0) {
 			if (errno == ENOENT) {
 				if (mkdir(path, 0700) < 0) {
-					warn("cannot create dir %s", path);
 					return errno;
 				}
 			} else {
-				warn("cannot create dir %s", path);
 				return errno;
 			}
 		}
@@ -106,17 +102,15 @@ kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 	}
 
 	if (stat(path, &stats) == 0) {
-		warnx("safe %s already exists", name);
-		return KP_EEXIST;
+		errno = EEXIST;
+		return KP_ERRNO;
 	} else if (errno != ENOENT) {
-		warn("cannot create safe %s", name);
-		return KP_EINPUT;
+		return errno;
 	}
 
 	safe->cipher = open(path, O_RDWR | O_NONBLOCK | O_CREAT, S_IRUSR | S_IWUSR);
 	if (safe->cipher < 0) {
-		warn("cannot open safe %s", name);
-		return KP_EINPUT;
+		return errno;
 	}
 
 	return KP_SUCCESS;
@@ -152,7 +146,6 @@ kp_safe_close(struct kp_ctx *ctx, struct kp_safe *safe)
 	sodium_free((char *)safe->metadata);
 
 	if (close(safe->cipher) < 0) {
-		warn("cannot close safe");
 		return errno;
 	}
 
@@ -172,8 +165,8 @@ kp_safe_init(struct kp_safe *safe, const char *name, bool open)
 	metadata = (char **)&safe->metadata;
 
 	if (strlcpy(safe->name, name, PATH_MAX) >= PATH_MAX) {
-		warnx("memory error");
-		return KP_ENOMEM;
+		errno = ENOMEM;
+		return KP_ERRNO;
 	}
 
 	safe->open = open;
@@ -196,8 +189,8 @@ kp_safe_rename(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 	}
 
 	if (strlcpy(safe->name, name, PATH_MAX) >= PATH_MAX) {
-		warnx("memory error");
-		return KP_ENOMEM;
+		errno = ENOMEM;
+		return KP_ERRNO;
 	}
 
 	if ((ret = kp_safe_get_path(ctx, safe, newpath, PATH_MAX)) != KP_SUCCESS) {
@@ -205,8 +198,7 @@ kp_safe_rename(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 	}
 
 	if (rename(oldpath, newpath) != 0) {
-		warn("cannot rename safe from %s to %s", oldpath, newpath);
-		return KP_EINPUT;
+		return errno;
 	}
 
 	return KP_SUCCESS;
@@ -217,18 +209,18 @@ kp_safe_get_path(struct kp_ctx *ctx, struct kp_safe *safe, char *path, size_t si
 {
 
 	if (strlcpy(path, ctx->ws_path, size) >= size) {
-		warnx("memory error");
-		return KP_ENOMEM;
+		errno = ENOMEM;
+		return KP_ERRNO;
 	}
 
 	if (strlcat(path, "/", size) >= size) {
-		warnx("memory error");
-		return KP_ENOMEM;
+		errno = ENOMEM;
+		return KP_ERRNO;
 	}
 
 	if (strlcat(path, safe->name, size) >= size) {
-		warnx("memory error");
-		return KP_ENOMEM;
+		errno = ENOMEM;
+		return KP_ERRNO;
 	}
 
 	return KP_SUCCESS;

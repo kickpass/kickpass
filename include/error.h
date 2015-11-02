@@ -20,13 +20,16 @@
 #include <errno.h>
 
 /* errno > 0 are system error */
-#define KP_SUCCESS         0
-#define KP_NYI            -1
-#define KP_ENOMEM         -2
-#define KP_EINPUT         -3
-#define KP_EINTERNAL      -4
-#define KP_EEXIST         -5
+#define KP_SUCCESS          0
+#define KP_NYI              1
+#define KP_EINPUT           2
+#define KP_EINTERNAL        3
+#define KP_INVALID_STORAGE  4
+#define KP_ERRNO            5
+#define KP_NO_HOME          6
 
 typedef int kp_error_t;
+
+const char *kp_strerror(kp_error_t errnum);
 
 #endif /* KP_ERROR_H */

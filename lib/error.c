@@ -14,15 +14,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef KP_PROMPT_H
-#define KP_PROMPT_H
-
-#include <stdbool.h>
-#include <limits.h>
-
 #include "error.h"
-#include "kickpass_config.h"
 
-kp_error_t kp_prompt_password(const char *type, bool, char *);
+static const char *errstr[] = {
+	"",
+	"not yet implemented",
+	"invalid input",
+	"internal error",
+	"invalid storage",
+	"",
+	"invalid HOME environmnent variable"
+};
 
-#endif /* KP_PROMPT_H */
+const char *
+kp_strerror(kp_error_t errnum)
+{
+	return errstr[errnum];
+}

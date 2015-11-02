@@ -17,7 +17,6 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-#include <err.h>
 #include <readpassphrase.h>
 #include <sodium.h>
 #include <string.h>
@@ -38,22 +37,28 @@ kp_init(struct kp_ctx *ctx)
 	password = (char **)&ctx->password;
 
 	home = getenv("HOME");
-	if (!home)
-		errx(KP_EINPUT, "cannot find $HOME environment variable");
+	if (!home) {
+		return KP_NO_HOME;
+	}
 
-	if (strlcpy(ctx->ws_path, home, PATH_MAX) >= PATH_MAX)
-		errx(KP_ENOMEM, "memory error");
+	if (strlcpy(ctx->ws_path, home, PATH_MAX) >= PATH_MAX) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
 
-	if (strlcat(ctx->ws_path, "/" KP_PATH, PATH_MAX) >= PATH_MAX)
-		errx(KP_ENOMEM, "memory error");
+	if (strlcat(ctx->ws_path, "/" KP_PATH, PATH_MAX) >= PATH_MAX) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
 
-	if (sodium_init() != 0)
-		err(KP_EINTERNAL, "cannot initialize sodium");
+	if (sodium_init() != 0) {
+		return KP_EINTERNAL;
+	}
 
 	*password = sodium_malloc(KP_PASSWORD_MAX_LEN);
 	if (!ctx->password) {
-		warnx("memory error");
-		return KP_ENOMEM;
+		errno = ENOMEM;
+		return KP_ERRNO;
 	}
 
 	ctx->cfg.memlimit = crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_SENSITIVE/5;
@@ -92,15 +97,13 @@ kp_init_workspace(struct kp_ctx *ctx)
 	struct stat stats;
 
 	if (stat(ctx->ws_path, &stats) == 0) {
-		warnx("workspace already exists");
-		ret = KP_EINPUT;
+		errno = EEXIST;
+		ret = KP_ERRNO;
 		goto out;
 	} else if (errno & ENOENT) {
-		printf("creating workspace %s\n", ctx->ws_path);
 		mkdir(ctx->ws_path, 0700);
 	} else {
-		warn("invalid workspace %s", ctx->ws_path);
-		ret = errno;
+		ret = KP_ERRNO;
 		goto out;
 	}
 
