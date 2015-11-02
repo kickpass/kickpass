@@ -27,6 +27,8 @@
 #define KP_INVALID_STORAGE  4
 #define KP_ERRNO            5
 #define KP_NO_HOME          6
+#define KP_EDECRYPT         7
+#define KP_EENCRYPT         8
 
 typedef int kp_error_t;
 

@@ -17,8 +17,21 @@
 #include <stdarg.h>
 #include <err.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "error.h"
+
+char *
+kp_log_decorate(kp_error_t err, const char *fmt)
+{
+	char *_fmt;
+
+	if (asprintf(&_fmt, "%s: %s", fmt, kp_strerror(err)) < 0) {
+		errx(ENOMEM, "memory error");
+	}
+
+	return _fmt;
+}
 
 __attribute__((format(printf, 2, 3)))
 void
@@ -30,7 +43,10 @@ kp_err(kp_error_t err, const char *fmt, ...)
 	if (err == KP_ERRNO) {
 		verr(err, fmt, ap);
 	} else {
-		verrx(err, fmt, ap);
+		char *_fmt;
+		_fmt = kp_log_decorate(err, fmt);
+		verrx(err, _fmt, ap);
+		free(_fmt);
 	}
 	va_end(ap);
 }
@@ -45,7 +61,10 @@ kp_warn(kp_error_t err, const char *fmt, ...)
 	if (err == KP_ERRNO) {
 		vwarn(fmt, ap);
 	} else {
-		vwarnx(fmt, ap);
+		char *_fmt;
+		_fmt = kp_log_decorate(err, fmt);
+		vwarnx(_fmt, ap);
+		free(_fmt);
 	}
 	va_end(ap);
 }

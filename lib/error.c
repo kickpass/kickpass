@@ -23,7 +23,9 @@ static const char *errstr[] = {
 	"internal error",
 	"invalid storage",
 	"",
-	"invalid HOME environmnent variable"
+	"invalid HOME environmnent variable",
+	"decryption error",
+	"encryption error",
 };
 
 const char *

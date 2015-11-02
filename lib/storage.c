@@ -131,7 +131,7 @@ kp_storage_encrypt(struct kp_ctx *ctx, struct kp_storage_header *header,
 				plain, plain_size,
 				packed_header, header_size,
 				NULL, header->nonce, key) != 0) {
-		return KP_EINTERNAL;
+		return KP_EENCRYPT;
 	}
 
 	return KP_SUCCESS;
@@ -153,7 +153,7 @@ kp_storage_decrypt(struct kp_ctx *ctx, struct kp_storage_header *header,
 				NULL, cipher, cipher_size,
 				packed_header, header_size,
 				header->nonce, key) != 0) {
-		return KP_EINTERNAL;
+		return KP_EDECRYPT;
 	}
 
 	return KP_SUCCESS;
