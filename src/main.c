@@ -26,6 +26,7 @@
 #include "command.h"
 #include "safe.h"
 #include "prompt.h"
+#include "log.h"
 
 /* commands */
 #ifdef HAS_X11
@@ -59,6 +60,7 @@ static struct kp_cmd kp_cmd_help = {
 	.usage = NULL,
 	.opts  = "help <command>",
 	.desc  = "Print help for given command",
+	.lock  = false,
 };
 
 static struct cmd cmds[] = {
@@ -141,7 +143,7 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 			usage();
 			return KP_SUCCESS;
 		default:
-			warnx("unknown option %c", opt);
+			kp_warnx(KP_EINPUT, "unknown option %c", opt);
 			return KP_EINPUT;
 		}
 	}
@@ -173,7 +175,7 @@ find_command(const char *command)
 	cmd = bsearch(command, cmds, CMD_COUNT, sizeof(struct cmd), cmd_cmp);
 
 	if (!cmd)
-		errx(KP_EINPUT, "unknown command %s", command);
+		kp_errx(KP_EINPUT, "unknown command %s", command);
 
 	return cmd->cmd;
 }
@@ -188,7 +190,7 @@ command(struct kp_ctx *ctx, int argc, char **argv)
 	struct kp_cmd *cmd;
 
 	if (optind >= argc)
-		errx(KP_EINPUT, "missing command");
+		kp_errx(KP_EINPUT, "missing command");
 
 	/* Test for help first so we don't mess with cmds */
 	if (strncmp(argv[optind], "help", 4) == 0) {
@@ -199,18 +201,10 @@ command(struct kp_ctx *ctx, int argc, char **argv)
 
 	optind++;
 
-	/* Only init and help cannot load main config */
-	if (cmd != &kp_cmd_init && cmd != &kp_cmd_help) {
-		char *master;
-		master = sodium_malloc(KP_PASSWORD_MAX_LEN);
-		if (!master) {
-			warnx("memory error");
-			return KP_ENOMEM;
-		}
-		kp_prompt_password("master", false, master);
-		ret = kp_load(ctx, master);
-		sodium_free(master);
-		if (ret != KP_SUCCESS) {
+	if (cmd->lock) {
+		kp_prompt_password("master", false, (char *)ctx->password);
+		if ((ret = kp_load(ctx)) != KP_SUCCESS) {
+			kp_warn(ret, "cannot unlock workspace");
 			return ret;
 		}
 	}

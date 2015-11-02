@@ -18,13 +18,13 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include <err.h>
 #include <readpassphrase.h>
 #include <sodium.h>
 #include <string.h>
 
 #include "kickpass.h"
 #include "safe.h"
+#include "log.h"
 
 #define PASSWORD_PROMPT         "[kickpass] %s password: "
 #define PASSWORD_CONFIRM_PROMPT "[kickpass] confirm: "
@@ -44,8 +44,9 @@ kp_prompt_password(const char *type, bool confirm, char *password)
 	prompt_size = strlen(PASSWORD_PROMPT) - 2 + strlen(type) + 1;
 	prompt = malloc(prompt_size);
 	if (!prompt) {
-		warnx("memory error");
-		ret = KP_ENOMEM;
+		errno = ENOMEM;
+		ret = KP_ERRNO;
+		kp_warn(ret, "memory error");
 		goto out;
 	}
 
@@ -53,16 +54,17 @@ kp_prompt_password(const char *type, bool confirm, char *password)
 
 	if (readpassphrase(prompt, password, KP_PASSWORD_MAX_LEN,
 				RPP_ECHO_OFF | RPP_REQUIRE_TTY) == NULL) {
-		warnx("cannot read password");
-		ret = KP_EINPUT;
+		ret = KP_ERRNO;
+		kp_warn(ret, "cannot read password");
 		goto out;
 	}
 
 	if (confirm) {
 		confirmation = sodium_malloc(KP_PASSWORD_MAX_LEN+1);
 		if (!confirmation) {
-			warnx("memory error");
-			ret = KP_ENOMEM;
+			errno = ENOMEM;
+			ret = KP_ERRNO;
+			kp_warn(ret, "memory error");
 			goto out;
 		}
 
@@ -70,14 +72,14 @@ kp_prompt_password(const char *type, bool confirm, char *password)
 					KP_PASSWORD_MAX_LEN,
 					RPP_ECHO_OFF | RPP_REQUIRE_TTY)
 				== NULL) {
-			warnx("cannot read password");
-			ret = KP_EINPUT;
+			ret = KP_ERRNO;
+			kp_warn(ret, "cannot read password");
 			goto out;
 		}
 
 		if (strncmp(password, confirmation, KP_PASSWORD_MAX_LEN) != 0) {
-			warnx("mismatching password");
 			ret = KP_EINPUT;
+			kp_warn(ret, "mismatching password");
 			goto out;
 		}
 	}

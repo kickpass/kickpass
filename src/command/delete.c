@@ -24,8 +24,8 @@
 
 #include "delete.h"
 #include "prompt.h"
-#include "storage.h"
 #include "safe.h"
+#include "log.h"
 
 static kp_error_t delete(struct kp_ctx *, int, char **);
 
@@ -34,6 +34,7 @@ struct kp_cmd kp_cmd_delete = {
 	.usage = NULL,
 	.opts  = "delete <safe>",
 	.desc  = "Delete a password safe after password confirmation",
+	.lock  = true,
 };
 
 kp_error_t
@@ -44,30 +45,32 @@ delete(struct kp_ctx *ctx, int argc, char **argv)
 	char path[PATH_MAX];
 
 	if (argc - optind != 1) {
-		warnx("missing safe name");
-		return KP_EINPUT;
-	}
-
-	if ((ret = kp_safe_load(ctx, &safe, argv[optind])) != KP_SUCCESS) {
-		warnx("cannot load safe");
+		ret = KP_EINPUT;
+		kp_warn(ret, "missing safe name");
 		return ret;
 	}
 
-	if ((ret = kp_storage_open(ctx, &safe)) != KP_SUCCESS) {
-		warnx("don't delete safe");
+	if ((ret = kp_safe_load(ctx, &safe, argv[optind])) != KP_SUCCESS) {
+		kp_warn(ret, "cannot load safe");
+		return ret;
+	}
+
+	if ((ret = kp_safe_open(ctx, &safe)) != KP_SUCCESS) {
+		kp_warn(ret, "don't delete safe");
 		return ret;
 	}
 
 	if (kp_safe_get_path(ctx, &safe, path, PATH_MAX) != KP_SUCCESS) {
-		warnx("cannot compute safe path");
+		kp_warn(ret, "cannot compute safe path");
 		return ret;
 	}
 
 	if (unlink(path) != 0) {
-		warn("cannot delete safe %s", argv[optind]);
-		warn("you can delete it manually with the following command:");
-		warn("\n\trm %s", path);
-		return errno;
+		ret = KP_ERRNO;
+		kp_warn(ret, "cannot delete safe %s"
+			"you can delete it manually with the following command:\n"
+			"\trm %s", argv[optind], path);
+		return ret;
 	}
 
 	return KP_SUCCESS;

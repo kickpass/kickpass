@@ -34,6 +34,7 @@ string(REGEX REPLACE "v[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1"
 
 include_directories("${PROJECT_BINARY_DIR}/include/")
 include_directories("${PROJECT_SOURCE_DIR}/include/")
+include_directories("${PROJECT_SOURCE_DIR}/src/")
 
 # Configure portability
 include(build/compat/bsd.cmake)
@@ -42,6 +43,7 @@ set(SRCS
 	src/editor.c
 	src/main.c
 	src/prompt.c
+	src/log.c
 	# commands
 	src/command/create.c
 	src/command/delete.c
@@ -81,6 +83,8 @@ target_link_libraries(kickpass ${LIBS})
 
 # kickpass lib
 add_library(libkickpass SHARED
+	lib/config.c
+	lib/error.c
 	lib/kickpass.c
 	lib/password.c
 	lib/safe.c

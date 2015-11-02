@@ -104,6 +104,7 @@ START_TEST(test_storage_encrypt_should_be_successful)
 	/* Given */
 	int ret = KP_SUCCESS;
 	struct kp_ctx ctx;
+	char **password;
 	struct kp_storage_header header = KP_STORAGE_HEADER_INIT;
 	unsigned char packed_header[KP_STORAGE_HEADER_SIZE] = { 0 };
 	unsigned char plain[] = "the quick brown fox jumps over the lobster dog";
@@ -117,7 +118,8 @@ START_TEST(test_storage_encrypt_should_be_successful)
 	/* keep header.salt  = { 0 } */
 	/* keep header.nonce = { 0 } */
 
-	ctx.password = "test";
+	password = (char **)&ctx.password;
+	*password = "test";
 
 	/* When */
 	ret |= kp_storage_encrypt(&ctx,
@@ -147,6 +149,7 @@ START_TEST(test_storage_decrypt_should_be_successful)
 	/* Given */
 	int ret = KP_SUCCESS;
 	struct kp_ctx ctx;
+	char **password;
 	struct kp_storage_header header = KP_STORAGE_HEADER_INIT;
 	unsigned char packed_header[KP_STORAGE_HEADER_SIZE] = { 0 };
 	unsigned char cipher[] = {
@@ -169,7 +172,8 @@ START_TEST(test_storage_decrypt_should_be_successful)
 	/* keep header.salt  = { 0 } */
 	/* keep header.nonce = { 0 } */
 
-	ctx.password = "test";
+	password = (char **)&ctx.password;
+	*password = "test";
 
 	/* When */
 	ret |= kp_storage_decrypt(&ctx,

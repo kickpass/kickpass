@@ -18,6 +18,7 @@
 
 #include "check_compat.h"
 
+#include "../lib/storage.c"
 #include "../lib/safe.c"
 
 START_TEST(test_safe_get_path)

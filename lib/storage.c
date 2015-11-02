@@ -131,7 +131,7 @@ kp_storage_encrypt(struct kp_ctx *ctx, struct kp_storage_header *header,
 				plain, plain_size,
 				packed_header, header_size,
 				NULL, header->nonce, key) != 0) {
-		return KP_EINTERNAL;
+		return KP_EENCRYPT;
 	}
 
 	return KP_SUCCESS;
@@ -153,7 +153,7 @@ kp_storage_decrypt(struct kp_ctx *ctx, struct kp_storage_header *header,
 				NULL, cipher, cipher_size,
 				packed_header, header_size,
 				header->nonce, key) != 0) {
-		return KP_EINTERNAL;
+		return KP_EDECRYPT;
 	}
 
 	return KP_SUCCESS;
@@ -168,21 +168,23 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 	struct kp_storage_header header = KP_STORAGE_HEADER_INIT;
 	unsigned char packed_header[KP_STORAGE_HEADER_SIZE];
 	char path[PATH_MAX];
+	size_t password_len, metadata_len;
 
 	assert(ctx);
 	assert(safe);
 	assert(safe->open == true);
-	assert(safe->password_len <= KP_PASSWORD_MAX_LEN);
-	assert(safe->metadata_len <= KP_METADATA_MAX_LEN);
+
+	password_len = strlen(safe->password);
+	assert(password_len <= KP_PASSWORD_MAX_LEN);
+	metadata_len = strlen(safe->metadata);
+	assert(metadata_len <= KP_METADATA_MAX_LEN);
 
 	/* Ensure we are at the beginning of the safe */
 	if (lseek(safe->cipher, 0, SEEK_SET) != 0) {
-		warn("cannot save safe");
 		return errno;
 	}
 
 	if (ftruncate(safe->cipher, 0) != 0) {
-		warn("cannot save safe");
 		return errno;
 	}
 
@@ -192,26 +194,25 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 
 	/* construct full plain */
 	/* plain is password + '\0' + metadata + '\0' */
-	plain_size = safe->password_len + safe->metadata_len + 2;
+	plain_size = password_len + metadata_len + 2;
 	plain = sodium_malloc(plain_size);
-	strncpy((char *)plain, (char *)safe->password, safe->password_len);
-	plain[safe->password_len] = '\0';
-	strncpy((char *)&plain[safe->password_len+1], (char *)safe->metadata, safe->metadata_len);
+	strncpy((char *)plain, (char *)safe->password, password_len);
+	plain[password_len] = '\0';
+	strncpy((char *)&plain[password_len+1], (char *)safe->metadata, metadata_len);
 	plain[plain_size-1] = '\0';
 
 	/* alloc cipher to max size */
 	cipher = malloc(plain_size+crypto_aead_chacha20poly1305_ABYTES);
 	if (!cipher) {
-		warnx("memory error");
-		ret = KP_ENOMEM;
+		ret = ENOMEM;
 		goto out;
 	}
 
 	header.version = kp_storage_version;
 	header.sodium_version = SODIUM_LIBRARY_VERSION_MAJOR << 8 |
 		SODIUM_LIBRARY_VERSION_MINOR;
-	header.opslimit = ctx->opslimit;
-	header.memlimit = ctx->memlimit;
+	header.opslimit = ctx->cfg.opslimit;
+	header.memlimit = ctx->cfg.memlimit;
 	randombytes_buf(header.salt, KP_STORAGE_SALT_SIZE);
 	randombytes_buf(header.nonce, KP_STORAGE_NONCE_SIZE);
 
@@ -222,20 +223,17 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 					plain, plain_size,
 					cipher, &cipher_size))
 		!= KP_SUCCESS) {
-		warnx("cannot encrypt safe");
 		goto out;
 	}
 
 	if (write(safe->cipher, packed_header, KP_STORAGE_HEADER_SIZE)
 			< KP_STORAGE_HEADER_SIZE) {
-		warn("cannot write safe to file %s", path);
 		ret = errno;
 		goto out;
 	}
 
 	if (write(safe->cipher, cipher, cipher_size)
 			< cipher_size) {
-		warn("cannot write safe to file %s", path);
 		ret = errno;
 		goto out;
 	}
@@ -255,6 +253,7 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 	unsigned long long cipher_size, plain_size;
 	struct kp_storage_header header = KP_STORAGE_HEADER_INIT;
 	unsigned char packed_header[KP_STORAGE_HEADER_SIZE];
+	size_t password_len;
 
 	assert(ctx);
 	assert(safe);
@@ -264,11 +263,9 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 	if (read(safe->cipher, packed_header, KP_STORAGE_HEADER_SIZE)
 			!= KP_STORAGE_HEADER_SIZE) {
 		if (errno != 0) {
-			warn("cannot read safe");
 			ret = errno;
 		} else {
-			warnx("cannot read safe");
-			ret = KP_EINPUT;
+			ret = KP_INVALID_STORAGE;
 		}
 		goto out;
 	}
@@ -284,15 +281,13 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 			KP_PLAIN_MAX_SIZE+crypto_aead_chacha20poly1305_ABYTES);
 
 	if (cipher_size <= crypto_aead_chacha20poly1305_ABYTES) {
-		warnx("invalid safe size");
-		ret = KP_EINPUT;
+		ret = KP_INVALID_STORAGE;
 		goto out;
 	}
 
 	if (cipher_size - crypto_aead_chacha20poly1305_ABYTES
 			> KP_PLAIN_MAX_SIZE) {
-		warnx("safe too long");
-		ret = KP_EINPUT;
+		ret = ENOMEM;
 		goto out;
 	}
 
@@ -301,19 +296,17 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 					plain, &plain_size,
 					cipher, cipher_size))
 			!= KP_SUCCESS) {
-		warnx("cannot decrypt safe. Bad password ?");
 		goto out;
 	}
 
 	strncpy((char *)safe->password, (char *)plain, KP_PASSWORD_MAX_LEN);
 	/* ensure null termination */
 	safe->password[KP_PASSWORD_MAX_LEN] = '\0';
-	safe->password_len = strlen((char *)safe->password);
+	password_len = strlen((char *)safe->password);
 
-	strncpy((char *)safe->metadata, (char *)&plain[safe->password_len+1], KP_METADATA_MAX_LEN);
+	strncpy((char *)safe->metadata, (char *)&plain[password_len+1], KP_METADATA_MAX_LEN);
 	/* ensure null termination */
 	safe->metadata[KP_METADATA_MAX_LEN] = '\0';
-	safe->metadata_len = strlen((char *)safe->metadata);
 
 	safe->open = true;
 

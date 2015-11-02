@@ -29,7 +29,7 @@
 #include "editor.h"
 #include "prompt.h"
 #include "safe.h"
-#include "storage.h"
+#include "log.h"
 
 static kp_error_t edit(struct kp_ctx *ctx, int argc, char **argv);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
@@ -42,6 +42,7 @@ struct kp_cmd kp_cmd_edit = {
 	.usage = usage,
 	.opts  = "edit [-pm] <safe>",
 	.desc  = "Edit a password safe with $EDIT",
+	.lock  = true,
 };
 
 static bool password = false;
@@ -58,15 +59,16 @@ edit(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	if (argc - optind != 1) {
-		warnx("missing safe name");
-		return KP_EINPUT;
+		ret = KP_EINPUT;
+		kp_warn(ret, "missing safe name");
+		return ret;
 	}
 
 	if ((ret = kp_safe_load(ctx, &safe, argv[optind])) != KP_SUCCESS) {
 		return ret;
 	}
 
-	if ((ret = kp_storage_open(ctx, &safe)) != KP_SUCCESS) {
+	if ((ret = kp_safe_open(ctx, &safe)) != KP_SUCCESS) {
 		return ret;
 	}
 
@@ -82,7 +84,7 @@ edit(struct kp_ctx *ctx, int argc, char **argv)
 		}
 	}
 
-	if ((ret = kp_storage_save(ctx, &safe)) != KP_SUCCESS) {
+	if ((ret = kp_safe_save(ctx, &safe)) != KP_SUCCESS) {
 		return ret;
 	}
 
@@ -117,7 +119,6 @@ edit_password(struct kp_safe *safe)
 	if (confirm) {
 		memcpy(safe->password, password, password_len);
 		safe->password[password_len] = '\0';
-		safe->password_len = password_len;
 	}
 
 out:
@@ -128,6 +129,7 @@ out:
 static kp_error_t
 confirm_empty_password(bool *confirm)
 {
+	kp_error_t ret = KP_SUCCESS;
 	char *prompt = "Empty password. Do you really want to update password ? (y/n) [n] ";
 	char *response;
 	size_t response_len;
@@ -137,8 +139,9 @@ confirm_empty_password(bool *confirm)
 
 	tty = fopen("/dev/tty", "r+");
 	if (!tty) {
-		warn("cannot access /dev/tty");
-		return KP_EINPUT;
+		ret = KP_ERRNO;
+		kp_warn(ret, "cannot access /dev/tty");
+		return ret;
 	}
 
 	fprintf(tty, "%s", prompt);
@@ -148,12 +151,13 @@ confirm_empty_password(bool *confirm)
 	if (response[0] == 'y') *confirm = true;
 
 	fclose(tty);
-	return KP_SUCCESS;
+	return ret;
 }
 
 static kp_error_t
 parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 {
+	kp_error_t ret = KP_SUCCESS;
 	int opt;
 	static struct option longopts[] = {
 		{ "password", no_argument, NULL, 'p' },
@@ -170,13 +174,15 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 			metadata = true;
 			break;
 		default:
-			warnx("unknown option %c", opt);
-			return KP_EINPUT;
+			ret = KP_EINPUT;
+			kp_warn(ret, "unknown option %c", opt);
+			return ret;
 		}
 	}
 
 	if (password && metadata) {
-		warnx("Editing both password and metadata is default behavior. You can ommit options.");
+		kp_warn(KP_EINPUT, "Editing both password and metadata"
+			       " is default behavior. You can ommit options.");
 	}
 
 	/* Default edit all */

@@ -30,7 +30,7 @@
 #include "password.h"
 #include "prompt.h"
 #include "safe.h"
-#include "storage.h"
+#include "log.h"
 
 static kp_error_t create(struct kp_ctx *, int, char **);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
@@ -41,6 +41,7 @@ struct kp_cmd kp_cmd_create = {
 	.usage = usage,
 	.opts  = "create [-hgl] <safe>",
 	.desc  = "Create a new password safe",
+	.lock  = true,
 };
 
 static bool generate = false;
@@ -58,35 +59,33 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	if (argc - optind != 1) {
-		warnx("missing safe name");
-		return KP_EINPUT;
+		ret = KP_EINPUT;
+		kp_warn(ret, "missing safe name");
+		return ret;
 	}
 
-	password = sodium_malloc(KP_PASSWORD_MAX_LEN+1);
-	if (!password) {
-		warnx("memory error");
+	if ((ret = kp_safe_create(ctx, &safe, argv[optind])) != KP_SUCCESS) {
+		if (ret == KP_ERRNO && errno == EEXIST) {
+			kp_warn(ret, "use 'edit' command to edit an existing safe");
+		}
 		goto out;
 	}
+
 	if (generate) {
-		kp_password_generate(password, password_len);
+		kp_password_generate(safe.password, password_len);
 	} else {
-		if ((ret = kp_prompt_password("safe", true, password)) != KP_SUCCESS) {
+		if ((ret = kp_prompt_password("safe", true, safe.password)) != KP_SUCCESS) {
 			goto out;
 		}
 	}
 
-	if ((ret = kp_safe_create(ctx, &safe, argv[optind], password)) != KP_SUCCESS) {
-		if (ret == KP_EEXIST) {
-			warnx("please use edit command to edit an existing safe");
-		}
-		goto out;
-	}
+	snprintf((char *)safe.metadata, KP_METADATA_MAX_LEN, KP_METADATA_TEMPLATE);
 
 	if ((ret = kp_edit(ctx, &safe)) != KP_SUCCESS) {
 		goto out;
 	}
 
-	if ((ret = kp_storage_save(ctx, &safe)) != KP_SUCCESS) {
+	if ((ret = kp_safe_save(ctx, &safe)) != KP_SUCCESS) {
 		goto out;
 	}
 
@@ -105,6 +104,7 @@ static kp_error_t
 parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 {
 	int opt;
+	kp_error_t ret = KP_SUCCESS;
 	static struct option longopts[] = {
 		{ "generate", no_argument,       NULL, 'g' },
 		{ "length",   required_argument, NULL, 'l' },
@@ -120,12 +120,12 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 			password_len = atoi(optarg);
 			break;
 		default:
-			warnx("unknown option %c", opt);
-			return KP_EINPUT;
+			ret = KP_EINPUT;
+			kp_warn(ret, "unknown option %c", opt);
 		}
 	}
 
-	return KP_SUCCESS;
+	return ret;
 }
 
 void

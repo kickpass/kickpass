@@ -23,7 +23,8 @@
 
 #include "command.h"
 #include "init.h"
-#include "storage.h"
+#include "prompt.h"
+#include "config.h"
 
 static kp_error_t init(struct kp_ctx *ctx, int argc, char **argv);
 
@@ -33,29 +34,23 @@ struct kp_cmd kp_cmd_init = {
 	.opts  = "init",
 	.desc  = "Initialize a new password safe directory. "
 	         "Default to ~/" KP_PATH,
+	.lock  = false,
 };
 
 kp_error_t
 init(struct kp_ctx *ctx, int argc, char **argv)
 {
-	kp_error_t ret = KP_SUCCESS;
-	struct stat stats;
+	kp_error_t ret;
 
-	if (stat(ctx->ws_path, &stats) == 0) {
-		warnx("workspace already exists");
-		ret = KP_EINPUT;
-		goto out;
-	} else if (errno & ENOENT) {
-		printf("creating workspace %s\n", ctx->ws_path);
-		mkdir(ctx->ws_path, 0700);
-	} else {
-		warn("invalid workspace %s", ctx->ws_path);
-		ret = errno;
-		goto out;
+	kp_prompt_password("master", true, (char *)ctx->password);
+
+	if ((ret = kp_init_workspace(ctx)) != KP_SUCCESS) {
+		return ret;
 	}
 
-	/* TODO git init */
+	if ((ret = kp_cfg_create(ctx)) != KP_SUCCESS) {
+		return ret;
+	}
 
-out:
 	return ret;
 }

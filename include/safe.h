@@ -17,6 +17,8 @@
 #ifndef KP_SAFE_H
 #define KP_SAFE_H
 
+#include <stdbool.h>
+
 #include "kickpass.h"
 
 #ifndef KP_METADATA_TEMPLATE
@@ -34,17 +36,17 @@
  * Cipher data are stored in file.
  */
 struct kp_safe {
-	bool           open;            /* whether the safe is open or not */
-	char           name[PATH_MAX];  /* name of the safe */
-	int            cipher;          /* fd of the cipher file if the safe is open */
-	size_t         password_len;    /* size of the password excluding the terminating null byte */
-	unsigned char *password;        /* plain text password */
-	size_t         metadata_len;    /* size of the metadata excluding the terminating null byte */
-	unsigned char *metadata;        /* plain text metadata */
+	bool open;           /* whether the safe is open or not */
+	char name[PATH_MAX]; /* name of the safe */
+	int cipher;          /* fd of the cipher file if the safe is open */
+	char * const password;      /* plain text password (null terminated) */
+	char * const metadata;      /* plain text metadata (null terminated) */
 };
 
+kp_error_t kp_safe_create(struct kp_ctx *, struct kp_safe *, const char *);
 kp_error_t kp_safe_load(struct kp_ctx *, struct kp_safe *, const char *);
-kp_error_t kp_safe_create(struct kp_ctx *, struct kp_safe *, const char *, const char *);
+kp_error_t kp_safe_save(struct kp_ctx *, struct kp_safe *);
+kp_error_t kp_safe_open(struct kp_ctx *, struct kp_safe *);
 kp_error_t kp_safe_close(struct kp_ctx *, struct kp_safe *);
 kp_error_t kp_safe_get_path(struct kp_ctx *, struct kp_safe *, char *, size_t);
 kp_error_t kp_safe_rename(struct kp_ctx *, struct kp_safe *, const char *);

@@ -24,13 +24,16 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 
+/* TODO remove */
+#include <assert.h>
+
 #include "kickpass.h"
 
 #include "command.h"
 #include "copy.h"
 #include "prompt.h"
 #include "safe.h"
-#include "storage.h"
+#include "log.h"
 
 static kp_error_t copy(struct kp_ctx *ctx, int argc, char **argv);
 
@@ -39,6 +42,7 @@ struct kp_cmd kp_cmd_copy = {
 	.usage = NULL,
 	.opts  = "copy <safe>",
 	.desc  = "Copy a password (first line of safe) into X clipboard",
+	.lock  = true,
 };
 
 kp_error_t
@@ -50,22 +54,25 @@ copy(struct kp_ctx *ctx, int argc, char **argv)
 	Window window;
 	Atom XA_CLIPBOARD, XA_COMPOUND_TEXT, XA_UTF8_STRING, XA_TARGETS;
 	bool replied = false;
+	size_t password_len;
 
 	if (argc - optind != 1) {
-		warnx("missing safe name");
-		return KP_EINPUT;
-	}
-
-	if ((ret = kp_safe_load(ctx, &safe, argv[optind])) != KP_SUCCESS) {
-		warnx("cannot load safe");
+		ret = KP_EINPUT;
+		kp_warn(ret, "missing safe name");
 		return ret;
 	}
 
-	if ((ret = kp_storage_open(ctx, &safe)) != KP_SUCCESS) {
-		warnx("cannot open safe");
+	if ((ret = kp_safe_load(ctx, &safe, argv[optind])) != KP_SUCCESS) {
+		kp_warn(ret, "cannot load safe");
+		return ret;
+	}
+
+	if ((ret = kp_safe_open(ctx, &safe)) != KP_SUCCESS) {
+		kp_warn(ret, "cannot open safe");
 		goto out;
 	}
 
+	password_len = strlen(safe.password);
 
 	display = XOpenDisplay(NULL);
 
@@ -79,9 +86,9 @@ copy(struct kp_ctx *ctx, int argc, char **argv)
 	XSetSelectionOwner(display, XA_PRIMARY, window, CurrentTime);
 	XSetSelectionOwner(display, XA_CLIPBOARD, window, CurrentTime);
 
-	if ((ret = daemon(0, 0)) != 0) {
-		warn("cannot daemonize");
-		ret = errno;
+	if (daemon(0, 0) != 0) {
+		ret = KP_ERRNO;
+		kp_warn(ret, "cannot daemonize");
 		goto out;
 	}
 
@@ -124,11 +131,11 @@ copy(struct kp_ctx *ctx, int argc, char **argv)
 			XChangeProperty(display, request->requestor,
 					request->property, request->target,
 					8, PropModeReplace,
-					safe.password,
-					safe.password_len);
+					(unsigned char *)safe.password,
+					password_len);
 			replied = true;
 		} else {
-			warnx("don't know what to answer");
+			kp_warn(KP_EINPUT, "don't know what to answer");
 			reply.property = None;
 			replied = true;
 		}
@@ -144,8 +151,8 @@ copy(struct kp_ctx *ctx, int argc, char **argv)
 
 out:
 	if ((ret = kp_safe_close(ctx, &safe)) != KP_SUCCESS) {
-		warnx("cannot cleanly close safe");
-		warnx("clear text password might have leaked");
+		kp_warn(ret, "cannot cleanly close safe"
+			"clear text password might have leaked");
 		return ret;
 	}
 

@@ -14,13 +14,22 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef KP_EDITOR_H
-#define KP_EDITOR_H
+#include "error.h"
 
-#include "kickpass.h"
+static const char *errstr[] = {
+	"",
+	"not yet implemented",
+	"invalid input",
+	"internal error",
+	"invalid storage",
+	"",
+	"invalid HOME environmnent variable",
+	"decryption error",
+	"encryption error",
+};
 
-#include "safe.h"
-
-kp_error_t kp_edit(struct kp_ctx *, struct kp_safe *);
-
-#endif /* KP_EDITOR_H */
+const char *
+kp_strerror(kp_error_t errnum)
+{
+	return errstr[errnum];
+}

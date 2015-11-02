@@ -18,7 +18,6 @@
 #define KP_PROMPT_H
 
 #include <stdbool.h>
-#include <err.h>
 #include <limits.h>
 
 #include "error.h"

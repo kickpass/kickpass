@@ -100,7 +100,7 @@ class KPTestCase(unittest.TestCase):
             self.stdout = self.stdout + line.decode(sys.stdin.encoding)
 
     def init(self):
-        self.cmd(['init'])
+        self.cmd(['init'], master="test master password", confirm_master=True)
 
     def create(self, name, options=None, master="test master password", password="test password"):
         cmd = ['create']

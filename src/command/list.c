@@ -26,6 +26,7 @@
 
 #include "command.h"
 #include "list.h"
+#include "log.h"
 
 static kp_error_t list(struct kp_ctx *, int, char **);
 static kp_error_t list_dir(char ***, int *, char *);
@@ -36,6 +37,7 @@ struct kp_cmd kp_cmd_list = {
 	.usage = NULL,
 	.opts  = "list",
 	.desc  = "List available safes",
+	.lock  = false,
 };
 
 kp_error_t
@@ -69,8 +71,9 @@ list_dir(char ***safes, int *nsafes, char *root)
 	struct dirent *dirent;
 
 	if ((dirp = opendir(root)) == NULL) {
-		warn("cannot open dir %s", root);
-		return errno;
+		ret = KP_ERRNO;
+		kp_warn(ret, "cannot open dir %s", root);
+		return ret;
 	}
 
 	while ((dirent = readdir(dirp)) != NULL) {
@@ -82,20 +85,23 @@ list_dir(char ***safes, int *nsafes, char *root)
 		}
 
 		if (strlcpy(path, root, PATH_MAX) >= PATH_MAX) {
-			warnx("memory error");
-			ret = KP_ENOMEM;
+			errno = ENOMEM;
+			ret = KP_ERRNO;
+			kp_warn(ret, "memory error");
 			goto out;
 		}
 
 		if (strlcat(path, "/", PATH_MAX) >= PATH_MAX) {
-			warnx("memory error");
-			ret = KP_ENOMEM;
+			errno = ENOMEM;
+			ret = KP_ERRNO;
+			kp_warn(ret, "memory error");
 			goto out;
 		}
 
 		if (strlcat(path, dirent->d_name, PATH_MAX) >= PATH_MAX) {
-			warnx("memory error");
-			ret = KP_ENOMEM;
+			errno = ENOMEM;
+			ret = KP_ERRNO;
+			kp_warn(ret, "memory error");
 			goto out;
 		}
 
@@ -103,15 +109,17 @@ list_dir(char ***safes, int *nsafes, char *root)
 		case DT_REG:
 			if ((*safes = reallocarray(*safes, *nsafes + 1, sizeof(char *)))
 					== NULL) {
-				warnx("memory error");
-				ret = KP_ENOMEM;
+				errno = ENOMEM;
+				ret = KP_ERRNO;
+				kp_warn(ret, "memory error");
 				goto out;
 			}
 
 			(*safes)[*nsafes] = strndup(path, PATH_MAX);
 			if ((*safes)[*nsafes] == NULL) {
-				warnx("memory error");
-				ret = KP_ENOMEM;
+				errno = ENOMEM;
+				ret = KP_ERRNO;
+				kp_warn(ret, "memory error");
 				goto out;
 			}
 

@@ -17,6 +17,8 @@
 #ifndef KP_COMMAND_H
 #define KP_COMMAND_H
 
+#include <stdbool.h>
+
 #include "kickpass.h"
 
 struct kp_cmd {
@@ -24,6 +26,7 @@ struct kp_cmd {
 	void       (*usage)(void);
 	char        *opts;
 	char        *desc;
+	bool        *lock;
 };
 
 #endif /* KP_COMMAND_H */
