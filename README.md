@@ -26,8 +26,6 @@ TODO list
 ---------
 
 * add more unit tests on lib
-* remove all logs from lib
 * store template in encrypted file
-* use safe API for open/save
 * ensure loaded password is not > MAX_PASSWORD_LEN otherwise it may leak in metadata
 * store client config in config file (reimplement main type and storage…)
