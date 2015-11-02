@@ -37,6 +37,7 @@ struct kp_cmd kp_cmd_rename = {
 	.usage = NULL,
 	.opts  = "rename <old_safe> <new_safe>",
 	.desc  = "Rename a password safe",
+	.lock  = true,
 };
 
 kp_error_t

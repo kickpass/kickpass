@@ -42,6 +42,7 @@ struct kp_cmd kp_cmd_copy = {
 	.usage = NULL,
 	.opts  = "copy <safe>",
 	.desc  = "Copy a password (first line of safe) into X clipboard",
+	.lock  = true,
 };
 
 kp_error_t

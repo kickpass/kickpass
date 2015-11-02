@@ -34,6 +34,7 @@ struct kp_cmd kp_cmd_delete = {
 	.usage = NULL,
 	.opts  = "delete <safe>",
 	.desc  = "Delete a password safe after password confirmation",
+	.lock  = true,
 };
 
 kp_error_t

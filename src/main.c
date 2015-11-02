@@ -60,6 +60,7 @@ static struct kp_cmd kp_cmd_help = {
 	.usage = NULL,
 	.opts  = "help <command>",
 	.desc  = "Print help for given command",
+	.lock  = false,
 };
 
 static struct cmd cmds[] = {
@@ -200,8 +201,7 @@ command(struct kp_ctx *ctx, int argc, char **argv)
 
 	optind++;
 
-	/* Only init and help cannot load main config */
-	if (cmd != &kp_cmd_init && cmd != &kp_cmd_help) {
+	if (cmd->lock) {
 		kp_prompt_password("master", false, (char *)ctx->password);
 		if ((ret = kp_load(ctx)) != KP_SUCCESS) {
 			kp_warn(ret, "cannot unlock workspace");
