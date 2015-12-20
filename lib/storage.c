@@ -122,10 +122,13 @@ kp_storage_encrypt(struct kp_ctx *ctx, struct kp_storage_header *header,
 {
 	unsigned char key[crypto_aead_chacha20poly1305_KEYBYTES];
 
-	crypto_pwhash_scryptsalsa208sha256(key,
+	if (crypto_pwhash_scryptsalsa208sha256(key,
 			crypto_aead_chacha20poly1305_KEYBYTES,
 			ctx->password, strlen(ctx->password),
-			header->salt, header->opslimit, header->memlimit);
+			header->salt, header->opslimit, header->memlimit) != 0) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
 
 	if (crypto_aead_chacha20poly1305_encrypt(cipher, cipher_size,
 				plain, plain_size,
@@ -144,10 +147,13 @@ kp_storage_decrypt(struct kp_ctx *ctx, struct kp_storage_header *header,
 {
 	unsigned char key[crypto_aead_chacha20poly1305_KEYBYTES];
 
-	crypto_pwhash_scryptsalsa208sha256(key,
+	if (crypto_pwhash_scryptsalsa208sha256(key,
 			crypto_aead_chacha20poly1305_KEYBYTES,
 			ctx->password, strlen(ctx->password),
-			header->salt, header->opslimit, header->memlimit);
+			header->salt, header->opslimit, header->memlimit) != 0) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
 
 	if (crypto_aead_chacha20poly1305_decrypt(plain, plain_size,
 				NULL, cipher, cipher_size,
