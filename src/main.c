@@ -36,7 +36,7 @@
 #include "command/edit.h"
 #include "command/init.h"
 #include "command/list.h"
-#include "command/open.h"
+#include "command/cat.h"
 #include "command/rename.h"
 
 static int        cmd_cmp(const void *, const void *);
@@ -73,10 +73,9 @@ static struct cmd cmds[] = {
 	{ "new",     &kp_cmd_create },
 	{ "insert",  &kp_cmd_create },
 
-	/* kp_cmd_open */
-	{ "show",    &kp_cmd_open },
-	{ "open",    &kp_cmd_open },
-	{ "cat",     &kp_cmd_open },
+	/* kp_cmd_cat */
+	{ "cat",     &kp_cmd_cat },
+	{ "show",    &kp_cmd_cat },
 
 	/* kp_cmd_edit */
 	{ "edit",    &kp_cmd_edit },

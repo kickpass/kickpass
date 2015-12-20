@@ -18,14 +18,14 @@ import kptest
 
 class TestOpenCommand(kptest.KPTestCase):
 
-    def test_open_is_successful(self):
+    def test_cat_is_successful(self):
         # Given
         self.init()
         self.editor('env', env="Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
         self.create("test")
 
         # When
-        self.open("test")
+        self.cat("test")
 
         # Then
         self.assertStdoutEquals("Watch out for turtles. They'll bite you if you put your fingers in their mouths.")

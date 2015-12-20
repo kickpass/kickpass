@@ -97,7 +97,7 @@ class TestEditCommand(kptest.KPTestCase):
         self.edit("test", options=["-g", "-l", "42"], password=None)
 
         # Then
-        self.open("test", options=["-p"])
+        self.cat("test", options=["-p"])
         passwd = self.stdout.splitlines()[1]
         self.assertNotEqual(passwd, "RocknRolla")
         self.assertEqual(len(passwd), 42)

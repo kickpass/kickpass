@@ -54,7 +54,7 @@ set(SRCS
 	src/command/edit.c
 	src/command/init.c
 	src/command/list.c
-	src/command/open.c
+	src/command/cat.c
 	src/command/rename.c
 )
 

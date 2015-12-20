@@ -24,20 +24,20 @@
 #include "kickpass.h"
 
 #include "command.h"
-#include "open.h"
+#include "cat.h"
 #include "editor.h"
 #include "prompt.h"
 #include "safe.h"
 #include "log.h"
 
-static kp_error_t open(struct kp_ctx *ctx, int argc, char **argv);
+static kp_error_t cat(struct kp_ctx *ctx, int argc, char **argv);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
 static void usage(void);
 
-struct kp_cmd kp_cmd_open = {
-	.main  = open,
+struct kp_cmd kp_cmd_cat = {
+	.main  = cat,
 	.usage = usage,
-	.opts  = "open <safe>",
+	.opts  = "cat <safe>",
 	.desc  = "Open a password safe and print its content on stdout",
 	.lock  = true,
 };
@@ -46,7 +46,7 @@ static bool password = false;
 static bool metadata = false;
 
 kp_error_t
-open(struct kp_ctx *ctx, int argc, char **argv)
+cat(struct kp_ctx *ctx, int argc, char **argv)
 {
 	kp_error_t ret;
 	struct kp_safe safe;

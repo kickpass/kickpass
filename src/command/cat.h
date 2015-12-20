@@ -14,11 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef KP_OPEN_H
-#define KP_OPEN_H
+#ifndef KP_CAT_H
+#define KP_CAT_H
 
 #include "command.h"
 
-extern struct kp_cmd kp_cmd_open;
+extern struct kp_cmd kp_cmd_cat;
 
-#endif /* KP_OPEN_H */
+#endif /* KP_CAT_H */
