@@ -26,72 +26,108 @@
 #include "command.h"
 #include "open.h"
 #include "editor.h"
+#include "prompt.h"
 #include "safe.h"
-#include "storage.h"
+#include "log.h"
 
 static kp_error_t open(struct kp_ctx *ctx, int argc, char **argv);
-static kp_error_t usage(void);
+static kp_error_t parse_opt(struct kp_ctx *, int, char **);
+static void usage(void);
 
 struct kp_cmd kp_cmd_open = {
 	.main  = open,
 	.usage = usage,
+	.opts  = "open <safe>",
+	.desc  = "Open a password safe and print its content on stdout",
+	.lock  = true,
 };
+
+static bool password = false;
+static bool metadata = false;
 
 kp_error_t
 open(struct kp_ctx *ctx, int argc, char **argv)
 {
 	kp_error_t ret;
-	char path[PATH_MAX];
 	struct kp_safe safe;
 
+	if ((ret = parse_opt(ctx, argc, argv)) != KP_SUCCESS) {
+		return ret;
+	}
+
 	if (argc - optind != 1) {
-		warnx("missing safe name");
-		return KP_EINPUT;
-	}
-
-	if (strlcpy(path, ctx->ws_path, PATH_MAX) >= PATH_MAX) {
-		warnx("memory error");
-		return KP_ENOMEM;
-	}
-
-	if (strlcat(path, "/", PATH_MAX) >= PATH_MAX) {
-		warnx("memory error");
-		return KP_ENOMEM;
-	}
-
-	if (strlcat(path, argv[optind], PATH_MAX) >= PATH_MAX) {
-		warnx("memory error");
-		return KP_ENOMEM;
-	}
-
-	if ((ret = kp_safe_load(ctx, &safe, path)) != KP_SUCCESS) {
-		warnx("cannot load safe");
+		ret = KP_EINPUT;
+		kp_warn(ret, "missing safe name");
 		return ret;
 	}
 
-	if ((ret = kp_load_passwd(ctx)) != KP_SUCCESS) {
+	if ((ret = kp_safe_load(ctx, &safe, argv[optind])) != KP_SUCCESS) {
 		return ret;
 	}
 
-	if ((ret = kp_storage_open(ctx, &safe)) != KP_SUCCESS) {
-		warnx("cannot save safe");
+	if ((ret = kp_safe_open(ctx, &safe)) != KP_SUCCESS) {
 		return ret;
 	}
 
-	printf("%s\n", safe.plain);
+	if (password) {
+		printf("%s\n", safe.password);
+	}
+	if (metadata) {
+		printf("%s\n", safe.metadata);
+	}
 
 	if ((ret = kp_safe_close(ctx, &safe)) != KP_SUCCESS) {
-		warnx("cannot cleanly close safe");
-		warnx("clear text password might have leaked");
+		kp_warn(ret, "cannot cleanly close safe"
+			"clear text password might have leaked");
 		return ret;
 	}
 
 	return KP_SUCCESS;
 }
 
-kp_error_t
+static kp_error_t
+parse_opt(struct kp_ctx *ctx, int argc, char **argv)
+{
+	kp_error_t ret = KP_SUCCESS;
+	int opt;
+	static struct option longopts[] = {
+		{ "password", no_argument, NULL, 'p' },
+		{ NULL,       0,           NULL, 0   },
+	};
+
+	while ((opt = getopt_long(argc, argv, "pm", longopts, NULL)) != -1) {
+		switch (opt) {
+		case 'p':
+			password = true;
+			break;
+		case 'm':
+			metadata = true;
+			break;
+		default:
+			ret = KP_EINPUT;
+			kp_warn(ret, "unknown option %c", opt);
+			return ret;
+		}
+	}
+
+	if (!password && metadata) {
+		kp_warnx(KP_EINPUT, "Opening only metadata is default behavior."
+				"You can ommit option.");
+	}
+
+	/* Default open only metadata */
+	if (!password && !metadata) {
+		password = false;
+		metadata = true;
+	}
+
+	return ret;
+}
+
+void
 usage(void)
 {
-	printf("    %-10s%s\n", "open", "Open a password safe and print its content on stdout");
-	return KP_SUCCESS;
+	printf("options:\n");
+	printf("    -p, --password     Open password (This should be used very carefully)\n");
+	printf("    -m, --metadata     Open metadata\n");
 }

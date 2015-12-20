@@ -14,13 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef KP_CONFIG_H
-#define KP_CONFIG_H
+#ifndef KP_PASSWORD_H
+#define KP_PASSWORD_H
 
-#define KICKPASS_VERSION_MAJOR @KickPass_VERSION_MAJOR@
-#define KICKPASS_VERSION_MINOR @KickPass_VERSION_MINOR@
-#define KICKPASS_VERSION_PATCH @KickPass_VERSION_PATCH@
+#include "kickpass.h"
 
-#define KP_PATH ".kickpass"
+kp_error_t kp_password_generate(char *, size_t);
 
-#endif /* KP_CONFIG_H */
+#endif /* KP_PASSWORD_H */

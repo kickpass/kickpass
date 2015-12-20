@@ -14,13 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef KP_EDITOR_H
-#define KP_EDITOR_H
+#ifndef KP_COPY_H
+#define KP_COPY_H
 
-#include "kickpass.h"
+#include "command.h"
 
-#include "safe.h"
+extern struct kp_cmd kp_cmd_copy;
 
-kp_error_t kp_edit(struct kp_ctx *, struct kp_safe *);
-
-#endif /* KP_EDITOR_H */
+#endif /* KP_COPY_H */

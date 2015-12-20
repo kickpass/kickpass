@@ -13,17 +13,34 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
+import unittest
+import kptest
 
-include(FindPackageHandleStandardArgs)
+class TestDeleteCommand(kptest.KPTestCase):
 
-find_path(SODIUM_INCLUDE_DIRS NAMES sodium.h)
-find_library(SODIUM_LIBRARIES NAMES sodium)
+    def test_delete_is_successful(self):
+        # Given
+        self.init()
+        self.editor('date')
+        self.create("test")
 
-if (SODIUM_INCLUDE_DIRS)
-	file(STRINGS "${SODIUM_INCLUDE_DIRS}/sodium/version.h" _SODIUM_VERSION_H_CONTENT REGEX "#define SODIUM_VERSION_STRING ")
-	STRING (REGEX MATCH "([0-9]+\\.[0-9]+\\.[0-9]+)" SODIUM_VERSION "${_SODIUM_VERSION_H_CONTENT}")
-endif()
+        # When
+        self.delete("test")
 
-find_package_handle_standard_args(Sodium
-	REQUIRED_VARS SODIUM_INCLUDE_DIRS SODIUM_LIBRARIES
-	VERSION_VAR SODIUM_VERSION)
+        # Then
+        self.assertSafeDoesntExists("test")
+
+    def test_delete_refuse_to_delete_without_valid_password(self):
+        # Given
+        self.init()
+        self.editor('date')
+        self.create("test")
+
+        # When
+        self.delete("test", master="Il0v3ST20")
+
+        # Then
+        self.assertSafeExists("test")
+
+if __name__ == '__main__':
+        unittest.main()

@@ -18,5 +18,6 @@ if (NOT "${CMAKE_HOST_SYSTEM_NAME}" MATCHES "BSD$")
 	find_package(BSD REQUIRED)
 	include_directories(${BSD_INCLUDE_DIRS}/bsd)
 	set(LIBS ${LIBS} ${BSD_LIBRARIES})
-	add_definitions(-DLIBBSD_OVERLAY)
+	# Add _GNU_SOURCE for asprintf
+	add_definitions(-DLIBBSD_OVERLAY -D_GNU_SOURCE)
 endif()

@@ -13,17 +13,22 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
+import unittest
+import kptest
 
-include(FindPackageHandleStandardArgs)
+class TestOpenCommand(kptest.KPTestCase):
 
-find_path(SODIUM_INCLUDE_DIRS NAMES sodium.h)
-find_library(SODIUM_LIBRARIES NAMES sodium)
+    def test_open_is_successful(self):
+        # Given
+        self.init()
+        self.editor('env', env="Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
+        self.create("test")
 
-if (SODIUM_INCLUDE_DIRS)
-	file(STRINGS "${SODIUM_INCLUDE_DIRS}/sodium/version.h" _SODIUM_VERSION_H_CONTENT REGEX "#define SODIUM_VERSION_STRING ")
-	STRING (REGEX MATCH "([0-9]+\\.[0-9]+\\.[0-9]+)" SODIUM_VERSION "${_SODIUM_VERSION_H_CONTENT}")
-endif()
+        # When
+        self.open("test")
 
-find_package_handle_standard_args(Sodium
-	REQUIRED_VARS SODIUM_INCLUDE_DIRS SODIUM_LIBRARIES
-	VERSION_VAR SODIUM_VERSION)
+        # Then
+        self.assertStdoutEquals("Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
+
+if __name__ == '__main__':
+        unittest.main()

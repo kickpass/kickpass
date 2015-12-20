@@ -14,13 +14,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef KP_EDITOR_H
-#define KP_EDITOR_H
+#ifndef KP_CONFIG_H
+#define KP_CONFIG_H
+
+#include <stdbool.h>
 
 #include "kickpass.h"
 
-#include "safe.h"
+kp_error_t kp_cfg_create(struct kp_ctx *);
+kp_error_t kp_cfg_load(struct kp_ctx *);
+kp_error_t kp_cfg_save(struct kp_ctx *);
 
-kp_error_t kp_edit(struct kp_ctx *, struct kp_safe *);
-
-#endif /* KP_EDITOR_H */
+#endif /* KP_CONFIG_H */

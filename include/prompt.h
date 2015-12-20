@@ -14,14 +14,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef KP_COMMAND_H
-#define KP_COMMAND_H
+#ifndef KP_PROMPT_H
+#define KP_PROMPT_H
 
-#include "kickpass.h"
+#include <stdbool.h>
+#include <limits.h>
 
-struct kp_cmd {
-	kp_error_t (*main)(struct kp_ctx *ctx, int argc, char **argv);
-	kp_error_t (*usage)(void);
-};
+#include "error.h"
+#include "kickpass_config.h"
 
-#endif /* KP_COMMAND_H */
+kp_error_t kp_prompt_password(const char *type, bool, char *);
+
+#endif /* KP_PROMPT_H */

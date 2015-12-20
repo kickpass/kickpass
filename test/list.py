@@ -13,17 +13,36 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
+import unittest
+import kptest
 
-include(FindPackageHandleStandardArgs)
+class TestListCommand(kptest.KPTestCase):
 
-find_path(SODIUM_INCLUDE_DIRS NAMES sodium.h)
-find_library(SODIUM_LIBRARIES NAMES sodium)
+    def test_list_is_complete(self):
+        # Given
+        self.init()
+        self.editor('date')
+        self.create("subdir/test")
+        self.create("subdir/other")
 
-if (SODIUM_INCLUDE_DIRS)
-	file(STRINGS "${SODIUM_INCLUDE_DIRS}/sodium/version.h" _SODIUM_VERSION_H_CONTENT REGEX "#define SODIUM_VERSION_STRING ")
-	STRING (REGEX MATCH "([0-9]+\\.[0-9]+\\.[0-9]+)" SODIUM_VERSION "${_SODIUM_VERSION_H_CONTENT}")
-endif()
+        # When
+        self.cmd(["ls"])
 
-find_package_handle_standard_args(Sodium
-	REQUIRED_VARS SODIUM_INCLUDE_DIRS SODIUM_LIBRARIES
-	VERSION_VAR SODIUM_VERSION)
+        # Then
+        self.assertStdoutContains("subdir/other", "subdir/test")
+
+    def test_list_is_sorted(self):
+        # Given
+        self.init()
+        self.editor('date')
+        self.create("subdir/test")
+        self.create("subdir/other")
+
+        # When
+        self.cmd(["ls"])
+
+        # Then
+        self.assertStdoutEquals("subdir/other", "subdir/test")
+
+if __name__ == '__main__':
+        unittest.main()

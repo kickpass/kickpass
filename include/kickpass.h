@@ -17,22 +17,26 @@
 #ifndef KP_KICKPASS_H
 #define KP_KICKPASS_H
 
-#include <stdbool.h>
-#include <err.h>
+#include <stddef.h>
 #include <limits.h>
 
 #include "error.h"
 #include "kickpass_config.h"
 
+#define KP_PASSWORD_MAX_LEN 4096
+
 struct kp_ctx {
-	char                ws_path[PATH_MAX];
-	char               *password;
-	unsigned long long  opslimit;
-	size_t              memlimit;
+	char ws_path[PATH_MAX];
+	char * const password;
+	struct {
+		unsigned long long opslimit;
+		size_t memlimit;
+	} cfg;
 };
 
 kp_error_t kp_init(struct kp_ctx *);
+kp_error_t kp_load(struct kp_ctx *);
 kp_error_t kp_fini(struct kp_ctx *);
-kp_error_t kp_load_passwd(struct kp_ctx *);
+kp_error_t kp_init_workspace(struct kp_ctx *);
 
 #endif /* KP_KICKPASS_H */

@@ -14,13 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef KP_EDITOR_H
-#define KP_EDITOR_H
+#ifndef KP_DELETE_H
+#define KP_DELETE_H
 
-#include "kickpass.h"
+#include "command.h"
 
-#include "safe.h"
+extern struct kp_cmd kp_cmd_delete;
 
-kp_error_t kp_edit(struct kp_ctx *, struct kp_safe *);
-
-#endif /* KP_EDITOR_H */
+#endif /* KP_DELETE_H */

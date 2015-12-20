@@ -19,24 +19,34 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sodium.h>
 
 #include "kickpass.h"
 
 #include "command.h"
-#include "storage.h"
+#include "safe.h"
+#include "prompt.h"
+#include "log.h"
 
 /* commands */
-#include "command/init.h"
+#ifdef HAS_X11
+#include "command/copy.h"
+#endif /* HAS_X11 */
 #include "command/create.h"
+#include "command/delete.h"
 #include "command/edit.h"
+#include "command/init.h"
+#include "command/list.h"
 #include "command/open.h"
+#include "command/rename.h"
 
 static int        cmd_cmp(const void *, const void *);
 static int        cmd_sort(const void *, const void *);
 static kp_error_t command(struct kp_ctx *, int, char **);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
 static kp_error_t show_version(struct kp_ctx *);
-static kp_error_t usage(struct kp_ctx *);
+static void       usage(void);
+static kp_error_t help(struct kp_ctx *, int, char **);
 
 struct cmd {
 	const char    *name;
@@ -45,22 +55,52 @@ struct cmd {
 
 #define CMD_COUNT (sizeof(cmds)/sizeof(cmds[0]))
 
+static struct kp_cmd kp_cmd_help = {
+	.main  = help,
+	.usage = NULL,
+	.opts  = "help <command>",
+	.desc  = "Print help for given command",
+	.lock  = false,
+};
+
 static struct cmd cmds[] = {
+	/* kp_cmd_help */
+	{ "help",    &kp_cmd_help },
 	/* kp_cmd_init */
-	{ "init",   &kp_cmd_init },
+	{ "init",    &kp_cmd_init },
 
 	/* kp_cmd_create */
-	{ "create", &kp_cmd_create },
-	{ "new",    &kp_cmd_create },
-	{ "insert", &kp_cmd_create },
+	{ "create",  &kp_cmd_create },
+	{ "new",     &kp_cmd_create },
+	{ "insert",  &kp_cmd_create },
 
 	/* kp_cmd_open */
-	{ "show",   &kp_cmd_open },
-	{ "open",   &kp_cmd_open },
-	{ "cat",    &kp_cmd_open },
+	{ "show",    &kp_cmd_open },
+	{ "open",    &kp_cmd_open },
+	{ "cat",     &kp_cmd_open },
 
-	/* kp_cmp_edit */
-	{ "edit",   &kp_cmd_edit },
+	/* kp_cmd_edit */
+	{ "edit",    &kp_cmd_edit },
+
+#ifdef HAS_X11
+	/* kp_cmd_copy */
+	{ "copy",    &kp_cmd_copy },
+#endif /* HAS_X11 */
+
+	/* kp_cmd_list */
+	{ "ls",      &kp_cmd_list },
+	{ "list",    &kp_cmd_list },
+
+	/* kp_cmd_delete */
+	{ "delete",  &kp_cmd_delete },
+	{ "rm",      &kp_cmd_delete },
+	{ "remove",  &kp_cmd_delete },
+	{ "destroy", &kp_cmd_delete },
+
+	/* kp_cmd_rename */
+	{ "rename",  &kp_cmd_rename },
+	{ "mv",      &kp_cmd_rename },
+	{ "move",    &kp_cmd_rename },
 };
 
 /*
@@ -95,14 +135,15 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 		{ NULL,      0,           NULL, 0   },
 	};
 
-	while ((opt = getopt_long(argc, argv, "vh", longopts, NULL)) != -1) {
+	while ((opt = getopt_long(argc, argv, "+vh", longopts, NULL)) != -1) {
 		switch (opt) {
 		case 'v':
 			return show_version(ctx);
 		case 'h':
-			return usage(ctx);
+			usage();
+			return KP_SUCCESS;
 		default:
-			warnx("unknown option %c", opt);
+			kp_warnx(KP_EINPUT, "unknown option %c", opt);
 			return KP_EINPUT;
 		}
 	}
@@ -123,25 +164,52 @@ cmd_sort(const void *a, const void *b)
 }
 
 /*
+ * Find command
+ */
+static struct kp_cmd *
+find_command(const char *command)
+{
+	const struct cmd *cmd;
+
+	qsort(cmds, CMD_COUNT, sizeof(struct cmd), cmd_sort);
+	cmd = bsearch(command, cmds, CMD_COUNT, sizeof(struct cmd), cmd_cmp);
+
+	if (!cmd)
+		kp_errx(KP_EINPUT, "unknown command %s", command);
+
+	return cmd->cmd;
+}
+
+/*
  * Call given command and let it parse its own arguments.
  */
 static kp_error_t
 command(struct kp_ctx *ctx, int argc, char **argv)
 {
-	const struct cmd *cmd;
+	kp_error_t ret;
+	struct kp_cmd *cmd;
 
 	if (optind >= argc)
-		errx(KP_EINPUT, "missing command");
+		kp_errx(KP_EINPUT, "missing command");
 
-	qsort(cmds, CMD_COUNT, sizeof(struct cmd), cmd_sort);
-	cmd = bsearch(argv[optind], cmds, CMD_COUNT, sizeof(struct cmd), cmd_cmp);
-
-	if (!cmd)
-		errx(KP_EINPUT, "unknown command %s", argv[optind]);
+	/* Test for help first so we don't mess with cmds */
+	if (strncmp(argv[optind], "help", 4) == 0) {
+		cmd = &kp_cmd_help;
+	} else {
+		cmd = find_command(argv[optind]);
+	}
 
 	optind++;
 
-	return cmd->cmd->main(ctx, argc, argv);
+	if (cmd->lock) {
+		kp_prompt_password("master", false, (char *)ctx->password);
+		if ((ret = kp_load(ctx)) != KP_SUCCESS) {
+			kp_warn(ret, "cannot unlock workspace");
+			return ret;
+		}
+	}
+
+	return cmd->main(ctx, argc, argv);
 }
 
 static kp_error_t
@@ -155,27 +223,53 @@ show_version(struct kp_ctx *ctx)
 	return KP_SUCCESS;
 }
 
+static kp_error_t
+help(struct kp_ctx *ctx, int argc, char **argv)
+{
+	extern char *__progname;
+	struct kp_cmd *cmd;
+
+	if (optind >= argc) {
+		usage();
+		return KP_EINPUT;
+	}
+
+	cmd = find_command(argv[optind]);
+
+	printf("usage: %s %s\n"
+	       "\n", __progname, cmd->opts);
+	if (cmd->usage) cmd->usage();
+
+	return KP_SUCCESS;
+}
+
 /*
  * Print global usage by calling each command own usage function.
  */
-static kp_error_t
-usage(struct kp_ctx *ctx)
+static void
+usage(void)
 {
-	int i;
+	int i, opts_max_len = 0;
 	extern char *__progname;
 	char usage[] =
-		"usage: %s [-hv] <command> [<args>]\n"
+		"usage: %s [-hv] <command> [<cmd_opts>] [<args>]\n"
 		"\n"
 		"options:\n"
-		"    -h, --help     Display this help\n"
-		"    -v, --version  Show %s version\n"
+		"    -h, --help     Print this help\n"
+		"    -v, --version  Print %s version\n"
 		"\n"
 		"commands:\n";
 	printf(usage, __progname, __progname);
+
 	for (i = 0; i < CMD_COUNT; i++) {
-		if (cmds[i-1].cmd == cmds[i].cmd) continue;
-		if (cmds[i].cmd->usage) cmds[i].cmd->usage();
+		size_t opts_len = strlen(cmds[i].cmd->opts);
+		if (opts_len > opts_max_len) opts_max_len = opts_len;
 	}
 
-	return KP_SUCCESS;
+	opts_max_len++;
+
+	for (i = 0; i < CMD_COUNT; i++) {
+		if (cmds[i-1].cmd == cmds[i].cmd) continue;
+		printf("    %*s%s\n", -opts_max_len, cmds[i].cmd->opts, cmds[i].cmd->desc);
+	}
 }
