@@ -56,6 +56,8 @@ set(SRCS
 	src/command/list.c
 	src/command/cat.c
 	src/command/rename.c
+	src/command/agent.c
+	src/command/open.c
 )
 
 # Configure dependencies
@@ -72,6 +74,23 @@ if (NOT HAVE_READPASSPHRASE)
 	# Add _GNU_SOURCE for asprintf
 	add_definitions(-DLIBBSD_OVERLAY -D_GNU_SOURCE)
 endif()
+
+check_library_exists(util imsg_init "imsg.h" HAVE_IMSG)
+if (HAVE_IMSG)
+	set(LIBS ${LIBS} util)
+else()
+	add_library(libimsg SHARED
+		${CMAKE_SOURCE_DIR}/compat/bsd/imsg-buffer.c
+		${CMAKE_SOURCE_DIR}/compat/bsd/imsg.c
+		${CMAKE_SOURCE_DIR}/compat/bsd/imsg.h
+	)
+
+	set(LIBS ${LIBS} libimsg)
+endif()
+
+find_package(Event2 REQUIRED)
+include_directories(${EVENT2_INCLUDE_DIRS})
+set(LIBS ${LIBS} ${EVENT2_LIBRARIES})
 
 find_package(X11)
 if (X11_FOUND)
@@ -102,6 +121,7 @@ add_library(libkickpass SHARED
 	lib/password.c
 	lib/safe.c
 	lib/storage.c
+	lib/kpagent.c
 )
 
 set_target_properties(libkickpass PROPERTIES

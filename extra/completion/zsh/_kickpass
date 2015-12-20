@@ -156,6 +156,7 @@ _kp_commands()
 		{list,ls}:'List available safes' \
 		{delete,rm,remove,destroy}:'Delete a password safe' \
 		{rename,mv,move}:'Rename a password safe'
+		agent:'Start a kickpass agent in background' \
 	)
 
 	_tags kp-commands
@@ -221,6 +222,9 @@ _kickpass()
 			cmds[rename]=rename
 			cmds[move]=rename
 			cmds[mv]=rename
+
+			# agent
+			cmds[agent]=agent
 
 			cmd=$cmds[$words[1]]
 
