@@ -1,7 +1,8 @@
 language: c
 install:
+  - cd ~/
   - wget https://github.com/jedisct1/libsodium/releases/download/1.0.7/libsodium-1.0.7.tar.gz
   - tar -xzvf libsodium-1.0.7.tar.gz
   - cd libsodium-1.0.7 && ./configure --prefix=/usr && make && sudo make install
   - cd ~/
-script: mkdir travis-build && cd travis-build && cmake -DCMAKE_INSTALL_PREFIX=/usr ../ && make
+script: mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX=/usr ~/paulfariello/kickpass && make
