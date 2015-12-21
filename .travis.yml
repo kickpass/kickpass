@@ -1,6 +1,6 @@
 language: c
 install:
-  - pip install -r requirements.txt
+  - sudo pip install -r requirements.txt
   - cd ~/build
   - wget https://github.com/jedisct1/libsodium/releases/download/1.0.7/libsodium-1.0.7.tar.gz
   - tar xzf libsodium-1.0.7.tar.gz
