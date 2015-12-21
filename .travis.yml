@@ -1,5 +1,7 @@
 language: c
 install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq check
   - sudo pip install -r requirements.txt
   - cd ~/build
   - wget https://github.com/jedisct1/libsodium/releases/download/1.0.7/libsodium-1.0.7.tar.gz
@@ -11,4 +13,4 @@ install:
   - cd libbsd-0.7.0 && ./configure --prefix=/usr && make && sudo make install
 script:
   - cd ~/build
-  - mkdir kickpass-build && cd kickpass-build && cmake -DCMAKE_INSTALL_PREFIX=/usr ~/build/paulfariello/kickpass && make
+  - mkdir kickpass-build && cd kickpass-build && cmake -DCMAKE_INSTALL_PREFIX=/usr ~/build/paulfariello/kickpass && make && make test
