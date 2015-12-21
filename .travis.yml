@@ -10,7 +10,7 @@ install:
   - cd ~/build
   - wget http://libbsd.freedesktop.org/releases/libbsd-0.7.0.tar.xz
   - tar xJf libbsd-0.7.0.tar.xz
-  - cd libbsd-0.7.0 && ./configure --prefix=/usr && make && sudo make install
+  - cd libbsd-0.7.0 && ./configure --prefix=/usr --libdir=/lib/x86_64-linux-gnu && make && sudo make install
 script:
   - cd ~/build
   - mkdir kickpass-build && cd kickpass-build && cmake -DCMAKE_INSTALL_PREFIX=/usr ~/build/paulfariello/kickpass && make && make test ARGS="-V"
