@@ -13,4 +13,4 @@ install:
   - cd libbsd-0.7.0 && ./configure --prefix=/usr && make && sudo make install
 script:
   - cd ~/build
-  - mkdir kickpass-build && cd kickpass-build && cmake -DCMAKE_INSTALL_PREFIX=/usr ~/build/paulfariello/kickpass && make && make test
+  - mkdir kickpass-build && cd kickpass-build && cmake -DCMAKE_INSTALL_PREFIX=/usr ~/build/paulfariello/kickpass && make && make test ARGS="-V"
