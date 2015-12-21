@@ -5,4 +5,4 @@ install:
   - tar -xzvf libsodium-1.0.7.tar.gz
   - cd libsodium-1.0.7 && ./configure --prefix=/usr && make && sudo make install
   - cd ~/
-script: mkdir build && cd build && cmake -DCMAKE_INSTALL_PREFIX=/usr ~/paulfariello/kickpass && make
+script: mkdir kickpass-build && cd kickpass-build && cmake -DCMAKE_INSTALL_PREFIX=/usr ~/paulfariello/kickpass && make
