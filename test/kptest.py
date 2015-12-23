@@ -120,8 +120,8 @@ class KPTestCase(unittest.TestCase):
             cmd = cmd + options
         self.cmd(cmd + [old, new], master=master, confirm_master=False)
 
-    def open(self, name, options=None, master="test master password"):
-        cmd = ['open']
+    def cat(self, name, options=None, master="test master password"):
+        cmd = ['cat']
         if options:
             cmd = cmd + options
         self.cmd(cmd + [name], master=master, confirm_master=False)

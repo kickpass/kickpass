@@ -44,7 +44,7 @@ class TestEditCommand(kptest.KPTestCase):
         self.edit("test", password="RocknRolla", options=["-p"])
 
         # Then
-        self.open("test", options=["-p"])
+        self.cat("test", options=["-p"])
         self.assertStdoutEquals("RocknRolla")
 
     def test_edit_only_metadata_is_successful(self):
@@ -58,7 +58,7 @@ class TestEditCommand(kptest.KPTestCase):
         self.edit("test", password=None, options=["-m"])
 
         # Then
-        self.open("test")
+        self.cat("test")
         self.assertStdoutEquals("Oh, you are something special, Mr. Johnny Quid.")
 
     def test_edit_with_empty_password(self):
@@ -71,7 +71,7 @@ class TestEditCommand(kptest.KPTestCase):
         self.edit("test", password="", options=["-p"], yesno="n")
 
         # Then
-        self.open("test", options=["-p"])
+        self.cat("test", options=["-p"])
         self.assertStdoutEquals("RocknRolla")
 
     def test_edit_with_empty_password_erased(self):
@@ -84,7 +84,7 @@ class TestEditCommand(kptest.KPTestCase):
         self.edit("test", password="", options=["-p"], yesno="y")
 
         # Then
-        self.open("test", options=["-p"])
+        self.cat("test", options=["-p"])
         self.assertStdoutEquals()
 
     def test_edit_with_password_generation_is_successful(self):

@@ -51,7 +51,7 @@ class TestCreateCommand(kptest.KPTestCase):
         self.create("test", options=["-g", "-l", "42"], password=None)
 
         # Then
-        self.open("test", options=["-p"])
+        self.cat("test", options=["-p"])
         passwd = self.stdout.splitlines()[1]
         self.assertEqual(len(passwd), 42)
 
