@@ -15,11 +15,20 @@
 #
 
 include(Test)
+include(CheckLibraryExists)
 
 find_library(M_LIB m)
 set(TEST_LIBS ${LIBS} ${M_LIB})
-find_library(RT_LIB rt)
-set(TEST_LIBS ${TEST_LIBS} ${RT_LIB})
+check_library_exists(c timer_create "" HAVE_TIMER_CREATE)
+if (NOT HAVE_TIMER_CREATE)
+	check_library_exists(rt timer_create "time.h" HAVE_TIMER_CREATE_IN_RT)
+	if (HAVE_TIMER_CREATE_IN_RT)
+		find_library(RT_LIB rt)
+		set(TEST_LIBS ${TEST_LIBS} ${RT_LIB})
+	else()
+		message(FATAL_ERROR "can't find timer_create function")
+	endif()
+endif()
 find_library(PTHREAD_LIB pthread)
 set(TEST_LIBS ${TEST_LIBS} ${PTHREAD_LIB})
 
