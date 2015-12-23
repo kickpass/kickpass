@@ -22,6 +22,8 @@ set(CTEST_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build)
 # Configure project
 project(KickPass C)
 
+include(CheckLibraryExists)
+
 include(GetGitRevisionDescription)
 git_describe(KickPass_VERSION "--always")
 
@@ -35,9 +37,6 @@ string(REGEX REPLACE "v[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1"
 include_directories("${PROJECT_BINARY_DIR}/include/")
 include_directories("${PROJECT_SOURCE_DIR}/include/")
 include_directories("${PROJECT_SOURCE_DIR}/src/")
-
-# Configure portability
-include(build/compat/bsd.cmake)
 
 set(SRCS
 	src/editor.c
@@ -59,6 +58,15 @@ find_package(Sodium 1.0.0 REQUIRED)
 message(STATUS "Libsodium version: ${SODIUM_VERSION}")
 include_directories(${SODIUM_INCLUDE_DIRS})
 set(LIBS ${LIBS} ${SODIUM_LIBRARIES})
+
+check_library_exists(c readpassphrase "readpassphrase.h" HAVE_READPASSPHRASE)
+if (NOT HAVE_READPASSPHRASE)
+	find_package(BSD REQUIRED)
+	include_directories(${BSD_INCLUDE_DIRS}/bsd)
+	set(LIBS ${LIBS} ${BSD_LIBRARIES})
+	# Add _GNU_SOURCE for asprintf
+	add_definitions(-DLIBBSD_OVERLAY -D_GNU_SOURCE)
+endif()
 
 find_package(X11)
 if (X11_FOUND)
