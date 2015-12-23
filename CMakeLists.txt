@@ -85,6 +85,7 @@ else()
 		${CMAKE_SOURCE_DIR}/compat/bsd/imsg.h
 	)
 
+	include_directories(${CMAKE_SOURCE_DIR}/compat/bsd/)
 	set(LIBS ${LIBS} libimsg)
 endif()
 
