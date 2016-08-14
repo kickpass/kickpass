@@ -131,8 +131,8 @@ confirm_empty_password(bool *confirm)
 {
 	kp_error_t ret = KP_SUCCESS;
 	char *prompt = "Empty password. Do you really want to update password ? (y/n) [n] ";
-	char *response;
-	size_t response_len;
+	char *response = NULL;
+	size_t response_len = 0;
 	FILE *tty;
 
 	*confirm = false;
@@ -146,9 +146,15 @@ confirm_empty_password(bool *confirm)
 
 	fprintf(tty, "%s", prompt);
 	fflush(tty);
-	response = fgetln(stdin, &response_len);
+	if (getline(&response, &response_len, stdin) < 0) {
+		ret = KP_ERRNO;
+		kp_warn(ret, "cannot read answer");
+		return ret;
+	}
 
 	if (response[0] == 'y') *confirm = true;
+
+	free(response);
 
 	fclose(tty);
 	return ret;
