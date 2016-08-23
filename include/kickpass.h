@@ -24,6 +24,7 @@
 #include "kickpass_config.h"
 
 #define KP_PASSWORD_MAX_LEN 4096
+#define KP_METADATA_MAX_LEN 4096
 
 struct kp_ctx {
 	char ws_path[PATH_MAX];
