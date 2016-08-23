@@ -29,8 +29,9 @@
 #include "editor.h"
 #include "safe.h"
 #include "storage.h"
+#include "kpagent.h"
 
-static kp_error_t kp_safe_init(struct kp_safe *, const char *, bool);
+static kp_error_t kp_safe_init(struct kp_safe *, const char *, bool, bool);
 
 /*
  * Load an existing safe.
@@ -44,7 +45,11 @@ kp_safe_load(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 	struct stat stats;
 	char path[PATH_MAX];
 
-	if ((ret = kp_safe_init(safe, name, false)) != KP_SUCCESS) {
+	if (ctx->agent.connected) {
+		kp_agent_send(&ctx->agent, KP_MSG_SEARCH, NULL, 0);
+	}
+
+	if ((ret = kp_safe_init(safe, name, false, false)) != KP_SUCCESS) {
 		return ret;
 	}
 
@@ -100,7 +105,7 @@ kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 	struct stat  stats;
 	char         path[PATH_MAX];
 
-	if ((ret = kp_safe_init(safe, name, true)) != KP_SUCCESS) {
+	if ((ret = kp_safe_init(safe, name, true, false)) != KP_SUCCESS) {
 		return ret;
 	}
 
@@ -166,7 +171,7 @@ kp_safe_close(struct kp_ctx *ctx, struct kp_safe *safe)
 }
 
 static kp_error_t
-kp_safe_init(struct kp_safe *safe, const char *name, bool open)
+kp_safe_init(struct kp_safe *safe, const char *name, bool open, bool ro)
 {
 	char **password;
 	char **metadata;

@@ -37,10 +37,20 @@
 
 #define TMP_TEMPLATE "/tmp/kickpass-XXXXXX"
 
+struct agent {
+	struct event_base *evb;
+	struct kp_agent kp_agent;
+};
+
+struct conn {
+	struct agent *agent;
+	struct imsgbuf ibuf;
+};
+
 static kp_error_t agent(struct kp_ctx *, int, char **);
 static void agent_accept(evutil_socket_t, short, void *);
 static void dispatch(evutil_socket_t, short, void *);
-static kp_error_t store(struct kp_unsafe *);
+static kp_error_t store(struct kp_agent *, struct kp_unsafe *);
 
 struct kp_cmd kp_cmd_agent = {
 	.main  = agent,
@@ -50,12 +60,13 @@ struct kp_cmd kp_cmd_agent = {
 	.lock  = false,
 };
 
+
 static void
-agent_accept(evutil_socket_t fd, short events, void *_evb)
+agent_accept(evutil_socket_t fd, short events, void *_agent)
 {
-	struct event_base *evb = _evb;
+	struct agent *agent = _agent;
 	int sock;
-	struct imsgbuf *ibuf;
+	struct conn *conn;
 	struct event *ev;
 
 	if ((sock = accept(fd, NULL, NULL)) < 0) {
@@ -63,66 +74,34 @@ agent_accept(evutil_socket_t fd, short events, void *_evb)
 		return;
 	}
 
-	if ((ibuf = malloc(sizeof(struct imsgbuf))) == NULL) {
+	if ((conn = malloc(sizeof(struct conn))) == NULL) {
 		errno = ENOMEM;
 		kp_warn(KP_ERRNO, "cannot accept client");
 		return;
 	}
 
-	imsg_init(ibuf, sock);
+	conn->agent = agent;
+	imsg_init(&conn->ibuf, sock);
 
-	ev = event_new(evb, sock, EV_READ | EV_PERSIST, dispatch, ibuf);
+	ev = event_new(agent->evb, sock, EV_READ | EV_PERSIST, dispatch, conn);
 	event_add(ev, NULL);
 }
 
 static void
-dispatch(evutil_socket_t fd, short events, void *_ibuf)
+dispatch(evutil_socket_t fd, short events, void *_conn)
 {
-	/* struct kp_ctx *ctx = _ctx; */
 	struct imsg imsg;
-	struct imsgbuf *ibuf = _ibuf;
+	struct conn *conn = _conn;
 
-	imsg_read(ibuf);
-	imsg_get(ibuf, &imsg);
+	imsg_read(&conn->ibuf);
+	imsg_get(&conn->ibuf, &imsg);
 
 	switch (imsg.hdr.type) {
 	case KP_MSG_STORE:
-		store((struct kp_unsafe *)imsg.data);
+		store(&conn->agent->kp_agent, (struct kp_unsafe *)imsg.data);
 		/* XXX handle error */
 		break;
 	}
-}
-
-static kp_error_t
-store(struct kp_unsafe *unsafe)
-{
-	struct kp_store *store;
-	char **password;
-	char **metadata;
-
-	store = malloc(sizeof(struct kp_store));
-
-	/* Store is the only able to set password and metadata memory */
-	password = (char **)&store->password;
-	metadata = (char **)&store->metadata;
-
-	store->timeout = unsafe->timeout;
-	if (strlcpy(store->path, unsafe->path, PATH_MAX) >= PATH_MAX) {
-		errno = ENOMEM;
-		return KP_ERRNO;
-	}
-	*password = sodium_malloc(KP_PASSWORD_MAX_LEN+1);
-	if (strlcpy(store->password, unsafe->password, KP_PASSWORD_MAX_LEN+1) >= KP_PASSWORD_MAX_LEN+1) {
-		errno = ENOMEM;
-		return KP_ERRNO;
-	}
-	*metadata = sodium_malloc(KP_METADATA_MAX_LEN+1);
-	if (strlcpy(store->metadata, unsafe->metadata, KP_METADATA_MAX_LEN+1) >= KP_METADATA_MAX_LEN+1) {
-		errno = ENOMEM;
-		return KP_ERRNO;
-	}
-
-	return KP_SUCCESS;
 }
 
 kp_error_t
@@ -132,8 +111,7 @@ agent(struct kp_ctx *ctx, int argc, char **argv)
 	pid_t parent_pid;
 	char socket_dir[PATH_MAX];
 	char socket_path[PATH_MAX];
-	int sock;
-	struct event_base *evb;
+	struct agent agent;
 	struct event *ev;
 	struct stat sb;
 
@@ -160,25 +138,29 @@ agent(struct kp_ctx *ctx, int argc, char **argv)
 		goto out;
 	}
 
-	if ((ret = kp_agent_socket(socket_path, true, &sock)) != KP_SUCCESS) {
+	if ((ret = kp_agent_init(&agent.kp_agent, socket_path)) != KP_SUCCESS) {
 		kp_warn(ret, "cannot create socket");
 		goto out;
 	}
+
+	if ((ret = kp_agent_listen(&agent.kp_agent)) != KP_SUCCESS) {
+		kp_warn(ret, "cannot create socket");
+		goto out;
+	}
+
 	printf("%s=\"%s\"\n", KP_AGENT_SOCKET_ENV, socket_path);
 
-	evb = event_base_new();
+	agent.evb = event_base_new();
 
-	ev = event_new(evb, sock, EV_READ | EV_PERSIST, agent_accept, evb);
+	ev = event_new(agent.evb, agent.kp_agent.sock, EV_READ | EV_PERSIST, agent_accept, &agent);
 	event_add(ev, NULL);
 
-	event_base_dispatch(evb);
+	event_base_dispatch(agent.evb);
 
 out:
-	event_base_free(evb);
+	event_base_free(agent.evb);
 
-	if (sock >= 0) {
-		close(sock);
-	}
+	kp_agent_close(&agent.kp_agent);
 
 	if (stat(socket_path, &sb) == 0) {
 		if (unlink(socket_path) != 0) {
@@ -195,4 +177,32 @@ out:
 	}
 
 	return ret;
+}
+
+static kp_error_t
+store(struct kp_agent *agent, struct kp_unsafe *unsafe)
+{
+	kp_error_t ret;
+	struct kp_agent_safe *safe;
+
+	if ((ret = kp_agent_safe_create(agent, &safe)) != KP_SUCCESS) {
+		return ret;
+	}
+
+	safe->timeout = unsafe->timeout;
+	if (strlcpy(safe->path, unsafe->path, PATH_MAX) >= PATH_MAX) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+	if (strlcpy(safe->password, unsafe->password, KP_PASSWORD_MAX_LEN+1) >= KP_PASSWORD_MAX_LEN+1) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+	if (strlcpy(safe->metadata, unsafe->metadata, KP_METADATA_MAX_LEN+1) >= KP_METADATA_MAX_LEN+1) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+
+	printf("youhouuu\n");
+	return kp_agent_store(agent, safe);
 }

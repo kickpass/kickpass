@@ -23,9 +23,10 @@
 #include "kickpass.h"
 
 #include "command.h"
-#include "safe.h"
-#include "prompt.h"
+#include "kpagent.h"
 #include "log.h"
+#include "prompt.h"
+#include "safe.h"
 
 /* commands */
 #ifdef HAS_X11
@@ -44,10 +45,10 @@
 static int        cmd_cmp(const void *, const void *);
 static int        cmd_sort(const void *, const void *);
 static kp_error_t command(struct kp_ctx *, int, char **);
+static kp_error_t help(struct kp_ctx *, int, char **);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
 static kp_error_t show_version(struct kp_ctx *);
 static void       usage(void);
-static kp_error_t help(struct kp_ctx *, int, char **);
 
 struct cmd {
 	const char    *name;
@@ -118,18 +119,37 @@ main(int argc, char **argv)
 {
 	int ret;
 	struct kp_ctx ctx;
+	char *socket_path = NULL;
 
 	kp_init(&ctx);
 
-	ret = parse_opt(&ctx, argc, argv);
+	if ((ret = parse_opt(&ctx, argc, argv)) != KP_SUCCESS) {
+		goto out;
+	}
 
+	/* Try to connect to agent */
+	if ((socket_path = getenv(KP_AGENT_SOCKET_ENV)) != NULL) {
+		if ((ret = kp_agent_init(&ctx.agent, socket_path)) != KP_SUCCESS) {
+			kp_warn(ret, "cannot connect to agent socket %s", socket_path);
+			return ret;
+		}
+
+		if ((ret = kp_agent_connect(&ctx.agent)) != KP_SUCCESS) {
+			kp_warn(ret, "cannot connect to agent socket %s", socket_path);
+			return ret;
+		}
+	}
+
+	ret = command(&ctx, argc, argv);
+
+out:
 	kp_fini(&ctx);
 
 	return ret;
 }
 
 /*
- * Parse global argument and command name.
+ * Parse global argument
  */
 static kp_error_t
 parse_opt(struct kp_ctx *ctx, int argc, char **argv)
@@ -154,7 +174,7 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 		}
 	}
 
-	return command(ctx, argc, argv);
+	return KP_SUCCESS;
 }
 
 static int

@@ -23,7 +23,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
-#include <imsg.h>
 
 #include "kickpass.h"
 
@@ -42,15 +41,13 @@ struct kp_cmd kp_cmd_open = {
 	.opts  = "open <safe>",
 	.desc  = "Open a password safe and load it in kickpass agent",
 	.lock  = true,
+	/* TODO agent = true */
 };
 
 kp_error_t
 open_safe(struct kp_ctx *ctx, int argc, char **argv)
 {
 	kp_error_t ret;
-	char *socket_path;
-	int sock;
-	struct imsgbuf ibuf;
 	struct kp_safe safe;
 	struct kp_unsafe unsafe;
 
@@ -60,14 +57,9 @@ open_safe(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	if ((socket_path = getenv(KP_AGENT_SOCKET_ENV)) == NULL) {
+	if (!ctx->agent.connected) {
 		ret = KP_EINPUT;
-		kp_warn(ret, "missing environment var %s", KP_AGENT_SOCKET_ENV);
-		return ret;
-	}
-
-	if ((ret = kp_agent_socket(socket_path, false, &sock)) != KP_SUCCESS) {
-		kp_warn(ret, "cannot connect to agent socket %s", socket_path);
+		kp_warn(ret, "not connected to any agent");
 		return ret;
 	}
 
@@ -81,6 +73,7 @@ open_safe(struct kp_ctx *ctx, int argc, char **argv)
 
 	unsafe.timeout = 1000; /* TODO argv */
 	if ((ret = kp_safe_get_path(ctx, &safe, unsafe.path, PATH_MAX)) != KP_SUCCESS) {
+		return ret;
 	}
 	if (strlcpy(unsafe.password, safe.password, KP_PASSWORD_MAX_LEN+1) >= KP_PASSWORD_MAX_LEN+1) {
 		errno = ENOMEM;
@@ -91,12 +84,7 @@ open_safe(struct kp_ctx *ctx, int argc, char **argv)
 		return KP_ERRNO;
 	}
 
-	imsg_init(&ibuf, sock);
-
-	imsg_compose(&ibuf, KP_MSG_STORE, 1, 2, sock, &unsafe, sizeof(struct kp_unsafe));
-	msgbuf_write(&ibuf.w);
-
-	imsg_clear(&ibuf);
+	kp_agent_send(&ctx->agent, KP_MSG_STORE, &unsafe, sizeof(struct kp_unsafe));
 
 	if ((ret = kp_safe_close(ctx, &safe)) != KP_SUCCESS) {
 		kp_warn(ret, "cannot cleanly close safe"

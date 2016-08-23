@@ -40,7 +40,7 @@ kp_error_t
 kp_edit(struct kp_ctx *ctx, struct kp_safe *safe)
 {
 	kp_error_t ret;
-	FILE *fd;
+	FILE *fd = NULL;
 	const char *editor;
 	char path[PATH_MAX];
 	pid_t pid;

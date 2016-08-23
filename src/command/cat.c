@@ -39,7 +39,7 @@ struct kp_cmd kp_cmd_cat = {
 	.usage = usage,
 	.opts  = "cat <safe>",
 	.desc  = "Open a password safe and print its content on stdout",
-	.lock  = true,
+	.lock  = false,
 };
 
 static bool password = false;

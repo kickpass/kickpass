@@ -14,10 +14,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef KP_AGENT_H
-#define KP_AGENT_H
+#ifndef KP_KPAGENT_H
+#define KP_KPAGENT_H
 
-#include <stdbool.h>
 #include <limits.h>
 
 #include "kickpass.h"
@@ -26,6 +25,7 @@
 
 enum kp_agent_msg_type {
 	KP_MSG_STORE,
+	KP_MSG_SEARCH,
 };
 
 struct kp_unsafe {
@@ -35,13 +35,22 @@ struct kp_unsafe {
 	char metadata[KP_METADATA_MAX_LEN + 1]; /* plain text metadata (null terminated) */
 };
 
-struct kp_store {
+struct kp_agent_safe {
 	time_t timeout; /* timeout of the safe */
 	char path[PATH_MAX]; /* name of the safe */
 	char * const password;      /* plain text password (null terminated) */
 	char * const metadata;      /* plain text metadata (null terminated) */
 };
 
-kp_error_t kp_agent_socket(char *, bool, int *);
+/* Client side */
+kp_error_t kp_agent_init(struct kp_agent *, const char *);
+kp_error_t kp_agent_connect(struct kp_agent *);
+kp_error_t kp_agent_listen(struct kp_agent *);
+kp_error_t kp_agent_send(struct kp_agent *, enum kp_agent_msg_type, void *, size_t);
+kp_error_t kp_agent_close(struct kp_agent *);
 
-#endif /* KP_AGENT_H */
+/* Server side */
+kp_error_t kp_agent_safe_create(struct kp_agent *, struct kp_agent_safe **);
+kp_error_t kp_agent_store(struct kp_agent *, struct kp_agent_safe *);
+
+#endif /* KP_KPAGENT_H */

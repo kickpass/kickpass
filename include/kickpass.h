@@ -17,8 +17,14 @@
 #ifndef KP_KICKPASS_H
 #define KP_KICKPASS_H
 
-#include <stddef.h>
+#include <sys/queue.h>
+#include <sys/uio.h>
+#include <sys/un.h>
+
+#include <imsg.h>
 #include <limits.h>
+#include <stdbool.h>
+#include <stddef.h>
 
 #include "error.h"
 #include "kickpass_config.h"
@@ -26,8 +32,16 @@
 #define KP_PASSWORD_MAX_LEN 4096
 #define KP_METADATA_MAX_LEN 4096
 
+struct kp_agent {
+	int sock;
+	struct imsgbuf ibuf;
+	struct sockaddr_un sunaddr;
+	bool connected;
+};
+
 struct kp_ctx {
 	char ws_path[PATH_MAX];
+	struct kp_agent agent;
 	char * const password;
 	struct {
 		unsigned long long opslimit;
