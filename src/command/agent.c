@@ -21,10 +21,11 @@
 #include <sys/un.h>
 
 #include <fcntl.h>
-#include <unistd.h>
+#include <imsg.h>
+#include <sodium.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <imsg.h>
+#include <unistd.h>
 
 #include <event2/event.h>
 
@@ -39,6 +40,7 @@
 static kp_error_t agent(struct kp_ctx *, int, char **);
 static void agent_accept(evutil_socket_t, short, void *);
 static void dispatch(evutil_socket_t, short, void *);
+static kp_error_t store(struct kp_unsafe *);
 
 struct kp_cmd kp_cmd_agent = {
 	.main  = agent,
@@ -81,7 +83,46 @@ dispatch(evutil_socket_t fd, short events, void *_ibuf)
 	struct imsgbuf *ibuf = _ibuf;
 
 	imsg_read(ibuf);
-	printf("received %zd messages\n", imsg_get(ibuf, &imsg));
+	imsg_get(ibuf, &imsg);
+
+	switch (imsg.hdr.type) {
+	case KP_MSG_STORE:
+		store((struct kp_unsafe *)imsg.data);
+		/* XXX handle error */
+		break;
+	}
+}
+
+static kp_error_t
+store(struct kp_unsafe *unsafe)
+{
+	struct kp_store *store;
+	char **password;
+	char **metadata;
+
+	store = malloc(sizeof(struct kp_store));
+
+	/* Store is the only able to set password and metadata memory */
+	password = (char **)&store->password;
+	metadata = (char **)&store->metadata;
+
+	store->timeout = unsafe->timeout;
+	if (strlcpy(store->path, unsafe->path, PATH_MAX) >= PATH_MAX) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+	*password = sodium_malloc(KP_PASSWORD_MAX_LEN+1);
+	if (strlcpy(store->password, unsafe->password, KP_PASSWORD_MAX_LEN+1) >= KP_PASSWORD_MAX_LEN+1) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+	*metadata = sodium_malloc(KP_METADATA_MAX_LEN+1);
+	if (strlcpy(store->metadata, unsafe->metadata, KP_METADATA_MAX_LEN+1) >= KP_METADATA_MAX_LEN+1) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+
+	return KP_SUCCESS;
 }
 
 kp_error_t

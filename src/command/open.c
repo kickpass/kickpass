@@ -41,7 +41,7 @@ struct kp_cmd kp_cmd_open = {
 	.usage = NULL,
 	.opts  = "open <safe>",
 	.desc  = "Open a password safe and load it in kickpass agent",
-	.lock  = false,
+	.lock  = true,
 };
 
 kp_error_t
@@ -51,6 +51,8 @@ open_safe(struct kp_ctx *ctx, int argc, char **argv)
 	char *socket_path;
 	int sock;
 	struct imsgbuf ibuf;
+	struct kp_safe safe;
+	struct kp_unsafe unsafe;
 
 	if (argc - optind != 1) {
 		ret = KP_EINPUT;
@@ -69,11 +71,38 @@ open_safe(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
+	if ((ret = kp_safe_load(ctx, &safe, argv[optind])) != KP_SUCCESS) {
+		return ret;
+	}
+
+	if ((ret = kp_safe_open(ctx, &safe)) != KP_SUCCESS) {
+		return ret;
+	}
+
+	unsafe.timeout = 1000; /* TODO argv */
+	if ((ret = kp_safe_get_path(ctx, &safe, unsafe.path, PATH_MAX)) != KP_SUCCESS) {
+	}
+	if (strlcpy(unsafe.password, safe.password, KP_PASSWORD_MAX_LEN+1) >= KP_PASSWORD_MAX_LEN+1) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+	if (strlcpy(unsafe.metadata, safe.metadata, KP_METADATA_MAX_LEN+1) >= KP_METADATA_MAX_LEN+1) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+
 	imsg_init(&ibuf, sock);
 
-	imsg_compose(&ibuf, KP_MSG_OPEN, 1, 2, sock, "toto", 5);
+	imsg_compose(&ibuf, KP_MSG_STORE, 1, 2, sock, &unsafe, sizeof(struct kp_unsafe));
 	msgbuf_write(&ibuf.w);
 
 	imsg_clear(&ibuf);
+
+	if ((ret = kp_safe_close(ctx, &safe)) != KP_SUCCESS) {
+		kp_warn(ret, "cannot cleanly close safe"
+			"clear text password might have leaked");
+		return ret;
+	}
+
 	return KP_SUCCESS;
 }
