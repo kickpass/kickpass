@@ -51,6 +51,7 @@ static kp_error_t agent(struct kp_ctx *, int, char **);
 static void agent_accept(evutil_socket_t, short, void *);
 static void dispatch(evutil_socket_t, short, void *);
 static kp_error_t store(struct kp_agent *, struct kp_unsafe *);
+static kp_error_t search(struct kp_agent *, char *);
 
 struct kp_cmd kp_cmd_agent = {
 	.main  = agent,
@@ -98,9 +99,25 @@ dispatch(evutil_socket_t fd, short events, void *_conn)
 
 	switch (imsg.hdr.type) {
 	case KP_MSG_STORE:
+		if (imsg.hdr.len != sizeof(struct kp_unsafe)) {
+			errno = EINVAL;
+			kp_warn(KP_ERRNO, "invalid message");
+			break;
+		}
 		store(&conn->agent->kp_agent, (struct kp_unsafe *)imsg.data);
 		/* XXX handle error */
 		break;
+	case KP_MSG_SEARCH:
+	{
+		char path[PATH_MAX];
+		if (imsg.hdr.len > PATH_MAX) {
+			errno = EINVAL;
+			kp_warn(KP_ERRNO, "invalid message");
+			break;
+		}
+		strlcpy(path, (char *)imsg.data, PATH_MAX);
+		search(&conn->agent->kp_agent, path);
+	}
 	}
 }
 
@@ -205,4 +222,11 @@ store(struct kp_agent *agent, struct kp_unsafe *unsafe)
 
 	printf("youhouuu\n");
 	return kp_agent_store(agent, safe);
+}
+
+static kp_error_t
+search(struct kp_agent *agent, char *path)
+{
+	printf("coucou");
+	return KP_SUCCESS;
 }
