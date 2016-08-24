@@ -52,5 +52,6 @@ kp_error_t kp_agent_close(struct kp_agent *);
 /* Server side */
 kp_error_t kp_agent_safe_create(struct kp_agent *, struct kp_agent_safe **);
 kp_error_t kp_agent_store(struct kp_agent *, struct kp_agent_safe *);
+kp_error_t kp_agent_search(struct kp_agent *, char *, struct kp_agent_safe **);
 
 #endif /* KP_KPAGENT_H */

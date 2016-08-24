@@ -94,30 +94,41 @@ dispatch(evutil_socket_t fd, short events, void *_conn)
 	struct imsg imsg;
 	struct conn *conn = _conn;
 
-	imsg_read(&conn->ibuf);
-	imsg_get(&conn->ibuf, &imsg);
-
-	switch (imsg.hdr.type) {
-	case KP_MSG_STORE:
-		if (imsg.hdr.len != sizeof(struct kp_unsafe)) {
-			errno = EINVAL;
-			kp_warn(KP_ERRNO, "invalid message");
-			break;
-		}
-		store(&conn->agent->kp_agent, (struct kp_unsafe *)imsg.data);
-		/* XXX handle error */
-		break;
-	case KP_MSG_SEARCH:
-	{
-		char path[PATH_MAX];
-		if (imsg.hdr.len > PATH_MAX) {
-			errno = EINVAL;
-			kp_warn(KP_ERRNO, "invalid message");
-			break;
-		}
-		strlcpy(path, (char *)imsg.data, PATH_MAX);
-		search(&conn->agent->kp_agent, path);
+	if (imsg_read(&conn->ibuf) < 0) {
+		kp_warnx(KP_EINTERNAL, "connection lost");
+		imsg_clear(&conn->ibuf);
+		/* XXX clean conn */
+		return;
 	}
+
+	while (imsg_get(&conn->ibuf, &imsg) > 0) {
+		size_t data_size;
+
+		data_size = imsg.hdr.len - IMSG_HEADER_SIZE;
+
+		switch (imsg.hdr.type) {
+		case KP_MSG_STORE:
+			if (data_size != sizeof(struct kp_unsafe)) {
+				errno = EPROTO;
+				kp_warn(KP_ERRNO, "invalid message");
+				break;
+			}
+			store(&conn->agent->kp_agent, (struct kp_unsafe *)imsg.data);
+			/* XXX handle error */
+			break;
+		case KP_MSG_SEARCH:
+			if (data_size != PATH_MAX) {
+				errno = EPROTO;
+				kp_warn(KP_ERRNO, "invalid message");
+				break;
+			}
+			/* ensure null termination */
+			((char *)imsg.data)[PATH_MAX-1] = '\0';
+			search(&conn->agent->kp_agent, (char *)imsg.data);
+			break;
+		}
+
+		imsg_free(&imsg);
 	}
 }
 
@@ -220,13 +231,21 @@ store(struct kp_agent *agent, struct kp_unsafe *unsafe)
 		return KP_ERRNO;
 	}
 
-	printf("youhouuu\n");
 	return kp_agent_store(agent, safe);
 }
 
 static kp_error_t
 search(struct kp_agent *agent, char *path)
 {
-	printf("coucou");
+	kp_error_t ret;
+	struct kp_agent_safe *safe;
+
+	if ((ret = kp_agent_search(agent, path, &safe)) != KP_SUCCESS) {
+		/* TODO handle error */
+		return ret;
+	}
+
+	printf("Youhouuuu\n");
+
 	return KP_SUCCESS;
 }

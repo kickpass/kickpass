@@ -107,8 +107,8 @@ kp_agent_send(struct kp_agent *agent, enum kp_agent_msg_type type, void *data,
 {
 	assert(agent);
 
-	imsg_compose(&agent->ibuf, KP_MSG_STORE, 1, 2, agent->sock, data, size);
-	msgbuf_write(&agent->ibuf.w);
+	imsg_compose(&agent->ibuf, type, 1, 0, -1, data, size);
+	imsg_flush(&agent->ibuf);
 
 	return KP_SUCCESS;
 }
@@ -121,23 +121,6 @@ kp_agent_close(struct kp_agent *agent)
 	if (agent->sock >= 0) {
 		close(agent->sock);
 	}
-
-	return KP_SUCCESS;
-}
-
-kp_error_t
-kp_agent_store(struct kp_agent *agent, struct kp_agent_safe *safe)
-{
-	struct kp_store *store;
-
-	if ((store = malloc(sizeof(struct kp_store))) == NULL) {
-		errno = ENOMEM;
-		return KP_ERRNO;
-	}
-
-	store->safe = safe;
-
-	RB_INSERT(storage, &storage, store);
 
 	return KP_SUCCESS;
 }
@@ -162,6 +145,46 @@ kp_agent_safe_create(struct kp_agent *agent, struct kp_agent_safe **_safe)
 	*metadata = sodium_malloc(KP_METADATA_MAX_LEN);
 
 	*_safe = safe;
+
+	return KP_SUCCESS;
+}
+
+kp_error_t
+kp_agent_store(struct kp_agent *agent, struct kp_agent_safe *safe)
+{
+	struct kp_store *store;
+
+	if ((store = malloc(sizeof(struct kp_store))) == NULL) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+
+	store->safe = safe;
+
+	RB_INSERT(storage, &storage, store);
+
+	return KP_SUCCESS;
+}
+
+kp_error_t
+kp_agent_search(struct kp_agent *agent, char *path, struct kp_agent_safe **_safe)
+{
+	struct kp_store needle, *store;
+	struct kp_agent_safe safe;
+
+	if (strlcpy(safe.path, path, PATH_MAX) > PATH_MAX) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+	needle.safe = &safe;
+
+	store = RB_FIND(storage, &storage, &needle);
+	if (store == NULL) {
+		*_safe = NULL;
+		errno = ENOENT;
+		return KP_ERRNO;
+	}
+	*_safe = store->safe;
 
 	return KP_SUCCESS;
 }

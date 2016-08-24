@@ -19,7 +19,6 @@
 
 #include <errno.h>
 
-/* errno > 0 are system error */
 #define KP_SUCCESS          0
 #define KP_NYI              1
 #define KP_EINPUT           2

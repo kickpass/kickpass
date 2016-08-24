@@ -45,16 +45,16 @@ kp_safe_load(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 	struct stat stats;
 	char path[PATH_MAX];
 
-	if (ctx->agent.connected) {
-		kp_agent_send(&ctx->agent, KP_MSG_SEARCH, NULL, 0);
-	}
-
 	if ((ret = kp_safe_init(safe, name, false, false)) != KP_SUCCESS) {
 		return ret;
 	}
 
 	if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
 		return ret;
+	}
+
+	if (ctx->agent.connected) {
+		kp_agent_send(&ctx->agent, KP_MSG_SEARCH, path, PATH_MAX);
 	}
 
 	if (stat(path, &stats) != 0) {
