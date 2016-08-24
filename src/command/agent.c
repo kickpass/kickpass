@@ -211,11 +211,11 @@ store(struct kp_agent *agent, struct kp_unsafe *unsafe)
 		errno = ENOMEM;
 		return KP_ERRNO;
 	}
-	if (strlcpy(safe->password, unsafe->password, KP_PASSWORD_MAX_LEN+1) >= KP_PASSWORD_MAX_LEN+1) {
+	if (strlcpy(safe->password, unsafe->password, KP_PASSWORD_MAX_LEN) >= KP_PASSWORD_MAX_LEN) {
 		errno = ENOMEM;
 		return KP_ERRNO;
 	}
-	if (strlcpy(safe->metadata, unsafe->metadata, KP_METADATA_MAX_LEN+1) >= KP_METADATA_MAX_LEN+1) {
+	if (strlcpy(safe->metadata, unsafe->metadata, KP_METADATA_MAX_LEN) >= KP_METADATA_MAX_LEN) {
 		errno = ENOMEM;
 		return KP_ERRNO;
 	}

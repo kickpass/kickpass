@@ -110,7 +110,7 @@ edit_password(struct kp_safe *safe)
 	size_t password_len;
 	bool confirm = true;
 
-	password = sodium_malloc(KP_PASSWORD_MAX_LEN+1);
+	password = sodium_malloc(KP_PASSWORD_MAX_LEN);
 	if ((ret = kp_prompt_password("safe", true, password)) != KP_SUCCESS) {
 		goto out;
 	}

@@ -31,8 +31,8 @@ enum kp_agent_msg_type {
 struct kp_unsafe {
 	time_t timeout; /* timeout of the safe */
 	char path[PATH_MAX]; /* name of the safe */
-	char password[KP_PASSWORD_MAX_LEN + 1]; /* plain text password (null terminated) */
-	char metadata[KP_METADATA_MAX_LEN + 1]; /* plain text metadata (null terminated) */
+	char password[KP_PASSWORD_MAX_LEN]; /* plain text password (null terminated) */
+	char metadata[KP_METADATA_MAX_LEN]; /* plain text metadata (null terminated) */
 };
 
 struct kp_agent_safe {

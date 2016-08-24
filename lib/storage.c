@@ -181,9 +181,9 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 	assert(safe->open == true);
 
 	password_len = strlen(safe->password);
-	assert(password_len <= KP_PASSWORD_MAX_LEN);
+	assert(password_len < KP_PASSWORD_MAX_LEN);
 	metadata_len = strlen(safe->metadata);
-	assert(metadata_len <= KP_METADATA_MAX_LEN);
+	assert(metadata_len < KP_METADATA_MAX_LEN);
 
 	/* Ensure we are at the beginning of the safe */
 	if (lseek(safe->cipher, 0, SEEK_SET) != 0) {
@@ -307,12 +307,12 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 
 	strncpy((char *)safe->password, (char *)plain, KP_PASSWORD_MAX_LEN);
 	/* ensure null termination */
-	safe->password[KP_PASSWORD_MAX_LEN] = '\0';
+	safe->password[KP_PASSWORD_MAX_LEN-1] = '\0';
 	password_len = strlen((char *)safe->password);
 
 	strncpy((char *)safe->metadata, (char *)&plain[password_len+1], KP_METADATA_MAX_LEN);
 	/* ensure null termination */
-	safe->metadata[KP_METADATA_MAX_LEN] = '\0';
+	safe->metadata[KP_METADATA_MAX_LEN-1] = '\0';
 
 	safe->open = true;
 

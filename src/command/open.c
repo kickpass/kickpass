@@ -75,11 +75,11 @@ open_safe(struct kp_ctx *ctx, int argc, char **argv)
 	if ((ret = kp_safe_get_path(ctx, &safe, unsafe.path, PATH_MAX)) != KP_SUCCESS) {
 		return ret;
 	}
-	if (strlcpy(unsafe.password, safe.password, KP_PASSWORD_MAX_LEN+1) >= KP_PASSWORD_MAX_LEN+1) {
+	if (strlcpy(unsafe.password, safe.password, KP_PASSWORD_MAX_LEN) >= KP_PASSWORD_MAX_LEN) {
 		errno = ENOMEM;
 		return KP_ERRNO;
 	}
-	if (strlcpy(unsafe.metadata, safe.metadata, KP_METADATA_MAX_LEN+1) >= KP_METADATA_MAX_LEN+1) {
+	if (strlcpy(unsafe.metadata, safe.metadata, KP_METADATA_MAX_LEN) >= KP_METADATA_MAX_LEN) {
 		errno = ENOMEM;
 		return KP_ERRNO;
 	}

@@ -186,9 +186,9 @@ kp_safe_init(struct kp_safe *safe, const char *name, bool open, bool ro)
 	}
 
 	safe->open = open;
-	*password = sodium_malloc(KP_PASSWORD_MAX_LEN+1);
+	*password = sodium_malloc(KP_PASSWORD_MAX_LEN);
 	safe->password[0] = '\0';
-	*metadata = sodium_malloc(KP_METADATA_MAX_LEN+1);
+	*metadata = sodium_malloc(KP_METADATA_MAX_LEN);
 	safe->metadata[0] = '\0';
 
 	return KP_SUCCESS;

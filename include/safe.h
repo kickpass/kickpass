@@ -27,7 +27,7 @@
                              "comment: \n"
 #endif
 
-#define KP_PLAIN_MAX_SIZE (KP_PASSWORD_MAX_LEN + KP_METADATA_MAX_LEN + 2)
+#define KP_PLAIN_MAX_SIZE (KP_PASSWORD_MAX_LEN + KP_METADATA_MAX_LEN)
 
 /*
  * A safe is either open or close.

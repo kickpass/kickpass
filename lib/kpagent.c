@@ -158,8 +158,8 @@ kp_agent_safe_create(struct kp_agent *agent, struct kp_agent_safe **_safe)
 	password = (char **)&safe->password;
 	metadata = (char **)&safe->metadata;
 
-	*password = sodium_malloc(KP_PASSWORD_MAX_LEN+1);
-	*metadata = sodium_malloc(KP_METADATA_MAX_LEN+1);
+	*password = sodium_malloc(KP_PASSWORD_MAX_LEN);
+	*metadata = sodium_malloc(KP_METADATA_MAX_LEN);
 
 	*_safe = safe;
 
