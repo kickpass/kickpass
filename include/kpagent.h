@@ -26,6 +26,12 @@
 enum kp_agent_msg_type {
 	KP_MSG_STORE,
 	KP_MSG_SEARCH,
+	KP_MSG_ERROR,
+};
+
+struct kp_msg_error {
+	kp_error_t err;
+	int err_no;
 };
 
 struct kp_unsafe {
@@ -46,7 +52,10 @@ struct kp_agent_safe {
 kp_error_t kp_agent_init(struct kp_agent *, const char *);
 kp_error_t kp_agent_connect(struct kp_agent *);
 kp_error_t kp_agent_listen(struct kp_agent *);
+kp_error_t kp_agent_accept(struct kp_agent *, struct kp_agent *);
 kp_error_t kp_agent_send(struct kp_agent *, enum kp_agent_msg_type, void *, size_t);
+kp_error_t kp_agent_error(struct kp_agent *, kp_error_t);
+kp_error_t kp_agent_receive(struct kp_agent *, enum kp_agent_msg_type, void *, size_t);
 kp_error_t kp_agent_close(struct kp_agent *);
 
 /* Server side */

@@ -39,7 +39,7 @@ struct kp_cmd kp_cmd_cat = {
 	.usage = usage,
 	.opts  = "cat <safe>",
 	.desc  = "Open a password safe and print its content on stdout",
-	.lock  = false,
+	.lock  = true,
 };
 
 static bool password = false;
@@ -62,6 +62,7 @@ cat(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	if ((ret = kp_safe_load(ctx, &safe, argv[optind])) != KP_SUCCESS) {
+		kp_warn(ret, "cannot load safe");
 		return ret;
 	}
 

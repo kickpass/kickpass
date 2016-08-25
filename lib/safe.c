@@ -53,10 +53,6 @@ kp_safe_load(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 		return ret;
 	}
 
-	if (ctx->agent.connected) {
-		kp_agent_send(&ctx->agent, KP_MSG_SEARCH, path, PATH_MAX);
-	}
-
 	if (stat(path, &stats) != 0) {
 		return KP_ERRNO;
 	}
@@ -138,6 +134,43 @@ kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 kp_error_t
 kp_safe_open(struct kp_ctx *ctx, struct kp_safe *safe)
 {
+	/* handle not connect or not found and ask password */
+	if (ctx->agent.connected) {
+		kp_error_t ret;
+		struct kp_unsafe unsafe;
+		char path[PATH_MAX];
+
+		if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
+			return ret;
+		}
+
+		if ((ret = kp_agent_send(&ctx->agent, KP_MSG_SEARCH, path,
+		    PATH_MAX)) != KP_SUCCESS) {
+			/* TODO log reason in verbose mode */
+			goto fallback;
+		}
+
+		if ((ret = kp_agent_receive(&ctx->agent, KP_MSG_SEARCH, &unsafe,
+		    sizeof(struct kp_unsafe))) != KP_SUCCESS) {
+			/* TODO log reason in verbose mode */
+			goto fallback;
+		}
+
+		if (strlcpy(safe->password, unsafe.password, KP_PASSWORD_MAX_LEN)
+		    >= KP_PASSWORD_MAX_LEN) {
+			errno = ENOMEM;
+			return KP_ERRNO;
+		}
+		if (strlcpy(safe->metadata, unsafe.metadata, KP_METADATA_MAX_LEN)
+		    >= KP_METADATA_MAX_LEN) {
+			errno = ENOMEM;
+			return KP_ERRNO;
+		}
+
+		return KP_SUCCESS;
+	}
+
+fallback:
 	return kp_storage_open(ctx, safe);
 }
 

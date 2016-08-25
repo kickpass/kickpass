@@ -102,14 +102,99 @@ kp_agent_listen(struct kp_agent *agent)
 }
 
 kp_error_t
+kp_agent_accept(struct kp_agent *agent, struct kp_agent *out)
+{
+	socklen_t addrlen = sizeof(struct sockaddr_un);
+
+	assert(agent);
+	assert(out);
+
+	out->sock = -1;
+	out->connected = false;
+
+
+	if ((out->sock = accept(agent->sock, &out->sunaddr, &addrlen)) < 0) {
+		return KP_ERRNO;
+	}
+
+	imsg_init(&out->ibuf, out->sock);
+	out->connected = true;
+
+	return KP_SUCCESS;
+}
+
+kp_error_t
 kp_agent_send(struct kp_agent *agent, enum kp_agent_msg_type type, void *data,
               size_t size)
 {
 	assert(agent);
 
-	imsg_compose(&agent->ibuf, type, 1, 0, -1, data, size);
-	imsg_flush(&agent->ibuf);
+	if (imsg_compose(&agent->ibuf, type, 1, 0, -1, data, size) < 0) {
+		return KP_ERRNO;
+	}
+	if (imsg_flush(&agent->ibuf) < 0) {
+		return KP_ERRNO;
+	}
 
+	return KP_SUCCESS;
+}
+
+kp_error_t
+kp_agent_error(struct kp_agent *agent, kp_error_t err)
+{
+	struct kp_msg_error error;
+
+	error.err = err;
+	error.err_no = 0;
+	if (err == KP_ERRNO) {
+		error.err_no = errno;
+	}
+
+	return kp_agent_send(agent, KP_MSG_ERROR, &error,
+	                     sizeof(struct kp_msg_error));
+}
+
+kp_error_t
+kp_agent_receive(struct kp_agent *agent, enum kp_agent_msg_type type, void *data,
+                 size_t size)
+{
+	struct imsg imsg;
+
+	assert(agent);
+
+	/* Try to get one from ibuf */
+	if (imsg_get(&agent->ibuf, &imsg) > 0) {
+		goto out;
+	}
+
+	/* Nothing in buf try to read from conn */
+	if (imsg_read(&agent->ibuf) < 0) {
+		imsg_clear(&agent->ibuf);
+		/* XXX clean conn */
+		return KP_ERRNO;
+	}
+
+	/* Try to get one from ibuf */
+	if (imsg_get(&agent->ibuf, &imsg) < 0) {
+		return KP_ERRNO;
+	}
+
+out:
+	if (imsg.hdr.type > KP_MSG_ERROR) {
+		/* XXX report real error */
+		return KP_INVALID_MSG;
+	}
+
+	if (imsg.hdr.type != type) {
+		return KP_INVALID_MSG;
+	}
+
+	if (imsg.hdr.len - IMSG_HEADER_SIZE != size) {
+		errno = EMSGSIZE;
+		return KP_ERRNO;
+	}
+
+	memcpy(data, imsg.data, size);
 	return KP_SUCCESS;
 }
 

@@ -43,7 +43,7 @@ struct agent {
 };
 
 struct conn {
-	struct agent *agent;
+	struct kp_agent agent;
 	struct imsgbuf ibuf;
 };
 
@@ -66,14 +66,8 @@ static void
 agent_accept(evutil_socket_t fd, short events, void *_agent)
 {
 	struct agent *agent = _agent;
-	int sock;
 	struct conn *conn;
 	struct event *ev;
-
-	if ((sock = accept(fd, NULL, NULL)) < 0) {
-		kp_warn(KP_ERRNO, "cannot accept client");
-		return;
-	}
 
 	if ((conn = malloc(sizeof(struct conn))) == NULL) {
 		errno = ENOMEM;
@@ -81,10 +75,15 @@ agent_accept(evutil_socket_t fd, short events, void *_agent)
 		return;
 	}
 
-	conn->agent = agent;
-	imsg_init(&conn->ibuf, sock);
+	if ((kp_agent_accept(&agent->kp_agent, &conn->agent)) != KP_SUCCESS) {
+		kp_warn(KP_ERRNO, "cannot accept client");
+		return;
+	}
 
-	ev = event_new(agent->evb, sock, EV_READ | EV_PERSIST, dispatch, conn);
+	imsg_init(&conn->ibuf, conn->agent.sock);
+
+	ev = event_new(agent->evb, conn->agent.sock, EV_READ | EV_PERSIST, dispatch,
+	               conn);
 	event_add(ev, NULL);
 }
 
@@ -113,7 +112,8 @@ dispatch(evutil_socket_t fd, short events, void *_conn)
 				kp_warn(KP_ERRNO, "invalid message");
 				break;
 			}
-			store(&conn->agent->kp_agent, (struct kp_unsafe *)imsg.data);
+			store(&conn->agent,
+			      (struct kp_unsafe *)imsg.data);
 			/* XXX handle error */
 			break;
 		case KP_MSG_SEARCH:
@@ -124,7 +124,7 @@ dispatch(evutil_socket_t fd, short events, void *_conn)
 			}
 			/* ensure null termination */
 			((char *)imsg.data)[PATH_MAX-1] = '\0';
-			search(&conn->agent->kp_agent, (char *)imsg.data);
+			search(&conn->agent, (char *)imsg.data);
 			break;
 		}
 
@@ -180,7 +180,8 @@ agent(struct kp_ctx *ctx, int argc, char **argv)
 
 	agent.evb = event_base_new();
 
-	ev = event_new(agent.evb, agent.kp_agent.sock, EV_READ | EV_PERSIST, agent_accept, &agent);
+	ev = event_new(agent.evb, agent.kp_agent.sock, EV_READ | EV_PERSIST,
+	               agent_accept, &agent);
 	event_add(ev, NULL);
 
 	event_base_dispatch(agent.evb);
@@ -222,11 +223,13 @@ store(struct kp_agent *agent, struct kp_unsafe *unsafe)
 		errno = ENOMEM;
 		return KP_ERRNO;
 	}
-	if (strlcpy(safe->password, unsafe->password, KP_PASSWORD_MAX_LEN) >= KP_PASSWORD_MAX_LEN) {
+	if (strlcpy(safe->password, unsafe->password, KP_PASSWORD_MAX_LEN)
+	    >= KP_PASSWORD_MAX_LEN) {
 		errno = ENOMEM;
 		return KP_ERRNO;
 	}
-	if (strlcpy(safe->metadata, unsafe->metadata, KP_METADATA_MAX_LEN) >= KP_METADATA_MAX_LEN) {
+	if (strlcpy(safe->metadata, unsafe->metadata, KP_METADATA_MAX_LEN)
+	    >= KP_METADATA_MAX_LEN) {
 		errno = ENOMEM;
 		return KP_ERRNO;
 	}
@@ -239,13 +242,37 @@ search(struct kp_agent *agent, char *path)
 {
 	kp_error_t ret;
 	struct kp_agent_safe *safe;
+	struct kp_unsafe unsafe;
 
 	if ((ret = kp_agent_search(agent, path, &safe)) != KP_SUCCESS) {
-		/* TODO handle error */
+		errno = ENOENT;
+		kp_agent_error(agent, KP_ERRNO);
 		return ret;
 	}
 
-	printf("Youhouuuu\n");
+	safe->timeout = 0; /* TODO compute remaining time ? */
+	if (strlcpy(unsafe.path, safe->path, PATH_MAX) >= PATH_MAX) {
+		errno = ENOMEM;
+		kp_agent_error(agent, KP_ERRNO);
+		return KP_ERRNO;
+	}
+	if (strlcpy(unsafe.password, safe->password, KP_PASSWORD_MAX_LEN)
+	    >= KP_PASSWORD_MAX_LEN) {
+		errno = ENOMEM;
+		kp_agent_error(agent, KP_ERRNO);
+		return KP_ERRNO;
+	}
+	if (strlcpy(unsafe.metadata, safe->metadata, KP_METADATA_MAX_LEN)
+	    >= KP_METADATA_MAX_LEN) {
+		errno = ENOMEM;
+		kp_agent_error(agent, KP_ERRNO);
+		return KP_ERRNO;
+	}
 
-	return KP_SUCCESS;
+	if ((ret = kp_agent_send(agent, KP_MSG_SEARCH, &unsafe,
+	                     sizeof(struct kp_unsafe))) != KP_SUCCESS) {
+		kp_warn(ret, "cannot send response");
+	}
+
+	return ret;
 }
