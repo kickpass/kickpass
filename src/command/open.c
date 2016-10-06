@@ -40,7 +40,6 @@ struct kp_cmd kp_cmd_open = {
 	.usage = NULL,
 	.opts  = "open <safe>",
 	.desc  = "Open a password safe and load it in kickpass agent",
-	.lock  = true,
 	/* TODO agent = true */
 };
 

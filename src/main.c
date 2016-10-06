@@ -44,6 +44,7 @@
 
 static int        cmd_cmp(const void *, const void *);
 static int        cmd_sort(const void *, const void *);
+static kp_error_t password_prompt(struct kp_ctx *);
 static kp_error_t command(struct kp_ctx *, int, char **);
 static kp_error_t help(struct kp_ctx *, int, char **);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
@@ -62,7 +63,6 @@ static struct kp_cmd kp_cmd_help = {
 	.usage = NULL,
 	.opts  = "help <command>",
 	.desc  = "Print help for given command",
-	.lock  = false,
 };
 
 static struct cmd cmds[] = {
@@ -110,6 +110,12 @@ static struct cmd cmds[] = {
 	{ "open",   &kp_cmd_open },
 };
 
+static kp_error_t
+password_prompt(struct kp_ctx *ctx)
+{
+	return kp_prompt_password("master", false, (char *)ctx->password);
+}
+
 /*
  * Parse command line and call matching command.
  * Most command are aliased and parse their own arguments.
@@ -122,6 +128,7 @@ main(int argc, char **argv)
 	char *socket_path = NULL;
 
 	kp_init(&ctx);
+	ctx.password_cb = password_prompt;
 
 	if ((ret = parse_opt(&ctx, argc, argv)) != KP_SUCCESS) {
 		goto out;
@@ -212,7 +219,6 @@ find_command(const char *command)
 static kp_error_t
 command(struct kp_ctx *ctx, int argc, char **argv)
 {
-	kp_error_t ret;
 	struct kp_cmd *cmd;
 
 	if (optind >= argc)
@@ -226,14 +232,6 @@ command(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	optind++;
-
-	if (cmd->lock) {
-		kp_prompt_password("master", false, (char *)ctx->password);
-		if ((ret = kp_load(ctx)) != KP_SUCCESS) {
-			kp_warn(ret, "cannot unlock workspace");
-			return ret;
-		}
-	}
 
 	return cmd->main(ctx, argc, argv);
 }

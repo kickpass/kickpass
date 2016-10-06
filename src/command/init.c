@@ -34,7 +34,6 @@ struct kp_cmd kp_cmd_init = {
 	.opts  = "init",
 	.desc  = "Initialize a new password safe directory. "
 	         "Default to ~/" KP_PATH,
-	.lock  = false,
 };
 
 kp_error_t

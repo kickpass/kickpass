@@ -41,7 +41,6 @@ struct kp_cmd kp_cmd_create = {
 	.usage = usage,
 	.opts  = "create [-hgl] <safe>",
 	.desc  = "Create a new password safe",
-	.lock  = true,
 };
 
 static bool generate = false;

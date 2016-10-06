@@ -23,6 +23,6 @@
 #include "error.h"
 #include "kickpass_config.h"
 
-kp_error_t kp_prompt_password(const char *type, bool, char *);
+kp_error_t kp_prompt_password(const char *, bool, char *);
 
 #endif /* KP_PROMPT_H */

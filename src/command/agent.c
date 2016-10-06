@@ -58,7 +58,6 @@ struct kp_cmd kp_cmd_agent = {
 	.usage = NULL,
 	.opts  = "agent",
 	.desc  = "Run a kickpass agent in background",
-	.lock  = false,
 };
 
 

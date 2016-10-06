@@ -171,6 +171,12 @@ kp_safe_open(struct kp_ctx *ctx, struct kp_safe *safe)
 	}
 
 fallback:
+	if (ctx->password[0] == '\0') {
+		kp_error_t ret;
+		if ((ret = ctx->password_cb(ctx)) != KP_SUCCESS) {
+			return ret;
+		}
+	}
 	return kp_storage_open(ctx, safe);
 }
 

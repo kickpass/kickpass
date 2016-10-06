@@ -43,7 +43,6 @@ struct kp_cmd kp_cmd_edit = {
 	.usage = usage,
 	.opts  = "edit [-pmgl] <safe>",
 	.desc  = "Edit a password safe with $EDIT",
-	.lock  = true,
 };
 
 static bool password = false;

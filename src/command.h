@@ -26,7 +26,6 @@ struct kp_cmd {
 	void       (*usage)(void);
 	char        *opts;
 	char        *desc;
-	bool         lock;
 };
 
 #endif /* KP_COMMAND_H */
