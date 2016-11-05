@@ -63,6 +63,12 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
+	/* Ask for password, otherwise it is asked on kp_safe_save which seems
+	 * weird for user */
+	if ((ret = ctx->password_cb(ctx)) != KP_SUCCESS) {
+		return ret;
+	}
+
 	if ((ret = kp_safe_create(ctx, &safe, argv[optind])) != KP_SUCCESS) {
 		if (ret == KP_ERRNO && errno == EEXIST) {
 			kp_warn(ret, "use 'edit' command to edit an existing safe");

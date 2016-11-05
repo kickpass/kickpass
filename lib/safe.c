@@ -186,6 +186,13 @@ fallback:
 kp_error_t
 kp_safe_save(struct kp_ctx *ctx, struct kp_safe *safe)
 {
+	/* TODO handle agent */
+	if (ctx->password[0] == '\0') {
+		kp_error_t ret;
+		if ((ret = ctx->password_cb(ctx)) != KP_SUCCESS) {
+			return ret;
+		}
+	}
 	return kp_storage_save(ctx, safe);
 }
 
