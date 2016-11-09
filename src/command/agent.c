@@ -177,6 +177,7 @@ agent(struct kp_ctx *ctx, int argc, char **argv)
 
 	printf("%s=\"%s\"\n", KP_AGENT_SOCKET_ENV, socket_path);
 
+	daemon(0, 0);
 	agent.evb = event_base_new();
 
 	ev = event_new(agent.evb, agent.kp_agent.sock, EV_READ | EV_PERSIST,
