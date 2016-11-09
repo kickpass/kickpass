@@ -15,11 +15,11 @@
  */
 
 #include <sys/queue.h>
-#include <sys/uio.h>
 #include <sys/socket.h>
 #define __unused __attribute__((unused))
 #include <sys/tree.h>
 #include <sys/types.h>
+#include <sys/uio.h>
 #include <sys/un.h>
 
 #include <assert.h>
