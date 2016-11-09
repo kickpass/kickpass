@@ -16,7 +16,9 @@
 
 #include <sys/queue.h>
 #include <sys/socket.h>
+#ifndef __unused
 #define __unused __attribute__((unused))
+#endif
 #include <sys/tree.h>
 #include <sys/types.h>
 #include <sys/uio.h>
