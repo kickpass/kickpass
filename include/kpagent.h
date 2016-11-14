@@ -42,7 +42,6 @@ struct kp_unsafe {
 };
 
 struct kp_agent_safe {
-	time_t timeout; /* timeout of the safe */
 	char path[PATH_MAX]; /* name of the safe */
 	char * const password;      /* plain text password (null terminated) */
 	char * const metadata;      /* plain text metadata (null terminated) */
@@ -62,5 +61,7 @@ kp_error_t kp_agent_close(struct kp_agent *);
 kp_error_t kp_agent_safe_create(struct kp_agent *, struct kp_agent_safe **);
 kp_error_t kp_agent_store(struct kp_agent *, struct kp_agent_safe *);
 kp_error_t kp_agent_search(struct kp_agent *, char *, struct kp_agent_safe **);
+kp_error_t kp_agent_discard(struct kp_agent *, char *);
+kp_error_t kp_agent_safe_free(struct kp_agent *, struct kp_agent_safe *);
 
 #endif /* KP_KPAGENT_H */

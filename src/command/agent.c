@@ -43,15 +43,21 @@ struct agent {
 };
 
 struct conn {
-	struct kp_agent agent;
+	struct agent agent;
 	struct imsgbuf ibuf;
+};
+
+struct timeout {
+	struct agent *agent;
+	char path[PATH_MAX];
 };
 
 static kp_error_t agent(struct kp_ctx *, int, char **);
 static void agent_accept(evutil_socket_t, short, void *);
 static void dispatch(evutil_socket_t, short, void *);
-static kp_error_t store(struct kp_agent *, struct kp_unsafe *);
-static kp_error_t search(struct kp_agent *, char *);
+static kp_error_t store(struct agent *, struct kp_unsafe *);
+static kp_error_t search(struct agent *, char *);
+static void discard(evutil_socket_t, short, void *);
 
 struct kp_cmd kp_cmd_agent = {
 	.main  = agent,
@@ -59,7 +65,6 @@ struct kp_cmd kp_cmd_agent = {
 	.opts  = "agent",
 	.desc  = "Run a kickpass agent in background",
 };
-
 
 static void
 agent_accept(evutil_socket_t fd, short events, void *_agent)
@@ -74,15 +79,16 @@ agent_accept(evutil_socket_t fd, short events, void *_agent)
 		return;
 	}
 
-	if ((kp_agent_accept(&agent->kp_agent, &conn->agent)) != KP_SUCCESS) {
+	if ((kp_agent_accept(&agent->kp_agent,
+	                     &conn->agent.kp_agent)) != KP_SUCCESS) {
 		kp_warn(KP_ERRNO, "cannot accept client");
 		return;
 	}
 
-	imsg_init(&conn->ibuf, conn->agent.sock);
-
-	ev = event_new(agent->evb, conn->agent.sock, EV_READ | EV_PERSIST, dispatch,
-	               conn);
+	conn->agent.evb = agent->evb;
+	imsg_init(&conn->ibuf, conn->agent.kp_agent.sock);
+	ev = event_new(agent->evb, conn->agent.kp_agent.sock,
+	               EV_READ | EV_PERSIST, dispatch, conn);
 	event_add(ev, NULL);
 }
 
@@ -111,8 +117,7 @@ dispatch(evutil_socket_t fd, short events, void *_conn)
 				kp_warn(KP_ERRNO, "invalid message");
 				break;
 			}
-			store(&conn->agent,
-			      (struct kp_unsafe *)imsg.data);
+			store(&conn->agent, (struct kp_unsafe *)imsg.data);
 			/* XXX handle error */
 			break;
 		case KP_MSG_SEARCH:
@@ -209,70 +214,110 @@ out:
 }
 
 static kp_error_t
-store(struct kp_agent *agent, struct kp_unsafe *unsafe)
+store(struct agent *agent, struct kp_unsafe *unsafe)
 {
 	kp_error_t ret;
+	struct kp_agent *kp_agent = &agent->kp_agent;
 	struct kp_agent_safe *safe;
+	struct timeout *timeout;
+	struct event *timer;
+	struct timeval timeval;
 
-	if ((ret = kp_agent_safe_create(agent, &safe)) != KP_SUCCESS) {
+	if ((ret = kp_agent_safe_create(kp_agent, &safe)) != KP_SUCCESS) {
 		return ret;
 	}
 
-	safe->timeout = unsafe->timeout;
 	if (strlcpy(safe->path, unsafe->path, PATH_MAX) >= PATH_MAX) {
 		errno = ENOMEM;
-		return KP_ERRNO;
+		ret = KP_ERRNO;
+		goto out;
 	}
 	if (strlcpy(safe->password, unsafe->password, KP_PASSWORD_MAX_LEN)
 	    >= KP_PASSWORD_MAX_LEN) {
 		errno = ENOMEM;
-		return KP_ERRNO;
+		ret = KP_ERRNO;
+		goto out;
 	}
 	if (strlcpy(safe->metadata, unsafe->metadata, KP_METADATA_MAX_LEN)
 	    >= KP_METADATA_MAX_LEN) {
 		errno = ENOMEM;
-		return KP_ERRNO;
+		ret = KP_ERRNO;
+		goto out;
 	}
 
-	return kp_agent_store(agent, safe);
+	if (unsafe->timeout > 0) {
+		if ((timeout = malloc(sizeof(struct timeout))) == NULL) {
+			errno = ENOMEM;
+			ret = KP_ERRNO;
+			goto out;
+		}
+		timeout->agent = agent;
+		if (strlcpy(timeout->path, unsafe->path,
+		            PATH_MAX) >= PATH_MAX) {
+			errno = ENOMEM;
+			ret = KP_ERRNO;
+			goto out;
+		}
+		timeval.tv_sec = unsafe->timeout;
+		timeval.tv_usec = 0;
+		timer = evtimer_new(agent->evb, discard, timeout);
+		evtimer_add(timer, &timeval);
+	}
+
+	return kp_agent_store(kp_agent, safe);
+
+out:
+	kp_agent_safe_free(kp_agent, safe);
+	return ret;
 }
 
 static kp_error_t
-search(struct kp_agent *agent, char *path)
+search(struct agent *agent, char *path)
 {
 	kp_error_t ret;
+	struct kp_agent *kp_agent = &agent->kp_agent;
 	struct kp_agent_safe *safe;
 	struct kp_unsafe unsafe;
 
-	if ((ret = kp_agent_search(agent, path, &safe)) != KP_SUCCESS) {
+	if ((ret = kp_agent_search(kp_agent, path, &safe)) != KP_SUCCESS) {
 		errno = ENOENT;
-		kp_agent_error(agent, KP_ERRNO);
+		kp_agent_error(kp_agent, KP_ERRNO);
 		return ret;
 	}
 
-	safe->timeout = 0; /* TODO compute remaining time ? */
 	if (strlcpy(unsafe.path, safe->path, PATH_MAX) >= PATH_MAX) {
 		errno = ENOMEM;
-		kp_agent_error(agent, KP_ERRNO);
+		kp_agent_error(kp_agent, KP_ERRNO);
 		return KP_ERRNO;
 	}
 	if (strlcpy(unsafe.password, safe->password, KP_PASSWORD_MAX_LEN)
 	    >= KP_PASSWORD_MAX_LEN) {
 		errno = ENOMEM;
-		kp_agent_error(agent, KP_ERRNO);
+		kp_agent_error(kp_agent, KP_ERRNO);
 		return KP_ERRNO;
 	}
 	if (strlcpy(unsafe.metadata, safe->metadata, KP_METADATA_MAX_LEN)
 	    >= KP_METADATA_MAX_LEN) {
 		errno = ENOMEM;
-		kp_agent_error(agent, KP_ERRNO);
+		kp_agent_error(kp_agent, KP_ERRNO);
 		return KP_ERRNO;
 	}
 
-	if ((ret = kp_agent_send(agent, KP_MSG_SEARCH, &unsafe,
-	                     sizeof(struct kp_unsafe))) != KP_SUCCESS) {
+	if ((ret = kp_agent_send(kp_agent, KP_MSG_SEARCH, &unsafe,
+	                         sizeof(struct kp_unsafe))) != KP_SUCCESS) {
 		kp_warn(ret, "cannot send response");
 	}
 
 	return ret;
+}
+
+static void
+discard(evutil_socket_t fd, short events, void *_timeout)
+{
+	struct timeout *timeout = _timeout;
+	struct kp_agent *kp_agent = &timeout->agent->kp_agent;
+
+	kp_agent_discard(kp_agent, timeout->path);
+
+	free(timeout);
 }

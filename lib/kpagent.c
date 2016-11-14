@@ -237,6 +237,17 @@ kp_agent_safe_create(struct kp_agent *agent, struct kp_agent_safe **_safe)
 }
 
 kp_error_t
+kp_agent_safe_free(struct kp_agent *agent, struct kp_agent_safe *safe)
+{
+	assert(safe);
+
+	sodium_free(safe->password);
+	sodium_free(safe->metadata);
+
+	return KP_SUCCESS;
+}
+
+kp_error_t
 kp_agent_store(struct kp_agent *agent, struct kp_agent_safe *safe)
 {
 	struct kp_store *store;
@@ -249,6 +260,29 @@ kp_agent_store(struct kp_agent *agent, struct kp_agent_safe *safe)
 	store->safe = safe;
 
 	RB_INSERT(storage, &storage, store);
+
+	return KP_SUCCESS;
+}
+
+kp_error_t
+kp_agent_discard(struct kp_agent *agent, char *path)
+{
+	struct kp_store needle, *store;
+	struct kp_agent_safe safe;
+
+	if (strlcpy(safe.path, path, PATH_MAX) > PATH_MAX) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+	needle.safe = &safe;
+
+	store = RB_FIND(storage, &storage, &needle);
+	if (store == NULL) {
+		errno = ENOENT;
+		return KP_ERRNO;
+	}
+
+	RB_REMOVE(storage, &storage, store);
 
 	return KP_SUCCESS;
 }

@@ -34,14 +34,17 @@
 #include "kpagent.h"
 
 static kp_error_t open_safe(struct kp_ctx *ctx, int argc, char **argv);
+static kp_error_t parse_opt(struct kp_ctx *, int, char **);
+static void       usage(void);
 
 struct kp_cmd kp_cmd_open = {
 	.main  = open_safe,
-	.usage = NULL,
-	.opts  = "open <safe>",
+	.usage = usage,
+	.opts  = "open [-t] <safe>",
 	.desc  = "Open a password safe and load it in kickpass agent",
-	/* TODO agent = true */
 };
+
+int timeout = 3600;
 
 kp_error_t
 open_safe(struct kp_ctx *ctx, int argc, char **argv)
@@ -49,6 +52,10 @@ open_safe(struct kp_ctx *ctx, int argc, char **argv)
 	kp_error_t ret;
 	struct kp_safe safe;
 	struct kp_unsafe unsafe;
+
+	if ((ret = parse_opt(ctx, argc, argv)) != KP_SUCCESS) {
+		return ret;
+	}
 
 	if (argc - optind != 1) {
 		ret = KP_EINPUT;
@@ -70,20 +77,24 @@ open_safe(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	unsafe.timeout = 1000; /* TODO argv */
-	if ((ret = kp_safe_get_path(ctx, &safe, unsafe.path, PATH_MAX)) != KP_SUCCESS) {
+	unsafe.timeout = timeout;
+	if ((ret = kp_safe_get_path(ctx, &safe, unsafe.path,
+	                            PATH_MAX)) != KP_SUCCESS) {
 		return ret;
 	}
-	if (strlcpy(unsafe.password, safe.password, KP_PASSWORD_MAX_LEN) >= KP_PASSWORD_MAX_LEN) {
+	if (strlcpy(unsafe.password, safe.password,
+	            KP_PASSWORD_MAX_LEN) >= KP_PASSWORD_MAX_LEN) {
 		errno = ENOMEM;
 		return KP_ERRNO;
 	}
-	if (strlcpy(unsafe.metadata, safe.metadata, KP_METADATA_MAX_LEN) >= KP_METADATA_MAX_LEN) {
+	if (strlcpy(unsafe.metadata, safe.metadata,
+	            KP_METADATA_MAX_LEN) >= KP_METADATA_MAX_LEN) {
 		errno = ENOMEM;
 		return KP_ERRNO;
 	}
 
-	kp_agent_send(&ctx->agent, KP_MSG_STORE, &unsafe, sizeof(struct kp_unsafe));
+	kp_agent_send(&ctx->agent, KP_MSG_STORE, &unsafe,
+	              sizeof(struct kp_unsafe));
 
 	if ((ret = kp_safe_close(ctx, &safe)) != KP_SUCCESS) {
 		kp_warn(ret, "cannot cleanly close safe"
@@ -92,4 +103,35 @@ open_safe(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	return KP_SUCCESS;
+}
+
+static kp_error_t
+parse_opt(struct kp_ctx *ctx, int argc, char **argv)
+{
+	int opt;
+	kp_error_t ret = KP_SUCCESS;
+	static struct option longopts[] = {
+		{ "timeout", no_argument,       NULL, 'd' },
+		{ NULL,      0,                 NULL, 0   },
+	};
+
+	while ((opt = getopt_long(argc, argv, "t:", longopts, NULL)) != -1) {
+		switch (opt) {
+		case 't':
+			timeout = atoi(optarg);
+			break;
+		default:
+			ret = KP_EINPUT;
+			kp_warn(ret, "unknown option %c", opt);
+		}
+	}
+
+	return ret;
+}
+
+void
+usage(void)
+{
+	printf("options:\n");
+	printf("    -t, --timeout      Set safe timeout. Default to 3600 s\n");
 }
