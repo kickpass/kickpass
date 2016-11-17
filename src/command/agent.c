@@ -21,6 +21,7 @@
 #include <sys/un.h>
 
 #include <fcntl.h>
+#include <getopt.h>
 #include <imsg.h>
 #include <sodium.h>
 #include <stdio.h>
@@ -54,17 +55,21 @@ struct timeout {
 
 static kp_error_t agent(struct kp_ctx *, int, char **);
 static void agent_accept(evutil_socket_t, short, void *);
+static void discard(evutil_socket_t, short, void *);
 static void dispatch(evutil_socket_t, short, void *);
+static kp_error_t parse_opt(struct kp_ctx *, int, char **);
 static kp_error_t store(struct agent *, struct kp_unsafe *);
 static kp_error_t search(struct agent *, char *);
-static void discard(evutil_socket_t, short, void *);
+static void       usage(void);
 
 struct kp_cmd kp_cmd_agent = {
 	.main  = agent,
-	.usage = NULL,
-	.opts  = "agent",
+	.usage = usage,
+	.opts  = "agent [-d]",
 	.desc  = "Run a kickpass agent in background",
 };
+
+static bool daemonize = true;
 
 static void
 agent_accept(evutil_socket_t fd, short events, void *_agent)
@@ -147,6 +152,10 @@ agent(struct kp_ctx *ctx, int argc, char **argv)
 	struct event *ev;
 	struct stat sb;
 
+	if ((ret = parse_opt(ctx, argc, argv)) != KP_SUCCESS) {
+		return ret;
+	}
+
 	parent_pid = getpid();
 
 	if (strlcpy(socket_dir, TMP_TEMPLATE, PATH_MAX) >= PATH_MAX) {
@@ -182,7 +191,9 @@ agent(struct kp_ctx *ctx, int argc, char **argv)
 
 	printf("%s=\"%s\"\n", KP_AGENT_SOCKET_ENV, socket_path);
 
-	daemon(0, 0);
+	if (daemonize) {
+		daemon(0, 0);
+	}
 	agent.evb = event_base_new();
 
 	ev = event_new(agent.evb, agent.kp_agent.sock, EV_READ | EV_PERSIST,
@@ -320,4 +331,35 @@ discard(evutil_socket_t fd, short events, void *_timeout)
 	kp_agent_discard(kp_agent, timeout->path);
 
 	free(timeout);
+}
+
+static kp_error_t
+parse_opt(struct kp_ctx *ctx, int argc, char **argv)
+{
+	int opt;
+	kp_error_t ret = KP_SUCCESS;
+	static struct option longopts[] = {
+		{ "no-daemon", no_argument,       NULL, 'd' },
+		{ NULL,        0,                 NULL, 0   },
+	};
+
+	while ((opt = getopt_long(argc, argv, "d", longopts, NULL)) != -1) {
+		switch (opt) {
+		case 'd':
+			daemonize = false;
+			break;
+		default:
+			ret = KP_EINPUT;
+			kp_warn(ret, "unknown option %c", opt);
+		}
+	}
+
+	return ret;
+}
+
+void
+usage(void)
+{
+	printf("options:\n");
+	printf("    -d, --no-daemon    Do not daemonize\n");
 }
