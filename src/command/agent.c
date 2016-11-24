@@ -44,6 +44,7 @@ struct agent {
 };
 
 struct conn {
+	struct event *ev;
 	struct agent agent;
 	struct imsgbuf ibuf;
 };
@@ -76,7 +77,6 @@ agent_accept(evutil_socket_t fd, short events, void *_agent)
 {
 	struct agent *agent = _agent;
 	struct conn *conn;
-	struct event *ev;
 
 	if ((conn = malloc(sizeof(struct conn))) == NULL) {
 		errno = ENOMEM;
@@ -92,9 +92,9 @@ agent_accept(evutil_socket_t fd, short events, void *_agent)
 
 	conn->agent.evb = agent->evb;
 	imsg_init(&conn->ibuf, conn->agent.kp_agent.sock);
-	ev = event_new(agent->evb, conn->agent.kp_agent.sock,
+	conn->ev = event_new(agent->evb, conn->agent.kp_agent.sock,
 	               EV_READ | EV_PERSIST, dispatch, conn);
-	event_add(ev, NULL);
+	event_add(conn->ev, NULL);
 }
 
 static void
@@ -103,10 +103,10 @@ dispatch(evutil_socket_t fd, short events, void *_conn)
 	struct imsg imsg;
 	struct conn *conn = _conn;
 
-	if (imsg_read(&conn->ibuf) < 0) {
-		kp_warnx(KP_EINTERNAL, "connection lost");
+	if (imsg_read(&conn->ibuf) <= 0) {
 		imsg_clear(&conn->ibuf);
-		/* XXX clean conn */
+		event_del(conn->ev);
+		free(conn);
 		return;
 	}
 
