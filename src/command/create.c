@@ -31,10 +31,12 @@
 #include "prompt.h"
 #include "safe.h"
 #include "log.h"
+#include "kpagent.h"
 
 static kp_error_t create(struct kp_ctx *, int, char **);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
 static void       usage(void);
+static kp_error_t safe_open(struct kp_ctx *, struct kp_safe *);
 
 struct kp_cmd kp_cmd_create = {
 	.main  = create,
@@ -45,6 +47,42 @@ struct kp_cmd kp_cmd_create = {
 
 static bool generate = false;
 static int  password_len = 20;
+static int timeout = 3600;
+static bool open = false;
+
+static kp_error_t
+safe_open(struct kp_ctx *ctx, struct kp_safe *safe)
+{
+	kp_error_t ret;
+	struct kp_unsafe unsafe;
+
+	if (!ctx->agent.connected) {
+		ret = KP_EINPUT;
+		kp_warn(ret, "not connected to any agent");
+		return ret;
+	}
+
+	unsafe.timeout = timeout;
+	if ((ret = kp_safe_get_path(ctx, safe, unsafe.path,
+	                            PATH_MAX)) != KP_SUCCESS) {
+		return ret;
+	}
+	if (strlcpy(unsafe.password, safe->password,
+	            KP_PASSWORD_MAX_LEN) >= KP_PASSWORD_MAX_LEN) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+	if (strlcpy(unsafe.metadata, safe->metadata,
+	            KP_METADATA_MAX_LEN) >= KP_METADATA_MAX_LEN) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+
+	kp_agent_send(&ctx->agent, KP_MSG_STORE, &unsafe,
+	              sizeof(struct kp_unsafe));
+
+	return KP_SUCCESS;
+}
 
 kp_error_t
 create(struct kp_ctx *ctx, int argc, char **argv)
@@ -94,6 +132,12 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 		goto out;
 	}
 
+	if (open) {
+		if ((ret = safe_open(ctx, &safe)) != KP_SUCCESS) {
+			goto out;
+		}
+	}
+
 	if ((ret = kp_safe_close(ctx, &safe)) != KP_SUCCESS) {
 		goto out;
 	}
@@ -113,16 +157,24 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 	static struct option longopts[] = {
 		{ "generate", no_argument,       NULL, 'g' },
 		{ "length",   required_argument, NULL, 'l' },
+		{ "open",     no_argument,       NULL, 'o' },
+		{ "timeout",  required_argument, NULL, 't' },
 		{ NULL,       0,                 NULL, 0   },
 	};
 
-	while ((opt = getopt_long(argc, argv, "gl:", longopts, NULL)) != -1) {
+	while ((opt = getopt_long(argc, argv, "gl:ot:", longopts, NULL)) != -1) {
 		switch (opt) {
 		case 'g':
 			generate = true;
 			break;
 		case 'l':
 			password_len = atoi(optarg);
+			break;
+		case 'o':
+			open = true;
+			break;
+		case 't':
+			timeout = atoi(optarg);
 			break;
 		default:
 			ret = KP_EINPUT;
@@ -139,4 +191,6 @@ usage(void)
 	printf("options:\n");
 	printf("    -g, --generate     Randomly generate a password\n");
 	printf("    -l, --length=len   Length of the generated passwerd. Default to 20\n");
+	printf("    -o, --open         Keep safe open in agent\n");
+	printf("    -t, --timeout      Set safe timeout. Default to %d s\n", timeout);
 }

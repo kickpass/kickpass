@@ -44,7 +44,7 @@ struct kp_cmd kp_cmd_open = {
 	.desc  = "Open a password safe and load it in kickpass agent",
 };
 
-int timeout = 3600;
+static int timeout = 3600;
 
 kp_error_t
 open_safe(struct kp_ctx *ctx, int argc, char **argv)
@@ -135,5 +135,5 @@ void
 usage(void)
 {
 	printf("options:\n");
-	printf("    -t, --timeout      Set safe timeout. Default to 3600 s\n");
+	printf("    -t, --timeout      Set safe timeout. Default to %d s\n", timeout);
 }
