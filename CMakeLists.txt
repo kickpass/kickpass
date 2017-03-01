@@ -24,13 +24,18 @@ project(KickPass C)
 
 include(GetGitRevisionDescription)
 git_describe(KickPass_VERSION "--always")
-
-string(REGEX REPLACE "v([0-9]+).*" "\\1"
-	KickPass_VERSION_MAJOR ${KickPass_VERSION})
-string(REGEX REPLACE "v[0-9]+\\.([0-9]+).*" "\\1"
-	KickPass_VERSION_MINOR ${KickPass_VERSION})
-string(REGEX REPLACE "v[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1"
-	KickPass_VERSION_PATCH ${KickPass_VERSION})
+if (NOT KickPass_VERSION)
+	set(KickPass_VERSION_MAJOR 0)
+	set(KickPass_VERSION_MINOR 1)
+	set(KickPass_VERSION_PATCH 1)
+else()
+	string(REGEX REPLACE "v([0-9]+).*" "\\1"
+		KickPass_VERSION_MAJOR ${KickPass_VERSION})
+	string(REGEX REPLACE "v[0-9]+\\.([0-9]+).*" "\\1"
+		KickPass_VERSION_MINOR ${KickPass_VERSION})
+	string(REGEX REPLACE "v[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1"
+		KickPass_VERSION_PATCH ${KickPass_VERSION})
+endif()
 
 include_directories("${PROJECT_BINARY_DIR}/include/")
 include_directories("${PROJECT_SOURCE_DIR}/include/")
