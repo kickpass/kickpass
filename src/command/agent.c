@@ -192,7 +192,11 @@ agent(struct kp_ctx *ctx, int argc, char **argv)
 	printf("%s=\"%s\"\n", KP_AGENT_SOCKET_ENV, socket_path);
 
 	if (daemonize) {
-		daemon(0, 0);
+		if (daemon(0, 0) != 0) {
+			ret = KP_ERRNO;
+			kp_warn(ret, "cannot daemonize");
+			goto out;
+		}
 	}
 	agent.evb = event_base_new();
 
