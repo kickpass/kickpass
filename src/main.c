@@ -49,7 +49,7 @@ static kp_error_t command(struct kp_ctx *, int, char **);
 static kp_error_t help(struct kp_ctx *, int, char **);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
 static kp_error_t show_version(struct kp_ctx *);
-static void       usage(void);
+static kp_error_t usage(void);
 
 struct cmd {
 	const char    *name;
@@ -173,8 +173,7 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 		case 'v':
 			return show_version(ctx);
 		case 'h':
-			usage();
-			return KP_SUCCESS;
+			return usage();
 		default:
 			kp_warnx(KP_EINPUT, "unknown option %c", opt);
 			return KP_EINPUT;
@@ -244,7 +243,7 @@ show_version(struct kp_ctx *ctx)
 			KICKPASS_VERSION_MINOR,
 			KICKPASS_VERSION_PATCH);
 
-	return KP_SUCCESS;
+	return KP_EXIT;
 }
 
 static kp_error_t
@@ -270,7 +269,7 @@ help(struct kp_ctx *ctx, int argc, char **argv)
 /*
  * Print global usage by calling each command own usage function.
  */
-static void
+static kp_error_t
 usage(void)
 {
 	int i, opts_max_len = 0;
@@ -296,4 +295,6 @@ usage(void)
 		if (cmds[i-1].cmd == cmds[i].cmd) continue;
 		printf("    %*s%s\n", -opts_max_len, cmds[i].cmd->opts, cmds[i].cmd->desc);
 	}
+
+	return KP_EXIT;
 }
