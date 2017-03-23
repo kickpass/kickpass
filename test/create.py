@@ -52,5 +52,30 @@ class TestCreateCommand(kptest.KPTestCase):
         passwd = self.stdout.splitlines()[1]
         self.assertEqual(len(passwd), 42)
 
+    @kptest.with_agent
+    def test_create_with_agent_is_successful(self):
+        # Given
+        self.editor('env', env="Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
+        self.create("test")
+
+        # When
+        # cat should ask for password, thus master param is not set to None
+        self.cat("test")
+
+        # Then
+        self.assertStdoutEquals("Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
+
+    @kptest.with_agent
+    def test_create_open_with_agent_is_successful(self):
+        # Given
+        self.editor('env', env="Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
+        self.create("test", options=["-o"])
+
+        # When
+        self.cat("test", master=None)
+
+        # Then
+        self.assertStdoutEquals("Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
+
 if __name__ == '__main__':
         unittest.main()
