@@ -74,7 +74,7 @@ open_safe(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	if ((ret = kp_safe_open(ctx, &safe)) != KP_SUCCESS) {
+	if ((ret = kp_safe_open(ctx, &safe, false)) != KP_SUCCESS) {
 		kp_warn(ret, "cannot open safe");
 		return ret;
 	}

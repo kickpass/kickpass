@@ -26,6 +26,7 @@
 enum kp_agent_msg_type {
 	KP_MSG_STORE,
 	KP_MSG_SEARCH,
+	KP_MSG_DISCARD,
 	KP_MSG_ERROR,
 };
 

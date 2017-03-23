@@ -129,13 +129,50 @@ kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 }
 
 /*
+ * Delete a safe
+ */
+kp_error_t
+kp_safe_delete(struct kp_ctx *ctx, struct kp_safe *safe)
+{
+	kp_error_t ret;
+	char path[PATH_MAX];
+
+	assert(safe->open == true);
+
+	if (kp_safe_get_path(ctx, safe, path, PATH_MAX) != KP_SUCCESS) {
+		return ret;
+	}
+
+	if (ctx->agent.connected) {
+		bool result;
+
+		if ((ret = kp_agent_send(&ctx->agent, KP_MSG_DISCARD, path,
+		    PATH_MAX)) != KP_SUCCESS) {
+			/* TODO log reason in verbose mode */
+			return ret;
+		}
+
+		if ((ret = kp_agent_receive(&ctx->agent, KP_MSG_DISCARD,
+		    &result, sizeof(bool))) != KP_SUCCESS) {
+			/* TODO log reason in verbose mode */
+			return ret;
+		}
+	}
+
+	if (unlink(path) != 0) {
+		ret = KP_ERRNO;
+		return ret;
+	}
+}
+
+/*
  * Open a safe.
  */
 kp_error_t
-kp_safe_open(struct kp_ctx *ctx, struct kp_safe *safe)
+kp_safe_open(struct kp_ctx *ctx, struct kp_safe *safe, bool force)
 {
-	/* handle not connect or not found and ask password */
-	if (ctx->agent.connected) {
+	/* handle not connected or not found and ask password */
+	if (!force && ctx->agent.connected) {
 		kp_error_t ret;
 		struct kp_unsafe unsafe;
 		char path[PATH_MAX];
@@ -166,6 +203,8 @@ kp_safe_open(struct kp_ctx *ctx, struct kp_safe *safe)
 			errno = ENOMEM;
 			return KP_ERRNO;
 		}
+
+		safe->open = true;
 
 		return KP_SUCCESS;
 	}

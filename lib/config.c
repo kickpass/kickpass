@@ -62,7 +62,7 @@ kp_cfg_load(struct kp_ctx *ctx)
 
 	/* As there is no real config we just check we are able to open the
 	 * config safe */
-	if ((ret = kp_safe_open(ctx, &cfg_safe)) != KP_SUCCESS) {
+	if ((ret = kp_safe_open(ctx, &cfg_safe, false)) != KP_SUCCESS) {
 		return ret;
 	}
 

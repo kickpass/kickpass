@@ -56,11 +56,12 @@ struct timeout {
 
 static kp_error_t agent(struct kp_ctx *, int, char **);
 static void agent_accept(evutil_socket_t, short, void *);
-static void discard(evutil_socket_t, short, void *);
+static void timeout_discard(evutil_socket_t, short, void *);
 static void dispatch(evutil_socket_t, short, void *);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
 static kp_error_t store(struct agent *, struct kp_unsafe *);
 static kp_error_t search(struct agent *, char *);
+static kp_error_t discard(struct agent *, char *);
 static void       usage(void);
 
 struct kp_cmd kp_cmd_agent = {
@@ -134,6 +135,16 @@ dispatch(evutil_socket_t fd, short events, void *_conn)
 			/* ensure null termination */
 			((char *)imsg.data)[PATH_MAX-1] = '\0';
 			search(&conn->agent, (char *)imsg.data);
+			break;
+		case KP_MSG_DISCARD:
+			if (data_size != PATH_MAX) {
+				errno = EPROTO;
+				kp_warn(KP_ERRNO, "invalid message");
+				break;
+			}
+			/* ensure null termination */
+			((char *)imsg.data)[PATH_MAX-1] = '\0';
+			discard(&conn->agent, (char *)imsg.data);
 			break;
 		}
 
@@ -276,7 +287,7 @@ store(struct agent *agent, struct kp_unsafe *unsafe)
 		}
 		timeval.tv_sec = unsafe->timeout;
 		timeval.tv_usec = 0;
-		timer = evtimer_new(agent->evb, discard, timeout);
+		timer = evtimer_new(agent->evb, timeout_discard, timeout);
 		evtimer_add(timer, &timeval);
 	}
 
@@ -327,8 +338,30 @@ search(struct agent *agent, char *path)
 	return ret;
 }
 
+static kp_error_t
+discard(struct agent *agent, char *path)
+{
+	kp_error_t ret;
+	struct kp_agent *kp_agent = &agent->kp_agent;
+	struct kp_agent_safe *safe;
+	bool result;
+
+	if ((ret = kp_agent_discard(kp_agent, path)) != KP_SUCCESS) {
+		kp_agent_error(kp_agent, ret);
+		return ret;
+	}
+	result = true;
+
+	if ((ret = kp_agent_send(kp_agent, KP_MSG_DISCARD, &result,
+	                         sizeof(bool))) != KP_SUCCESS) {
+		kp_warn(ret, "cannot send response");
+	}
+
+	return ret;
+}
+
 static void
-discard(evutil_socket_t fd, short events, void *_timeout)
+timeout_discard(evutil_socket_t fd, short events, void *_timeout)
 {
 	struct timeout *timeout = _timeout;
 	struct kp_agent *kp_agent = &timeout->agent->kp_agent;
