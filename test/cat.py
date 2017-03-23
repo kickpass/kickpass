@@ -30,5 +30,19 @@ class TestOpenCommand(kptest.KPTestCase):
         # Then
         self.assertStdoutEquals("Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
 
+    def test_cat_is_successful_with_agent(self):
+        # Given
+        self.init()
+        self.editor('env', env="Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
+        self.create("test")
+        self.start_agent()
+        self.open("test")
+
+        # When
+        self.cat("test", master=None)
+
+        # Then
+        self.assertStdoutEquals("Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
+
 if __name__ == '__main__':
         unittest.main()

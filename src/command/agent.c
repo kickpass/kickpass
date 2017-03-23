@@ -189,7 +189,8 @@ agent(struct kp_ctx *ctx, int argc, char **argv)
 		goto out;
 	}
 
-	printf("%s=\"%s\"\n", KP_AGENT_SOCKET_ENV, socket_path);
+	fprintf(stdout, "%s=\"%s\"\n", KP_AGENT_SOCKET_ENV, socket_path);
+	fflush(stdout);
 
 	if (daemonize) {
 		if (daemon(0, 0) != 0) {
