@@ -22,7 +22,6 @@ class TestInitCommand(kptest.KPTestCase):
         # Given
 
         # When
-        self.init()
 
         # Then
         self.assertWsExists()

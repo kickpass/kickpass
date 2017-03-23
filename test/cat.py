@@ -20,7 +20,6 @@ class TestCatCommand(kptest.KPTestCase):
 
     def test_cat_is_successful(self):
         # Given
-        self.init()
         self.editor('env', env="Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
         self.create("test")
 
@@ -30,12 +29,11 @@ class TestCatCommand(kptest.KPTestCase):
         # Then
         self.assertStdoutEquals("Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
 
+    @kptest.with_agent
     def test_cat_is_successful_with_agent(self):
         # Given
-        self.init()
         self.editor('env', env="Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
         self.create("test")
-        self.start_agent()
         self.open("test")
 
         # When

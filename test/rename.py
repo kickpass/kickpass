@@ -20,7 +20,6 @@ class TestRenameCommand(kptest.KPTestCase):
 
     def test_rename_is_successful(self):
         # Given
-        self.init()
         self.editor('date')
         self.create("old")
 

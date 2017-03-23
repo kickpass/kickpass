@@ -19,12 +19,11 @@ import time
 
 class TestOpenCommand(kptest.KPTestCase):
 
+    @kptest.with_agent
     def test_open_timeout_remove_password_from_agent(self):
         # Given
-        self.init()
         self.editor('env', env="Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
         self.create("test")
-        self.start_agent()
         self.open("test", options=['-t', '1'])
 
         # When

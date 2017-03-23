@@ -20,7 +20,6 @@ class TestEditCommand(kptest.KPTestCase):
 
     def test_edit_is_successful(self):
         # Given
-        self.init()
         self.editor('env', env="But a RocknRolla, oh, he's different. Why? Because a real RocknRolla wants the fucking lot.")
         self.create("test")
         self.editor('save')
@@ -36,7 +35,6 @@ class TestEditCommand(kptest.KPTestCase):
 
     def test_edit_only_password_is_successful(self):
         # Given
-        self.init()
         self.editor('date')
         self.create("test")
 
@@ -49,7 +47,6 @@ class TestEditCommand(kptest.KPTestCase):
 
     def test_edit_only_metadata_is_successful(self):
         # Given
-        self.init()
         self.editor('date')
         self.create("test")
         self.editor('env', env="Oh, you are something special, Mr. Johnny Quid.")
@@ -63,7 +60,6 @@ class TestEditCommand(kptest.KPTestCase):
 
     def test_edit_with_empty_password(self):
         # Given
-        self.init()
         self.editor('date')
         self.create("test", password="RocknRolla")
 
@@ -76,7 +72,6 @@ class TestEditCommand(kptest.KPTestCase):
 
     def test_edit_with_empty_password_erased(self):
         # Given
-        self.init()
         self.editor('date')
         self.create("test", password="RocknRolla")
 

@@ -20,7 +20,6 @@ class TestCreateCommand(kptest.KPTestCase):
 
     def test_create_is_successful(self):
         # Given
-        self.init()
         self.editor('date')
 
         # When
@@ -32,7 +31,6 @@ class TestCreateCommand(kptest.KPTestCase):
 
     def test_create_with_subdir_is_successful(self):
         # Given
-        self.init()
         self.editor('date')
 
         # When
@@ -44,7 +42,6 @@ class TestCreateCommand(kptest.KPTestCase):
 
     def test_create_with_password_generation_is_successful(self):
         # Given
-        self.init()
         self.editor('save')
 
         # When

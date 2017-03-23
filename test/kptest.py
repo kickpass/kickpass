@@ -30,6 +30,15 @@ class KPAgent(subprocess.Popen):
         os.environ.update(self.env)
 
 
+def with_agent(f):
+    def wrapper(self):
+        self.start_agent()
+        f(self)
+        self.stop_agent()
+
+    return wrapper
+
+
 class KPTestCase(unittest.TestCase):
     EDITORS = {
             'env': 'TestFunctionalEditorEnv.sh',
@@ -48,6 +57,7 @@ class KPTestCase(unittest.TestCase):
 
     def setUp(self):
         shutil.rmtree(self.kp_ws, ignore_errors=True)
+        self.init()
 
     # Env
     def editor(self, editor, env=None):
@@ -117,7 +127,7 @@ class KPTestCase(unittest.TestCase):
         res = self.agent.poll()
         self.assertIsNone(res)
         self.agent.terminate()
-        res = self.agent.poll()
+        res = self.agent.wait(timeout=5)
         self.assertIsNotNone(res)
         for env in self.agent.env:
             del os.environ[env]

@@ -20,7 +20,6 @@ class TestDeleteCommand(kptest.KPTestCase):
 
     def test_delete_is_successful(self):
         # Given
-        self.init()
         self.editor('date')
         self.create("test")
 
@@ -32,7 +31,6 @@ class TestDeleteCommand(kptest.KPTestCase):
 
     def test_delete_refuse_to_delete_without_valid_password(self):
         # Given
-        self.init()
         self.editor('date')
         self.create("test")
 
