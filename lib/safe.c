@@ -64,25 +64,11 @@ kp_safe_load(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 	return KP_SUCCESS;
 }
 
-/*
- * Create a new safe.
- * The returned safe is opened.
- */
-kp_error_t
-kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
+static kp_error_t
+kp_safe_mkdir(struct kp_ctx *ctx, char *path)
 {
-	kp_error_t   ret;
 	struct stat  stats;
-	char         path[PATH_MAX];
-	char        *rdir;
-
-	if ((ret = kp_safe_init(safe, name, true)) != KP_SUCCESS) {
-		return ret;
-	}
-
-	if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
-		return ret;
-	}
+	char   *rdir;
 
 	rdir = path + strlen(ctx->ws_path);
 	rdir++; /* Skip first / as it is part of the ctx->ws */
@@ -99,6 +85,31 @@ kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 		}
 		*rdir = '/';
 		rdir++;
+	}
+	return KP_SUCCESS;
+}
+
+/*
+ * Create a new safe.
+ * The returned safe is opened.
+ */
+kp_error_t
+kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
+{
+	kp_error_t   ret;
+	struct stat  stats;
+	char         path[PATH_MAX];
+
+	if ((ret = kp_safe_init(safe, name, true)) != KP_SUCCESS) {
+		return ret;
+	}
+
+	if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
+		return ret;
+	}
+
+	if ((ret = kp_safe_mkdir(ctx, path)) != KP_SUCCESS) {
+		return ret;
 	}
 
 	if (stat(path, &stats) == 0) {
@@ -194,6 +205,10 @@ kp_safe_rename(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 	}
 
 	if ((ret = kp_safe_get_path(ctx, safe, newpath, PATH_MAX)) != KP_SUCCESS) {
+		return ret;
+	}
+
+	if ((ret = kp_safe_mkdir(ctx, newpath)) != KP_SUCCESS) {
 		return ret;
 	}
 
