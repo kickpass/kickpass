@@ -29,6 +29,7 @@
 #define KP_NO_HOME          6
 #define KP_EDECRYPT         7
 #define KP_EENCRYPT         8
+#define KP_TOOMANYARGS      9
 
 typedef int kp_error_t;
 

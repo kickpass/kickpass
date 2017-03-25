@@ -47,8 +47,30 @@ list(struct kp_ctx *ctx, int argc, char **argv)
 	int nsafes = 0;
 	int i;
 	size_t ignore;
+	char path[PATH_MAX];
 
-	list_dir(&safes, &nsafes, ctx->ws_path);
+	if (argc > 3) {
+		kp_warn(KP_TOOMANYARGS, argv[1]);
+		return KP_TOOMANYARGS;
+	}
+
+	if (strlcpy(path, ctx->ws_path, PATH_MAX) >= PATH_MAX) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+
+	if (argc == 3) {
+		if (strlcat(path, "/", PATH_MAX) >= PATH_MAX) {
+			errno = ENOMEM;
+			return KP_ERRNO;
+		}
+		if (strlcat(path, argv[2],  PATH_MAX) >= PATH_MAX) {
+			errno = ENOMEM;
+			return KP_ERRNO;
+		}
+	}
+
+	list_dir(&safes, &nsafes, path);
 
 	qsort(safes, nsafes, sizeof(char *), path_sort);
 
