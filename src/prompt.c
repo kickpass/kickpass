@@ -14,13 +14,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/types.h>
+#include <sys/wait.h>
+
 #include <stddef.h>
 #include <stdlib.h>
 #include <assert.h>
 
 #include <readpassphrase.h>
+#include <signal.h>
 #include <sodium.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "kickpass.h"
 #include "safe.h"
@@ -29,11 +34,74 @@
 #define PASSWORD_PROMPT         "[kickpass] %s password: "
 #define PASSWORD_CONFIRM_PROMPT "[kickpass] confirm: "
 
+static kp_error_t
+kp_askpass(const char *askpass, const char *prompt, char *password)
+{
+	pid_t pid, ret;
+	size_t len;
+	int p[2], status;
+	void (*osigchld)(int);
+
+	if (fflush(stdout) != 0) {
+		return KP_ERRNO;
+	}
+	if (askpass == NULL) {
+		return KP_EINTERNAL;
+	}
+	if (pipe(p) < 0) {
+		return KP_ERRNO;
+	}
+	osigchld = signal(SIGCHLD, SIG_DFL);
+	if ((pid = fork()) < 0) {
+		signal(SIGCHLD, osigchld);
+		return KP_ERRNO;
+	}
+	if (pid == 0) {
+		close(p[0]);
+		if (dup2(p[1], STDOUT_FILENO) < 0) {
+			kp_warn(KP_ERRNO, "kp_asskpass: dup2");
+			exit(1);
+		}
+		execlp(askpass, askpass, prompt, (char *)NULL);
+		kp_warn(KP_ERRNO, "kp_asskpass: exec(%s)", askpass);
+		exit(1);
+	}
+	close(p[1]);
+
+	len = 0;
+	do {
+		ssize_t r = read(p[0], password + len,
+		    KP_PASSWORD_MAX_LEN - 1 - len);
+		if (r == -1 && errno == EINTR) {
+			continue;
+		}
+		if (r <= 0)
+			break;
+		len += r;
+	} while (KP_PASSWORD_MAX_LEN - 1 - len > 0);
+	password[len] = '\0';
+	close(p[0]);
+
+	while ((ret = waitpid(pid, &status, 0)) < 0) {
+		if (errno != EINTR)
+			break;
+	}
+
+	signal(SIGCHLD, osigchld);
+	if (ret == -1 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+		memset(password, 0, KP_PASSWORD_MAX_LEN);
+		return KP_ERRNO;
+	}
+	password[strcspn(password, "\r\n")] = '\0';
+	return KP_SUCCESS;
+}
+
 kp_error_t
 kp_prompt_password(const char *type, bool confirm, char *password)
 {
 	kp_error_t ret = KP_SUCCESS;
 	char *prompt = NULL;
+	const char *askpass;
 	size_t prompt_size;
 	char *confirmation = NULL;
 
@@ -52,6 +120,14 @@ kp_prompt_password(const char *type, bool confirm, char *password)
 
 	snprintf(prompt, prompt_size, PASSWORD_PROMPT, type);
 
+	if (!confirm && getenv("DISPLAY") && (askpass = getenv("KP_ASKPASS"))) {
+		if ((ret = kp_askpass(askpass, prompt, password))
+				!= KP_SUCCESS) {
+			kp_warn(ret, "cannot read password");
+			goto out;
+		}
+		goto out;
+	}
 	if (readpassphrase(prompt, password, KP_PASSWORD_MAX_LEN,
 				RPP_ECHO_OFF | RPP_REQUIRE_TTY) == NULL) {
 		ret = KP_ERRNO;
