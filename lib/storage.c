@@ -15,6 +15,11 @@
  */
 
 #include <sys/types.h>
+#ifndef __linux__
+#include <sys/endian.h>
+#else
+#include <endian.h>
+#endif
 
 #include <stdlib.h>
 #include <stdint.h>
