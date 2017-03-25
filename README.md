@@ -62,7 +62,7 @@ Technical overview
 
 Kickpass is built around a shared library named libkickpass.
 
-libkickpass leverage [https://github.com/jedisct1/libsodium/](libsodium) to
+libkickpass leverage [libsodium](https://github.com/jedisct1/libsodium/) to
 create safes.
 
 Safes are created using authenticated encryption with associated data. As of
