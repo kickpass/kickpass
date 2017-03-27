@@ -32,5 +32,19 @@ class TestRenameCommand(kptest.KPTestCase):
         self.assertSafeExists("new")
         self.assertSafeIsBigEnough("new")
 
+    def test_rename_on_nonexistent_directory_is_successful(self):
+        # Given
+        self.init()
+        self.editor('date')
+        self.create("old")
+
+        # When
+        self.rename("old", "nonexistent/new")
+
+        # Then
+        self.assertSafeDoesntExists("old")
+        self.assertSafeExists("nonexistent/new")
+        self.assertSafeIsBigEnough("nonexistent/new")
+
 if __name__ == '__main__':
         unittest.main()
