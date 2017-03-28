@@ -44,5 +44,28 @@ class TestListCommand(kptest.KPTestCase):
         # Then
         self.assertStdoutEquals("subdir/other", "subdir/test")
 
+    def test_list_subpath(self):
+        # Given
+        self.init()
+        self.editor('date')
+        self.create("withoutdir")
+        self.create("subdir/test")
+        self.create("subdir/other")
+        self.create("important/doh")
+        self.create("important/lastone")
+        self.create("boringdir/stuff")
+        self.create("boringdir/things")
+
+        # When
+        self.cmd(["ls", "subdir", "important"])
+
+        # Then
+        self.assertStdoutEquals("subdir/",
+                                "  other",
+                                "  test",
+                                "important/",
+                                "  doh",
+                                "  lastone")
+
 if __name__ == '__main__':
         unittest.main()
