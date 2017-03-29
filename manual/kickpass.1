@@ -25,7 +25,7 @@
 .Nm kickpass Cm init
 .Nm kickpass Cm create Oo Fl gl Ar len Oc Ar safe
 .Nm kickpass Cm open Oo Fl pm Oc Ar safe
-.Nm kickpass Cm edit Oo Fl pm Oc Ar safe
+.Nm kickpass Cm edit Oo Fl pmgl Oc Ar safe
 .Nm kickpass Cm copy Ar safe
 .Nm kickpass Cm list Oo Ar path Oc
 .Nm kickpass Cm delete Ar safe
@@ -92,7 +92,7 @@ Print password
 .It Fl m Fl -metadata
 Print metadata
 .El
-.Ss Nm kickpass Cm edit Oo Fl pm Oc Ar safe
+.Ss Nm kickpass Cm edit Oo Fl pmgl Oc Ar safe
 Prompt for a new password and edit metadata from
 .Ar safe
 using
@@ -103,6 +103,12 @@ environment variable
 Edit only password
 .It Fl m Fl -metadata
 Edit only metadata
+.It Fl g Fl -generate
+Create a new safe with a generated random password
+.It Fl l Fl -length Ar len
+Generate a random password of
+.Ar len
+length
 .El
 .Ss Nm kickpass Cm copy Ar safe
 Copy

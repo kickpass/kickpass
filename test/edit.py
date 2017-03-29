@@ -87,5 +87,20 @@ class TestEditCommand(kptest.KPTestCase):
         self.open("test", options=["-p"])
         self.assertStdoutEquals()
 
+    def test_edit_with_password_generation_is_successful(self):
+        # Given
+        self.init()
+        self.editor('save')
+        self.create("test", password="RocknRolla")
+
+        # When
+        self.edit("test", options=["-g", "-l", "42"], password=None)
+
+        # Then
+        self.open("test", options=["-p"])
+        passwd = self.stdout.splitlines()[1]
+        self.assertNotEqual(passwd, "RocknRolla")
+        self.assertEqual(len(passwd), 42)
+
 if __name__ == '__main__':
         unittest.main()

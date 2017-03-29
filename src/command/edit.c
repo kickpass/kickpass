@@ -27,6 +27,7 @@
 #include "command.h"
 #include "edit.h"
 #include "editor.h"
+#include "password.h"
 #include "prompt.h"
 #include "safe.h"
 #include "log.h"
@@ -40,13 +41,15 @@ static void usage(void);
 struct kp_cmd kp_cmd_edit = {
 	.main  = edit,
 	.usage = usage,
-	.opts  = "edit [-pm] <safe>",
+	.opts  = "edit [-pmgl] <safe>",
 	.desc  = "Edit a password safe with $EDIT",
 	.lock  = true,
 };
 
 static bool password = false;
 static bool metadata = false;
+static bool generate = false;
+static int  password_len = 20;
 
 kp_error_t
 edit(struct kp_ctx *ctx, int argc, char **argv)
@@ -73,8 +76,12 @@ edit(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	if (password) {
-		if ((ret = edit_password(&safe)) != KP_SUCCESS) {
-			return ret;
+		if (generate) {
+			kp_password_generate(safe.password, password_len);
+		} else {
+			if ((ret = edit_password(&safe)) != KP_SUCCESS) {
+				return ret;
+			}
 		}
 	}
 
@@ -168,16 +175,24 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 	static struct option longopts[] = {
 		{ "password", no_argument, NULL, 'p' },
 		{ "metadata", no_argument, NULL, 'm' },
+		{ "generate", no_argument,       NULL, 'g' },
+		{ "length",   required_argument, NULL, 'l' },
 		{ NULL,       0,           NULL, 0   },
 	};
 
-	while ((opt = getopt_long(argc, argv, "pm", longopts, NULL)) != -1) {
+	while ((opt = getopt_long(argc, argv, "pmgl:", longopts, NULL)) != -1) {
 		switch (opt) {
 		case 'p':
 			password = true;
 			break;
 		case 'm':
 			metadata = true;
+			break;
+		case 'g':
+			generate = true;
+			break;
+		case 'l':
+			password_len = atoi(optarg);
 			break;
 		default:
 			ret = KP_EINPUT;
@@ -205,5 +220,7 @@ usage(void)
 {
 	printf("options:\n");
 	printf("    -p, --password     Edit only password\n");
+	printf("    -g, --generate     Randomly generate a password\n");
+	printf("    -l, --length=len   Length of the generated passwerd. Default to 20\n");
 	printf("    -m, --metadata     Edit only metadata\n");
 }
