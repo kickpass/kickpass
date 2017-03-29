@@ -18,6 +18,7 @@
 
 #include <dirent.h>
 #include <errno.h>
+#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -46,11 +47,11 @@ list(struct kp_ctx *ctx, int argc, char **argv)
 {
 	int i;
 
-	if (argc < 3) {
+	if (argc == optind) {
 		list_dir(ctx, ctx->ws_path, "", false);
 	}
 
-	for (i = 2; i < argc; i++) {
+	for (i = optind; i < argc; i++) {
 		char path[PATH_MAX];
 
 		if (strlcpy(path, ctx->ws_path, PATH_MAX) >= PATH_MAX) {
