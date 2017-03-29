@@ -261,12 +261,12 @@ kp_safe_save(struct kp_ctx *ctx, struct kp_safe *safe)
 		if (strlcpy(unsafe.password, safe->password,
 			    KP_PASSWORD_MAX_LEN) >= KP_PASSWORD_MAX_LEN) {
 			errno = ENOMEM;
-			return KP_ERRNO;
+			goto finally;
 		}
 		if (strlcpy(unsafe.metadata, safe->metadata,
 			    KP_METADATA_MAX_LEN) >= KP_METADATA_MAX_LEN) {
 			errno = ENOMEM;
-			return KP_ERRNO;
+			goto finally;
 		}
 
 		if ((ret = kp_agent_send(&ctx->agent, KP_MSG_STORE, &unsafe,
@@ -344,6 +344,49 @@ kp_safe_rename(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 		return ret;
 	}
 
+	if (ctx->agent.connected) {
+		struct kp_unsafe unsafe;
+		bool result;
+
+		if ((ret = kp_agent_send(&ctx->agent, KP_MSG_DISCARD, oldpath,
+		    PATH_MAX)) != KP_SUCCESS) {
+			/* TODO log reason in verbose mode */
+			goto finally;
+		}
+
+		if ((ret = kp_agent_receive(&ctx->agent, KP_MSG_DISCARD,
+		    &result, sizeof(bool))) != KP_SUCCESS) {
+			if (ret != KP_ERRNO || errno != ENOENT) {
+				/* TODO log reason in verbose mode */
+			}
+			goto finally;
+		}
+
+		if (strlcpy(unsafe.path, newpath, PATH_MAX) >= PATH_MAX) {
+			errno = ENOMEM;
+			goto finally;
+		}
+
+		if (strlcpy(unsafe.password, safe->password,
+			    KP_PASSWORD_MAX_LEN) >= KP_PASSWORD_MAX_LEN) {
+			errno = ENOMEM;
+			goto finally;
+		}
+		if (strlcpy(unsafe.metadata, safe->metadata,
+			    KP_METADATA_MAX_LEN) >= KP_METADATA_MAX_LEN) {
+			errno = ENOMEM;
+			goto finally;
+		}
+
+		if ((ret = kp_agent_send(&ctx->agent, KP_MSG_STORE, &unsafe,
+		   sizeof(struct kp_unsafe))) != KP_SUCCESS) {
+			/* TODO log reason in verbose mode */
+			goto finally;
+		}
+	}
+
+
+finally:
 	if ((ret = kp_safe_mkdir(ctx, newpath)) != KP_SUCCESS) {
 		return ret;
 	}
