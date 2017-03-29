@@ -343,7 +343,6 @@ discard(struct agent *agent, char *path)
 {
 	kp_error_t ret;
 	struct kp_agent *kp_agent = &agent->kp_agent;
-	struct kp_agent_safe *safe;
 	bool result;
 
 	if ((ret = kp_agent_discard(kp_agent, path)) != KP_SUCCESS) {

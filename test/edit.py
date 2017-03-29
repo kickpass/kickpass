@@ -84,7 +84,6 @@ class TestEditCommand(kptest.KPTestCase):
 
     def test_edit_with_password_generation_is_successful(self):
         # Given
-        self.init()
         self.editor('save')
         self.create("test", password="RocknRolla")
 
@@ -96,6 +95,27 @@ class TestEditCommand(kptest.KPTestCase):
         passwd = self.stdout.splitlines()[1]
         self.assertNotEqual(passwd, "RocknRolla")
         self.assertEqual(len(passwd), 42)
+
+    def test_edit_opened_safe_is_successful(self):
+        # Given
+        self.start_agent()
+        self.editor('date')
+        self.create("test", password="RocknRolla", options=["-o"])
+        self.editor('env', env="But a RocknRolla, oh, he's different. Why? Because a real RocknRolla wants the fucking lot.")
+
+        # When
+        self.edit("test", password="42")
+
+        # Then
+        self.cat("test", master=None, options=["-pm"])
+        self.assertStdoutEquals("42",
+                                "But a RocknRolla, oh, he's different. Why? Because a real RocknRolla wants the fucking lot.")
+
+        # When
+        self.stop_agent()
+        self.cat("test", options=["-pm"])
+        self.assertStdoutEquals("42",
+                                "But a RocknRolla, oh, he's different. Why? Because a real RocknRolla wants the fucking lot.")
 
 if __name__ == '__main__':
         unittest.main()

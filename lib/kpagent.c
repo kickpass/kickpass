@@ -188,7 +188,15 @@ out:
 	}
 
 	if (imsg.hdr.type != type) {
-		return KP_INVALID_MSG;
+		if (imsg.hdr.type == KP_MSG_ERROR) {
+			struct kp_msg_error *error = (struct kp_msg_error *)imsg.data;
+			if (error->err == KP_ERRNO) {
+				errno = error->err_no;
+			}
+			return error->err;
+		} else {
+			return KP_INVALID_MSG;
+		}
 	}
 
 	if (imsg.hdr.len - IMSG_HEADER_SIZE != size) {
@@ -196,7 +204,9 @@ out:
 		return KP_ERRNO;
 	}
 
-	memcpy(data, imsg.data, size);
+	if (data) {
+		memcpy(data, imsg.data, size);
+	}
 	return KP_SUCCESS;
 }
 
@@ -250,7 +260,7 @@ kp_agent_safe_free(struct kp_agent *agent, struct kp_agent_safe *safe)
 kp_error_t
 kp_agent_store(struct kp_agent *agent, struct kp_agent_safe *safe)
 {
-	struct kp_store *store;
+	struct kp_store *store, *existing;
 
 	if ((store = malloc(sizeof(struct kp_store))) == NULL) {
 		errno = ENOMEM;
@@ -259,7 +269,11 @@ kp_agent_store(struct kp_agent *agent, struct kp_agent_safe *safe)
 
 	store->safe = safe;
 
-	RB_INSERT(storage, &storage, store);
+	existing = RB_INSERT(storage, &storage, store);
+	if (existing != NULL) {
+		kp_agent_safe_free(agent, existing->safe);
+		existing->safe = safe;
+	}
 
 	return KP_SUCCESS;
 }
@@ -282,6 +296,7 @@ kp_agent_discard(struct kp_agent *agent, char *path)
 		return KP_ERRNO;
 	}
 
+	kp_agent_safe_free(agent, store->safe);
 	RB_REMOVE(storage, &storage, store);
 
 	return KP_SUCCESS;

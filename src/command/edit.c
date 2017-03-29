@@ -70,7 +70,7 @@ edit(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	if ((ret = kp_safe_open(ctx, &safe, false)) != KP_SUCCESS) {
+	if ((ret = kp_safe_open(ctx, &safe, true)) != KP_SUCCESS) {
 		return ret;
 	}
 
