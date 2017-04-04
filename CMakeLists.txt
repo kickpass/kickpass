@@ -26,7 +26,7 @@ include(CheckLibraryExists)
 
 include(GetGitRevisionDescription)
 git_describe(KickPass_VERSION "--always")
-if (NOT KickPass_VERSION)
+if (NOT KickPass_VERSION OR "$ENV{TRAVIS}")
 	set(KickPass_VERSION_MAJOR 0)
 	set(KickPass_VERSION_MINOR 1)
 	set(KickPass_VERSION_PATCH 1)
