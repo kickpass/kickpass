@@ -126,7 +126,7 @@ class KPTestCase(unittest.TestCase):
         res = self.agent.poll()
         self.assertIsNone(res)
         self.agent.terminate()
-        res = self.agent.wait(timeout=5)
+        res = self.agent.wait()
         self.agent.stdout.close()
         self.assertIsNotNone(res)
         for env in self.agent.env:
