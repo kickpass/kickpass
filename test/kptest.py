@@ -117,11 +117,10 @@ class KPTestCase(unittest.TestCase):
             self.child.sendline(yesno)
 
         for line in self.child:
-            self.stdout = self.stdout + line.decode(sys.stdin.encoding)
+            self.stdout = self.stdout + (line.decode(sys.stdin.encoding) if sys.stdin.encoding is not None else line)
 
     def start_agent(self):
         self.agent = KPAgent(self.kp)
-        self.agent
 
     def stop_agent(self):
         res = self.agent.poll()
