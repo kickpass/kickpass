@@ -20,7 +20,6 @@ class TestRenameCommand(kptest.KPTestCase):
 
     def test_rename_is_successful(self):
         # Given
-        self.init()
         self.editor('date')
         self.create("old")
 
@@ -45,6 +44,26 @@ class TestRenameCommand(kptest.KPTestCase):
         self.assertSafeDoesntExists("old")
         self.assertSafeExists("nonexistent/new")
         self.assertSafeIsBigEnough("nonexistent/new")
+
+    def test_rename_with_agent_is_successful(self):
+        # Given
+        self.start_agent()
+        self.editor('env', env="But a RocknRolla, oh, he's different. Why? Because a real RocknRolla wants the fucking lot.")
+        self.create("old", password="42", options=["-o"])
+
+        # When
+        self.rename("old", "new")
+
+        # Then
+        self.cat("new", master=None, options=["-pm"])
+        self.assertStdoutEquals("42",
+                                "But a RocknRolla, oh, he's different. Why? Because a real RocknRolla wants the fucking lot.")
+
+        # When
+        self.stop_agent()
+        self.cat("new", options=["-pm"])
+        self.assertStdoutEquals("42",
+                                "But a RocknRolla, oh, he's different. Why? Because a real RocknRolla wants the fucking lot.")
 
 if __name__ == '__main__':
         unittest.main()

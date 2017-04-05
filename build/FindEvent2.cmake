@@ -13,18 +13,11 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
-import unittest
-import kptest
 
-class TestInitCommand(kptest.KPTestCase):
+include(FindPackageHandleStandardArgs)
 
-    def test_init_is_successful(self):
-        # Given
+find_path(EVENT2_INCLUDE_DIRS NAMES event2/event.h)
+find_library(EVENT2_LIBRARIES NAMES event_core)
 
-        # When
-
-        # Then
-        self.assertWsExists()
-
-if __name__ == '__main__':
-        unittest.main()
+find_package_handle_standard_args(Event2
+	REQUIRED_VARS EVENT2_INCLUDE_DIRS EVENT2_LIBRARIES)

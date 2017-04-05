@@ -63,6 +63,8 @@ kp_init(struct kp_ctx *ctx)
 		return KP_ERRNO;
 	}
 
+	ctx->password[0] = '\0';
+
 	ctx->cfg.memlimit = crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_SENSITIVE/5;
 	ctx->cfg.opslimit = crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_SENSITIVE/5;
 

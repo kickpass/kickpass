@@ -20,7 +20,6 @@ class TestEditCommand(kptest.KPTestCase):
 
     def test_edit_is_successful(self):
         # Given
-        self.init()
         self.editor('env', env="But a RocknRolla, oh, he's different. Why? Because a real RocknRolla wants the fucking lot.")
         self.create("test")
         self.editor('save')
@@ -36,7 +35,6 @@ class TestEditCommand(kptest.KPTestCase):
 
     def test_edit_only_password_is_successful(self):
         # Given
-        self.init()
         self.editor('date')
         self.create("test")
 
@@ -44,12 +42,11 @@ class TestEditCommand(kptest.KPTestCase):
         self.edit("test", password="RocknRolla", options=["-p"])
 
         # Then
-        self.open("test", options=["-p"])
+        self.cat("test", options=["-p"])
         self.assertStdoutEquals("RocknRolla")
 
     def test_edit_only_metadata_is_successful(self):
         # Given
-        self.init()
         self.editor('date')
         self.create("test")
         self.editor('env', env="Oh, you are something special, Mr. Johnny Quid.")
@@ -58,12 +55,11 @@ class TestEditCommand(kptest.KPTestCase):
         self.edit("test", password=None, options=["-m"])
 
         # Then
-        self.open("test")
+        self.cat("test")
         self.assertStdoutEquals("Oh, you are something special, Mr. Johnny Quid.")
 
     def test_edit_with_empty_password(self):
         # Given
-        self.init()
         self.editor('date')
         self.create("test", password="RocknRolla")
 
@@ -71,12 +67,11 @@ class TestEditCommand(kptest.KPTestCase):
         self.edit("test", password="", options=["-p"], yesno="n")
 
         # Then
-        self.open("test", options=["-p"])
+        self.cat("test", options=["-p"])
         self.assertStdoutEquals("RocknRolla")
 
     def test_edit_with_empty_password_erased(self):
         # Given
-        self.init()
         self.editor('date')
         self.create("test", password="RocknRolla")
 
@@ -84,12 +79,11 @@ class TestEditCommand(kptest.KPTestCase):
         self.edit("test", password="", options=["-p"], yesno="y")
 
         # Then
-        self.open("test", options=["-p"])
+        self.cat("test", options=["-p"])
         self.assertStdoutEquals()
 
     def test_edit_with_password_generation_is_successful(self):
         # Given
-        self.init()
         self.editor('save')
         self.create("test", password="RocknRolla")
 
@@ -97,10 +91,31 @@ class TestEditCommand(kptest.KPTestCase):
         self.edit("test", options=["-g", "-l", "42"], password=None)
 
         # Then
-        self.open("test", options=["-p"])
+        self.cat("test", options=["-p"])
         passwd = self.stdout.splitlines()[1]
         self.assertNotEqual(passwd, "RocknRolla")
         self.assertEqual(len(passwd), 42)
+
+    def test_edit_opened_safe_is_successful(self):
+        # Given
+        self.start_agent()
+        self.editor('date')
+        self.create("test", password="RocknRolla", options=["-o"])
+        self.editor('env', env="But a RocknRolla, oh, he's different. Why? Because a real RocknRolla wants the fucking lot.")
+
+        # When
+        self.edit("test", password="42")
+
+        # Then
+        self.cat("test", master=None, options=["-pm"])
+        self.assertStdoutEquals("42",
+                                "But a RocknRolla, oh, he's different. Why? Because a real RocknRolla wants the fucking lot.")
+
+        # When
+        self.stop_agent()
+        self.cat("test", options=["-pm"])
+        self.assertStdoutEquals("42",
+                                "But a RocknRolla, oh, he's different. Why? Because a real RocknRolla wants the fucking lot.")
 
 if __name__ == '__main__':
         unittest.main()

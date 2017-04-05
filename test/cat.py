@@ -15,24 +15,34 @@
 #
 import unittest
 import kptest
-import time
 
-class TestOpenCommand(kptest.KPTestCase):
+class TestCatCommand(kptest.KPTestCase):
 
-    @kptest.with_agent
-    def test_open_timeout_remove_password_from_agent(self):
+    def test_cat_is_successful(self):
         # Given
         self.editor('env', env="Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
-        self.create("test")
-        self.open("test", options=['-t', '1'])
+        self.create("test", password="42")
 
         # When
-        time.sleep(2)
-        # cat should ask for password, thus master param is not set to None
-        self.cat("test")
+        self.cat("test", options=["-pm"])
 
         # Then
-        self.assertStdoutEquals("Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
+        self.assertStdoutEquals("42",
+                                "Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
+
+    @kptest.with_agent
+    def test_cat_is_successful_with_agent(self):
+        # Given
+        self.editor('env', env="Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
+        self.create("test", password="42")
+        self.open("test")
+
+        # When
+        self.cat("test", master=None, options=["-pm"])
+
+        # Then
+        self.assertStdoutEquals("42",
+                                "Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
 
 if __name__ == '__main__':
         unittest.main()

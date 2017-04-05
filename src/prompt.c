@@ -60,7 +60,7 @@ kp_prompt_password(const char *type, bool confirm, char *password)
 	}
 
 	if (confirm) {
-		confirmation = sodium_malloc(KP_PASSWORD_MAX_LEN+1);
+		confirmation = sodium_malloc(KP_PASSWORD_MAX_LEN);
 		if (!confirmation) {
 			errno = ENOMEM;
 			ret = KP_ERRNO;

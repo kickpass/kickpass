@@ -42,7 +42,6 @@ struct kp_cmd kp_cmd_copy = {
 	.usage = NULL,
 	.opts  = "copy <safe>",
 	.desc  = "Copy a password (first line of safe) into X clipboard",
-	.lock  = true,
 };
 
 kp_error_t
@@ -67,7 +66,7 @@ copy(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	if ((ret = kp_safe_open(ctx, &safe)) != KP_SUCCESS) {
+	if ((ret = kp_safe_open(ctx, &safe, false)) != KP_SUCCESS) {
 		kp_warn(ret, "cannot open safe");
 		goto out;
 	}

@@ -20,7 +20,6 @@ class TestListCommand(kptest.KPTestCase):
 
     def test_list_is_complete(self):
         # Given
-        self.init()
         self.editor('date')
         self.create("subdir/test")
         self.create("subdir/other")
@@ -33,7 +32,6 @@ class TestListCommand(kptest.KPTestCase):
 
     def test_list_is_sorted(self):
         # Given
-        self.init()
         self.editor('date')
         self.create("subdir/test")
         self.create("subdir/other")

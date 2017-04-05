@@ -29,6 +29,7 @@
 .Nm kickpass Cm copy Ar safe
 .Nm kickpass Cm list Oo Ar path Oc
 .Nm kickpass Cm delete Ar safe
+.Nm kickpass Cm agent Oo Fl d Oc
 .Sh DESCRIPTION
 .Nm
 is a stupid simple password safe. It keep each password in a specific
@@ -125,6 +126,15 @@ is not given.
 Delete
 .Ar safe
 \&.
+.Ss Nm kickpass agent Oo Fl d Oc
+Start a kickpass agent that will store your opened safe. Agent can be used by
+exporting
+.Ev KP_AGENT_SOCK
+environment variable.
+.Bl -tag -width flag
+.It Fl d Fl -version
+Do not daemonize agent.
+.El
 .Sh ENVIRONMENT
 The following variables are used by kickpass:
 .Bl -tag -width BLOCKSIZE
@@ -132,6 +142,9 @@ The following variables are used by kickpass:
 The user's login directory. Used to compute kickpass workspace path.
 .It Ev EDITOR
 The user's preferred utility to edit text files. Used to edit safe.
+.It Ev KP_AGENT_SOCK
+Socket used to communicate with kickpass agent. Path to socket is printed to
+stdout when at agent startup.
 .El
 .Sh FILES
 The following files and directories are used by kickpass:

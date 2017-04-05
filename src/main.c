@@ -23,9 +23,10 @@
 #include "kickpass.h"
 
 #include "command.h"
-#include "safe.h"
-#include "prompt.h"
+#include "kpagent.h"
 #include "log.h"
+#include "prompt.h"
+#include "safe.h"
 
 /* commands */
 #ifdef HAS_X11
@@ -36,16 +37,19 @@
 #include "command/edit.h"
 #include "command/init.h"
 #include "command/list.h"
-#include "command/open.h"
+#include "command/cat.h"
 #include "command/rename.h"
+#include "command/agent.h"
+#include "command/open.h"
 
 static int        cmd_cmp(const void *, const void *);
 static int        cmd_sort(const void *, const void *);
+static kp_error_t password_prompt(struct kp_ctx *);
 static kp_error_t command(struct kp_ctx *, int, char **);
+static kp_error_t help(struct kp_ctx *, int, char **);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
 static kp_error_t show_version(struct kp_ctx *);
-static void       usage(void);
-static kp_error_t help(struct kp_ctx *, int, char **);
+static kp_error_t usage(void);
 
 struct cmd {
 	const char    *name;
@@ -59,7 +63,6 @@ static struct kp_cmd kp_cmd_help = {
 	.usage = NULL,
 	.opts  = "help <command>",
 	.desc  = "Print help for given command",
-	.lock  = false,
 };
 
 static struct cmd cmds[] = {
@@ -73,10 +76,9 @@ static struct cmd cmds[] = {
 	{ "new",     &kp_cmd_create },
 	{ "insert",  &kp_cmd_create },
 
-	/* kp_cmd_open */
-	{ "show",    &kp_cmd_open },
-	{ "open",    &kp_cmd_open },
-	{ "cat",     &kp_cmd_open },
+	/* kp_cmd_cat */
+	{ "cat",     &kp_cmd_cat },
+	{ "show",    &kp_cmd_cat },
 
 	/* kp_cmd_edit */
 	{ "edit",    &kp_cmd_edit },
@@ -100,7 +102,19 @@ static struct cmd cmds[] = {
 	{ "rename",  &kp_cmd_rename },
 	{ "mv",      &kp_cmd_rename },
 	{ "move",    &kp_cmd_rename },
+
+	/* kp_cmd_agent */
+	{ "agent",   &kp_cmd_agent },
+
+	/* kp_cmd_open */
+	{ "open",   &kp_cmd_open },
 };
+
+static kp_error_t
+password_prompt(struct kp_ctx *ctx)
+{
+	return kp_prompt_password("master", false, (char *)ctx->password);
+}
 
 /*
  * Parse command line and call matching command.
@@ -111,18 +125,38 @@ main(int argc, char **argv)
 {
 	int ret;
 	struct kp_ctx ctx;
+	char *socket_path = NULL;
 
 	kp_init(&ctx);
+	ctx.password_cb = password_prompt;
 
-	ret = parse_opt(&ctx, argc, argv);
+	if ((ret = parse_opt(&ctx, argc, argv)) != KP_SUCCESS) {
+		goto out;
+	}
 
+	/* Try to connect to agent */
+	if ((socket_path = getenv(KP_AGENT_SOCKET_ENV)) != NULL) {
+		if ((ret = kp_agent_init(&ctx.agent, socket_path)) != KP_SUCCESS) {
+			kp_warn(ret, "cannot connect to agent socket %s", socket_path);
+			return ret;
+		}
+
+		if ((ret = kp_agent_connect(&ctx.agent)) != KP_SUCCESS) {
+			kp_warn(ret, "cannot connect to agent socket %s", socket_path);
+			return ret;
+		}
+	}
+
+	ret = command(&ctx, argc, argv);
+
+out:
 	kp_fini(&ctx);
 
 	return ret;
 }
 
 /*
- * Parse global argument and command name.
+ * Parse global argument
  */
 static kp_error_t
 parse_opt(struct kp_ctx *ctx, int argc, char **argv)
@@ -139,15 +173,14 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 		case 'v':
 			return show_version(ctx);
 		case 'h':
-			usage();
-			return KP_SUCCESS;
+			return usage();
 		default:
 			kp_warnx(KP_EINPUT, "unknown option %c", opt);
 			return KP_EINPUT;
 		}
 	}
 
-	return command(ctx, argc, argv);
+	return KP_SUCCESS;
 }
 
 static int
@@ -185,7 +218,6 @@ find_command(const char *command)
 static kp_error_t
 command(struct kp_ctx *ctx, int argc, char **argv)
 {
-	kp_error_t ret;
 	struct kp_cmd *cmd;
 
 	if (optind >= argc)
@@ -200,14 +232,6 @@ command(struct kp_ctx *ctx, int argc, char **argv)
 
 	optind++;
 
-	if (cmd->lock) {
-		kp_prompt_password("master", false, (char *)ctx->password);
-		if ((ret = kp_load(ctx)) != KP_SUCCESS) {
-			kp_warn(ret, "cannot unlock workspace");
-			return ret;
-		}
-	}
-
 	return cmd->main(ctx, argc, argv);
 }
 
@@ -219,7 +243,7 @@ show_version(struct kp_ctx *ctx)
 			KICKPASS_VERSION_MINOR,
 			KICKPASS_VERSION_PATCH);
 
-	return KP_SUCCESS;
+	return KP_EXIT;
 }
 
 static kp_error_t
@@ -245,7 +269,7 @@ help(struct kp_ctx *ctx, int argc, char **argv)
 /*
  * Print global usage by calling each command own usage function.
  */
-static void
+static kp_error_t
 usage(void)
 {
 	int i, opts_max_len = 0;
@@ -271,4 +295,6 @@ usage(void)
 		if (cmds[i-1].cmd == cmds[i].cmd) continue;
 		printf("    %*s%s\n", -opts_max_len, cmds[i].cmd->opts, cmds[i].cmd->desc);
 	}
+
+	return KP_EXIT;
 }

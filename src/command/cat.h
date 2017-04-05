@@ -14,42 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
-#include <sys/stat.h>
-
-#include "kickpass.h"
+#ifndef KP_CAT_H
+#define KP_CAT_H
 
 #include "command.h"
-#include "init.h"
-#include "prompt.h"
-#include "config.h"
 
-static kp_error_t init(struct kp_ctx *ctx, int argc, char **argv);
+extern struct kp_cmd kp_cmd_cat;
 
-struct kp_cmd kp_cmd_init = {
-	.main  = init,
-	.usage = NULL,
-	.opts  = "init",
-	.desc  = "Initialize a new password safe directory. "
-	         "Default to ~/" KP_PATH,
-};
-
-kp_error_t
-init(struct kp_ctx *ctx, int argc, char **argv)
-{
-	kp_error_t ret;
-
-	kp_prompt_password("master", true, (char *)ctx->password);
-
-	if ((ret = kp_init_workspace(ctx)) != KP_SUCCESS) {
-		return ret;
-	}
-
-	if ((ret = kp_cfg_create(ctx)) != KP_SUCCESS) {
-		return ret;
-	}
-
-	return ret;
-}
+#endif /* KP_CAT_H */
