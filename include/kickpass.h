@@ -18,6 +18,7 @@
 #define KP_KICKPASS_H
 
 #include <sys/queue.h>
+#include <sys/types.h>
 #include <sys/uio.h>
 #include <sys/un.h>
 
