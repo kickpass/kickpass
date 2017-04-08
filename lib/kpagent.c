@@ -118,7 +118,7 @@ kp_agent_accept(struct kp_agent *agent, struct kp_agent *out)
 	out->connected = false;
 
 
-	if ((out->sock = accept(agent->sock, &out->sunaddr, &addrlen)) < 0) {
+	if ((out->sock = accept(agent->sock, (struct sockaddr *)&out->sunaddr, &addrlen)) < 0) {
 		return KP_ERRNO;
 	}
 
