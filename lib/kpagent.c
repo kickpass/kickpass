@@ -35,7 +35,9 @@
 #define SOCKET_BACKLOG 128
 
 /* on some system stat.h uses a variable named __unused */
+#ifndef __unused
 #define __unused __attribute__((unused))
+#endif
 
 struct kp_store {
 	RB_ENTRY(kp_store) tree;
