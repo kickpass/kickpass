@@ -121,7 +121,7 @@ main(int argc, char **argv)
 	char *socket_path = NULL;
 
 	kp_init(&ctx);
-	ctx.password_cb = kp_readpass;
+	ctx.password_prompt = kp_readpass;
 
 	if ((ret = parse_opt(&ctx, argc, argv)) != KP_SUCCESS) {
 		goto out;

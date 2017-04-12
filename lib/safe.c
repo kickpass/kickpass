@@ -214,7 +214,7 @@ kp_safe_open(struct kp_ctx *ctx, struct kp_safe *safe, bool force)
 fallback:
 	if (ctx->password[0] == '\0') {
 		kp_error_t ret;
-		if ((ret = ctx->password_cb(ctx, "master", false, (char *)ctx->password)) != KP_SUCCESS) {
+		if ((ret = ctx->password_prompt(ctx, "master", false, (char *)ctx->password)) != KP_SUCCESS) {
 			return ret;
 		}
 	}
@@ -230,7 +230,7 @@ kp_safe_save(struct kp_ctx *ctx, struct kp_safe *safe)
 	/* XXX is it still required to test master password ? */
 	if (ctx->password[0] == '\0') {
 		kp_error_t ret;
-		if ((ret = ctx->password_cb(ctx, "master", false, (char *)ctx->password)) != KP_SUCCESS) {
+		if ((ret = ctx->password_prompt(ctx, "master", false, (char *)ctx->password)) != KP_SUCCESS) {
 			return ret;
 		}
 	}

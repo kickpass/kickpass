@@ -42,7 +42,7 @@ struct kp_agent {
 struct kp_ctx {
 	char ws_path[PATH_MAX];
 	struct kp_agent agent;
-	kp_error_t (*password_cb)(struct kp_ctx *, const char *, bool, char *);
+	kp_error_t (*password_prompt)(struct kp_ctx *, const char *, bool, char *);
 	char * const password;
 	struct {
 		unsigned long long opslimit;
