@@ -31,16 +31,18 @@
 #include "safe.h"
 #include "log.h"
 
-#define PASSWORD_PROMPT         "[kickpass] %s password: "
-#define PASSWORD_CONFIRM_PROMPT "[kickpass] confirm: "
-
-static kp_error_t
-kp_askpass(const char *askpass, const char *prompt, char *password)
+kp_error_t
+kp_askpass(struct kp_ctx *ctx, const char *type, bool confirm, char *password)
 {
+	char *askpass;
 	pid_t pid, ret;
 	size_t len;
 	int p[2], status;
 	void (*osigchld)(int);
+
+	if ((askpass = getenv("KP_ASKPASS")) == NULL) {
+		return KP_EINPUT;
+	}
 
 	if (fflush(stdout) != 0) {
 		return KP_ERRNO;
@@ -62,7 +64,7 @@ kp_askpass(const char *askpass, const char *prompt, char *password)
 			kp_warn(KP_ERRNO, "kp_asskpass: dup2");
 			exit(1);
 		}
-		execlp(askpass, askpass, prompt, (char *)NULL);
+		execlp(askpass, askpass, type, (char *)NULL);
 		kp_warn(KP_ERRNO, "kp_asskpass: exec(%s)", askpass);
 		exit(1);
 	}
@@ -97,16 +99,18 @@ kp_askpass(const char *askpass, const char *prompt, char *password)
 }
 
 kp_error_t
-kp_prompt_password(const char *type, bool confirm, char *password)
+kp_readpass(struct kp_ctx *ctx, const char *type, bool confirm, char *password)
 {
 	kp_error_t ret = KP_SUCCESS;
 	char *prompt = NULL;
-	const char *askpass;
 	size_t prompt_size;
 	char *confirmation = NULL;
 
 	assert(type);
 	assert(password);
+
+#define PASSWORD_PROMPT         "[kickpass] %s password: "
+#define PASSWORD_CONFIRM_PROMPT "[kickpass] confirm: "
 
 	/* Prompt is PASSWORD_PROMPT - '%s' + type + '\0' */
 	prompt_size = strlen(PASSWORD_PROMPT) - 2 + strlen(type) + 1;
@@ -120,14 +124,6 @@ kp_prompt_password(const char *type, bool confirm, char *password)
 
 	snprintf(prompt, prompt_size, PASSWORD_PROMPT, type);
 
-	if (!confirm && getenv("DISPLAY") && (askpass = getenv("KP_ASKPASS"))) {
-		if ((ret = kp_askpass(askpass, prompt, password))
-				!= KP_SUCCESS) {
-			kp_warn(ret, "cannot read password");
-			goto out;
-		}
-		goto out;
-	}
 	if (readpassphrase(prompt, password, KP_PASSWORD_MAX_LEN,
 				RPP_ECHO_OFF | RPP_REQUIRE_TTY) == NULL) {
 		ret = KP_ERRNO;

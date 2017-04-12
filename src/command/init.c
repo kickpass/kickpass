@@ -41,7 +41,7 @@ init(struct kp_ctx *ctx, int argc, char **argv)
 {
 	kp_error_t ret;
 
-	kp_prompt_password("master", true, (char *)ctx->password);
+	ctx->password_cb(ctx, "master", true, (char *)ctx->password);
 
 	if ((ret = kp_init_workspace(ctx)) != KP_SUCCESS) {
 		return ret;

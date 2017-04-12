@@ -34,7 +34,7 @@
 
 static kp_error_t edit(struct kp_ctx *ctx, int argc, char **argv);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
-static kp_error_t edit_password(struct kp_safe *);
+static kp_error_t edit_password(struct kp_ctx *, struct kp_safe *);
 static kp_error_t confirm_empty_password(bool *);
 static void usage(void);
 
@@ -78,7 +78,7 @@ edit(struct kp_ctx *ctx, int argc, char **argv)
 		if (generate) {
 			kp_password_generate(safe.password, password_len);
 		} else {
-			if ((ret = edit_password(&safe)) != KP_SUCCESS) {
+			if ((ret = edit_password(ctx, &safe)) != KP_SUCCESS) {
 				return ret;
 			}
 		}
@@ -102,7 +102,7 @@ edit(struct kp_ctx *ctx, int argc, char **argv)
 }
 
 static kp_error_t
-edit_password(struct kp_safe *safe)
+edit_password(struct kp_ctx *ctx, struct kp_safe *safe)
 {
 	kp_error_t ret = KP_SUCCESS;
 	char *password;
@@ -110,7 +110,7 @@ edit_password(struct kp_safe *safe)
 	bool confirm = true;
 
 	password = sodium_malloc(KP_PASSWORD_MAX_LEN);
-	if ((ret = kp_prompt_password("safe", true, password)) != KP_SUCCESS) {
+	if ((ret = ctx->password_cb(ctx, "safe", true, password)) != KP_SUCCESS) {
 		goto out;
 	}
 
