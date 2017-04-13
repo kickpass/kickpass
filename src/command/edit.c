@@ -67,10 +67,12 @@ edit(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	if ((ret = kp_safe_load(ctx, &safe, argv[optind])) != KP_SUCCESS) {
+		kp_warn(ret, "cannot load safe");
 		return ret;
 	}
 
 	if ((ret = kp_safe_open(ctx, &safe, true)) != KP_SUCCESS) {
+		kp_warn(ret, "cannot open safe");
 		return ret;
 	}
 
