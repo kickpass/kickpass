@@ -14,14 +14,14 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 import collections
-import sys
 import os
 import pexpect
-import subprocess
+import shlex
 import shutil
-import unittest
 import subprocess
 import logging
+import sys
+import unittest
 
 class KPAgent(subprocess.Popen):
     def __init__(self, kp):
@@ -103,7 +103,10 @@ class KPTestCase(unittest.TestCase):
         options = {"master":master, "confirm_master":confirm_master, "password":password, "confirm_password":confirm_password, "yesno":yesno}
         logging.info(" ".join([self.kp]+args) + " [" + ", ".join(["{}={}".format(k, v) for k, v in options.items()]) + "]")
         self.stdout = ""
-        self.child = pexpect.spawn(self.kp, args)
+        cmd = [self.kp] + args
+        if "VALGRIND_COMMAND" in os.environ:
+            cmd = [os.environ["VALGRIND_COMMAND"], "--log-file=valgrind-"+self.id()+".log"] + shlex.split(os.environ.get("VALGRIND_OPTIONS", "")) + cmd
+        self.child = pexpect.spawn(cmd[0], cmd[1:])
 
         if master is not None:
             self.child.expect('password:')
@@ -125,6 +128,9 @@ class KPTestCase(unittest.TestCase):
 
         for line in self.child:
             self.stdout = self.stdout + (line.decode(sys.stdin.encoding) if sys.stdin.encoding is not None else line)
+
+        self.child.wait()
+        self.assertEqual(self.child.exitstatus, 0)
 
     def start_agent(self):
         self.agent = KPAgent(self.kp)
