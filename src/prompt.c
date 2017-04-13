@@ -31,71 +31,97 @@
 #include "safe.h"
 #include "log.h"
 
+#define PASSWORD_PROMPT         "[kickpass] %s password: "
+#define PASSWORD_CONFIRM_PROMPT "[kickpass] confirm: "
+
+
 kp_error_t
 kp_askpass(struct kp_ctx *ctx, const char *type, bool confirm, char *password)
 {
-	char *askpass;
-	pid_t pid, ret;
-	size_t len;
-	int p[2], status;
-	void (*osigchld)(int);
+	kp_error_t ret = KP_SUCCESS;
+	char *prompt = NULL;
+	char *askpass = NULL;
+	char *output = NULL;
+	size_t len = 0;
+	pid_t pid;
+	int pipefd[2], status;
+	FILE *fout;
+	void (*sigchld_handler)(int);
 
 	if ((askpass = getenv("KP_ASKPASS")) == NULL) {
-		return KP_EINPUT;
+		askpass = "ssh-askpass";
 	}
 
 	if (fflush(stdout) != 0) {
 		return KP_ERRNO;
 	}
-	if (askpass == NULL) {
-		return KP_EINTERNAL;
-	}
-	if (pipe(p) < 0) {
+
+	if (pipe(pipefd) < 0) {
 		return KP_ERRNO;
 	}
-	osigchld = signal(SIGCHLD, SIG_DFL);
+
+	sigchld_handler = signal(SIGCHLD, SIG_DFL);
+
 	if ((pid = fork()) < 0) {
-		signal(SIGCHLD, osigchld);
-		return KP_ERRNO;
+		ret = KP_ERRNO;
+		goto out;
 	}
+
 	if (pid == 0) {
-		close(p[0]);
-		if (dup2(p[1], STDOUT_FILENO) < 0) {
-			kp_warn(KP_ERRNO, "kp_asskpass: dup2");
-			exit(1);
+		close(pipefd[0]);
+
+		if (dup2(pipefd[1], STDOUT_FILENO) < 0) {
+			kp_err(KP_ERRNO, "read stdout of %s", askpass);
 		}
-		execlp(askpass, askpass, type, (char *)NULL);
-		kp_warn(KP_ERRNO, "kp_asskpass: exec(%s)", askpass);
-		exit(1);
+
+		if (asprintf(&prompt, PASSWORD_PROMPT, type) < 0) {
+			kp_err(KP_ERRNO, "cannot build prompt");
+		}
+
+		execlp(askpass, askpass, prompt, (char *)NULL);
+
+		free(prompt);
+		close(pipefd[1]);
+		kp_err(KP_ERRNO, "cannot execute %s", askpass);
 	}
-	close(p[1]);
 
-	len = 0;
-	do {
-		ssize_t r = read(p[0], password + len,
-		    KP_PASSWORD_MAX_LEN - 1 - len);
-		if (r == -1 && errno == EINTR) {
-			continue;
-		}
-		if (r <= 0)
-			break;
-		len += r;
-	} while (KP_PASSWORD_MAX_LEN - 1 - len > 0);
-	password[len] = '\0';
-	close(p[0]);
+	close(pipefd[1]);
 
-	while ((ret = waitpid(pid, &status, 0)) < 0) {
+	if ((fout = fdopen(pipefd[0], "r")) == NULL) {
+		ret = KP_ERRNO;
+		kp_warn(ret, "cannot read password");
+		goto out;
+	}
+
+	if (getline(&output, &len, fout) < 0) {
+		ret = KP_ERRNO;
+		goto out;
+	}
+
+	while (waitpid(pid, &status, 0) < 0) {
 		if (errno != EINTR)
-			break;
+			goto out;
 	}
 
-	signal(SIGCHLD, osigchld);
-	if (ret == -1 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-		memset(password, 0, KP_PASSWORD_MAX_LEN);
-		return KP_ERRNO;
+	if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+		goto out;
 	}
-	password[strcspn(password, "\r\n")] = '\0';
-	return KP_SUCCESS;
+
+	output[strcspn(output, "\r\n")] = '\0';
+	if (strlcpy(password, output, KP_PASSWORD_MAX_LEN)
+	    >= KP_PASSWORD_MAX_LEN) {
+		errno = ENAMETOOLONG;
+		ret = KP_ERRNO;
+		kp_warn(ret, "cannot read password");
+		goto out;
+	}
+
+
+out:
+	fclose(fout);
+	free(output);
+	signal(SIGCHLD, sigchld_handler);
+	return ret;
 }
 
 kp_error_t
@@ -103,26 +129,14 @@ kp_readpass(struct kp_ctx *ctx, const char *type, bool confirm, char *password)
 {
 	kp_error_t ret = KP_SUCCESS;
 	char *prompt = NULL;
-	size_t prompt_size;
 	char *confirmation = NULL;
 
 	assert(type);
 	assert(password);
 
-#define PASSWORD_PROMPT         "[kickpass] %s password: "
-#define PASSWORD_CONFIRM_PROMPT "[kickpass] confirm: "
-
-	/* Prompt is PASSWORD_PROMPT - '%s' + type + '\0' */
-	prompt_size = strlen(PASSWORD_PROMPT) - 2 + strlen(type) + 1;
-	prompt = malloc(prompt_size);
-	if (!prompt) {
-		errno = ENOMEM;
-		ret = KP_ERRNO;
-		kp_warn(ret, "memory error");
-		goto out;
+	if (asprintf(&prompt, PASSWORD_PROMPT, type) < 0) {
+		kp_err(KP_ERRNO, "cannot build prompt");
 	}
-
-	snprintf(prompt, prompt_size, PASSWORD_PROMPT, type);
 
 	if (readpassphrase(prompt, password, KP_PASSWORD_MAX_LEN,
 				RPP_ECHO_OFF | RPP_REQUIRE_TTY) == NULL) {
