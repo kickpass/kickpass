@@ -24,6 +24,7 @@
 
 #include "kickpass.h"
 
+#include "config.h"
 #include "command.h"
 #include "kpagent.h"
 #include "log.h"
@@ -125,11 +126,11 @@ main(int argc, char **argv)
 
 	kp_init(&ctx);
 
-	if ((ret = setup_prompt(&ctx)) != KP_SUCCESS) {
+	if ((ret = parse_opt(&ctx, argc, argv)) != KP_SUCCESS) {
 		goto out;
 	}
 
-	if ((ret = parse_opt(&ctx, argc, argv)) != KP_SUCCESS) {
+	if ((ret = setup_prompt(&ctx)) != KP_SUCCESS) {
 		goto out;
 	}
 
@@ -183,9 +184,11 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 {
 	int opt;
 	static struct option longopts[] = {
-		{ "version", no_argument, NULL, 'v' },
-		{ "help",    no_argument, NULL, 'h' },
-		{ NULL,      0,           NULL, 0   },
+		{ "version",  no_argument,       NULL, 'v' },
+		{ "help",     no_argument,       NULL, 'h' },
+		{ "memlimit", required_argument, NULL, 'm' }, /* hidden option */
+		{ "opslimit", required_argument, NULL, 'o' }, /* hidden option */
+		{ NULL,       0,                 NULL, 0   },
 	};
 
 	while ((opt = getopt_long(argc, argv, "+vh", longopts, NULL)) != -1) {
@@ -194,6 +197,12 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 			return show_version(ctx);
 		case 'h':
 			return usage();
+		case 'm':
+			ctx->cfg.memlimit = atol(optarg);
+			break;
+		case 'o':
+			ctx->cfg.opslimit = atoll(optarg);
+			break;
 		default:
 			kp_warnx(KP_EINPUT, "unknown option %c", opt);
 			return KP_EINPUT;
