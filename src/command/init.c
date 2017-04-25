@@ -25,6 +25,7 @@
 #include "init.h"
 #include "prompt.h"
 #include "config.h"
+#include "log.h"
 
 static kp_error_t init(struct kp_ctx *ctx, int argc, char **argv);
 
@@ -44,10 +45,12 @@ init(struct kp_ctx *ctx, int argc, char **argv)
 	ctx->password_prompt(ctx, "master", true, (char *)ctx->password);
 
 	if ((ret = kp_init_workspace(ctx)) != KP_SUCCESS) {
+		kp_warn(ret, "cannot init workspace");
 		return ret;
 	}
 
 	if ((ret = kp_cfg_create(ctx)) != KP_SUCCESS) {
+		kp_warn(ret, "cannot create configuration");
 		return ret;
 	}
 
