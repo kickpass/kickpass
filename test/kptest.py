@@ -64,6 +64,13 @@ class KPTestCase(unittest.TestCase):
         shutil.rmtree(self.kp_ws, ignore_errors=True)
         self.init()
 
+    def tearDown(self):
+        if self.agent is not None:
+            self.agent.terminate()
+            for env in self.agent.env:
+                del os.environ[env]
+            self.agent = None
+
     # Env
     def editor(self, editor, env=None):
         os.environ['EDITOR'] = os.path.join(self.editor_path, KPTestCase.EDITORS[editor])
