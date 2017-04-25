@@ -105,7 +105,10 @@ kp_init_workspace(struct kp_ctx *ctx)
 		ret = KP_ERRNO;
 		goto out;
 	} else if (errno & ENOENT) {
-		mkdir(ctx->ws_path, 0700);
+		if (mkdir(ctx->ws_path, 0700) < 0) {
+			ret = KP_ERRNO;
+			goto out;
+		}
 	} else {
 		ret = KP_ERRNO;
 		goto out;
