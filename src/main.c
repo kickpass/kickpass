@@ -250,6 +250,10 @@ command(struct kp_ctx *ctx, int argc, char **argv)
 		cmd = find_command(argv[optind]);
 	}
 
+	if (cmd != &kp_cmd_init && cmd != &kp_cmd_help) {
+		kp_cfg_load(ctx);
+	}
+
 	optind++;
 
 	return cmd->main(ctx, argc, argv);

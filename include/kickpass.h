@@ -45,7 +45,7 @@ struct kp_ctx {
 	kp_error_t (*password_prompt)(struct kp_ctx *, const char *, bool, char *);
 	char * const password;
 	struct {
-		unsigned long long opslimit;
+		long long unsigned opslimit;
 		size_t memlimit;
 	} cfg;
 };
