@@ -134,7 +134,7 @@ class KPTestCase(unittest.TestCase):
         self.agent = None
 
     def init(self):
-        self.cmd(['init'], master="test master password", confirm_master=True)
+        self.cmd(['init', '--memlimit', '1', '--opslimit', '1'], master="test master password", confirm_master=True)
 
     def create(self, name, options=None, master="test master password", password="test password"):
         cmd = ['create']
