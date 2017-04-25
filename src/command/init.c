@@ -14,10 +14,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/stat.h>
+
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
+#include <getopt.h>
 
 #include "kickpass.h"
 
@@ -28,6 +31,7 @@
 #include "log.h"
 
 static kp_error_t init(struct kp_ctx *ctx, int argc, char **argv);
+static kp_error_t parse_opt(struct kp_ctx *, int, char **);
 
 struct kp_cmd kp_cmd_init = {
 	.main  = init,
@@ -42,6 +46,10 @@ init(struct kp_ctx *ctx, int argc, char **argv)
 {
 	kp_error_t ret;
 
+	if ((ret = parse_opt(ctx, argc, argv)) != KP_SUCCESS) {
+		return ret;
+	}
+
 	ctx->password_prompt(ctx, "master", true, (char *)ctx->password);
 
 	if ((ret = kp_init_workspace(ctx)) != KP_SUCCESS) {
@@ -52,6 +60,34 @@ init(struct kp_ctx *ctx, int argc, char **argv)
 	if ((ret = kp_cfg_create(ctx)) != KP_SUCCESS) {
 		kp_warn(ret, "cannot create configuration");
 		return ret;
+	}
+
+	return ret;
+}
+
+static kp_error_t
+parse_opt(struct kp_ctx *ctx, int argc, char **argv)
+{
+	int opt;
+	kp_error_t ret = KP_SUCCESS;
+	static struct option longopts[] = {
+		{ "memlimit", required_argument, NULL, 'm' }, /* hidden option */
+		{ "opslimit", required_argument, NULL, 'o' }, /* hidden option */
+		{ NULL,       0,                 NULL, 0   },
+	};
+
+	while ((opt = getopt_long(argc, argv, "", longopts, NULL)) != -1) {
+		switch (opt) {
+		case 'm':
+			ctx->cfg.memlimit = atol(optarg);
+			break;
+		case 'o':
+			ctx->cfg.opslimit = atoll(optarg);
+			break;
+		default:
+			ret = KP_EINPUT;
+			kp_warn(ret, "unknown option %c", opt);
+		}
 	}
 
 	return ret;
