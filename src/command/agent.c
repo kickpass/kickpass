@@ -309,7 +309,7 @@ search(struct agent *agent, char *path)
 	kp_error_t ret;
 	struct kp_agent *kp_agent = &agent->kp_agent;
 	struct kp_agent_safe *safe;
-	struct kp_unsafe unsafe;
+	struct kp_unsafe unsafe = KP_UNSAFE_INIT;
 
 	if ((ret = kp_agent_search(kp_agent, path, &safe)) != KP_SUCCESS) {
 		errno = ENOENT;

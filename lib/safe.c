@@ -43,7 +43,7 @@ kp_safe_load(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 {
 	kp_error_t ret;
 	struct stat stats;
-	char path[PATH_MAX];
+	char path[PATH_MAX] = "";
 
 	assert(ctx);
 	assert(safe);
@@ -146,7 +146,7 @@ kp_error_t
 kp_safe_delete(struct kp_ctx *ctx, struct kp_safe *safe)
 {
 	kp_error_t ret;
-	char path[PATH_MAX];
+	char path[PATH_MAX] = "";
 
 	assert(ctx);
 	assert(safe);
@@ -192,8 +192,8 @@ kp_safe_open(struct kp_ctx *ctx, struct kp_safe *safe, bool force)
 	/* handle not connected or not found and ask password */
 	if (!force && ctx->agent.connected) {
 		kp_error_t ret;
-		struct kp_unsafe unsafe;
-		char path[PATH_MAX];
+		struct kp_unsafe unsafe = KP_UNSAFE_INIT;
+		char path[PATH_MAX] = "";
 
 		if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
 			return ret;
@@ -256,8 +256,8 @@ kp_safe_save(struct kp_ctx *ctx, struct kp_safe *safe)
 
 	if (ctx->agent.connected) {
 		kp_error_t ret;
-		struct kp_unsafe unsafe;
-		char path[PATH_MAX];
+		struct kp_unsafe unsafe = KP_UNSAFE_INIT;
+		char path[PATH_MAX] = "";
 
 		if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
 			return ret;
@@ -374,7 +374,7 @@ kp_safe_rename(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 	}
 
 	if (ctx->agent.connected) {
-		struct kp_unsafe unsafe;
+		struct kp_unsafe unsafe = KP_UNSAFE_INIT;
 		bool result;
 
 		if ((ret = kp_agent_send(&ctx->agent, KP_MSG_DISCARD, oldpath,

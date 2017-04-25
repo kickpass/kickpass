@@ -42,6 +42,8 @@ struct kp_unsafe {
 	char metadata[KP_METADATA_MAX_LEN]; /* plain text metadata (null terminated) */
 };
 
+#define KP_UNSAFE_INIT { .timeout = ((time_t) -1), .path = "", .password = "", .metadata = "" }
+
 struct kp_agent_safe {
 	char path[PATH_MAX]; /* name of the safe */
 	char * const password;      /* plain text password (null terminated) */
