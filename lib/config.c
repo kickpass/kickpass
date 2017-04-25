@@ -97,6 +97,12 @@ kp_cfg_load(struct kp_ctx *ctx)
 		return ret;
 	}
 
+	if (ctx->agent.connected) {
+		if ((ret = kp_safe_store(ctx, &cfg_safe, 3600)) != KP_SUCCESS) {
+			return ret;
+		}
+	}
+
 	qsort(configs, N_CONFIG, sizeof(struct config), config_sort);
 
 	line = strtok_r(cfg_safe.metadata, "\n", &save_line);

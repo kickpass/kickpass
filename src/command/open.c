@@ -51,7 +51,6 @@ open_safe(struct kp_ctx *ctx, int argc, char **argv)
 {
 	kp_error_t ret;
 	struct kp_safe safe;
-	struct kp_unsafe unsafe;
 
 	if ((ret = parse_opt(ctx, argc, argv)) != KP_SUCCESS) {
 		return ret;
@@ -79,24 +78,10 @@ open_safe(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	unsafe.timeout = timeout;
-	if ((ret = kp_safe_get_path(ctx, &safe, unsafe.path,
-	                            PATH_MAX)) != KP_SUCCESS) {
+	if ((ret = kp_safe_store(ctx, &safe, timeout)) != KP_SUCCESS) {
+		kp_warn(ret, "cannot store safe in agent");
 		return ret;
 	}
-	if (strlcpy(unsafe.password, safe.password,
-	            KP_PASSWORD_MAX_LEN) >= KP_PASSWORD_MAX_LEN) {
-		errno = ENOMEM;
-		return KP_ERRNO;
-	}
-	if (strlcpy(unsafe.metadata, safe.metadata,
-	            KP_METADATA_MAX_LEN) >= KP_METADATA_MAX_LEN) {
-		errno = ENOMEM;
-		return KP_ERRNO;
-	}
-
-	kp_agent_send(&ctx->agent, KP_MSG_STORE, &unsafe,
-	              sizeof(struct kp_unsafe));
 
 	if ((ret = kp_safe_close(ctx, &safe)) != KP_SUCCESS) {
 		kp_warn(ret, "cannot cleanly close safe"
