@@ -24,6 +24,7 @@
 
 #include "kickpass.h"
 
+#include "config.h"
 #include "command.h"
 #include "create.h"
 #include "editor.h"
@@ -66,12 +67,8 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	/* Ask for password, otherwise it is asked on kp_safe_save which seems
-	 * weird for user */
-	if (ctx->password == '\0') {
-		if ((ret = ctx->password_prompt(ctx, "master", false, (char *)ctx->password)) != KP_SUCCESS) {
-			return ret;
-		}
+	if ((ret = kp_cfg_load(ctx)) != KP_SUCCESS) {
+		return ret;
 	}
 
 	if ((ret = kp_safe_create(ctx, &safe, argv[optind])) != KP_SUCCESS) {

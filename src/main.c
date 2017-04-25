@@ -24,7 +24,6 @@
 
 #include "kickpass.h"
 
-#include "config.h"
 #include "command.h"
 #include "kpagent.h"
 #include "log.h"
@@ -249,12 +248,6 @@ command(struct kp_ctx *ctx, int argc, char **argv)
 		cmd = &kp_cmd_help;
 	} else {
 		cmd = find_command(argv[optind]);
-	}
-
-	if (cmd != &kp_cmd_init
-	    && cmd != &kp_cmd_help
-	    && cmd != &kp_cmd_agent) {
-		kp_cfg_load(ctx);
 	}
 
 	optind++;
