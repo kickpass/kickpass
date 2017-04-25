@@ -45,7 +45,7 @@
 #include "command/agent.h"
 #include "command/open.h"
 
-static int        cmd_cmp(const void *, const void *);
+static int        cmd_search(const void *, const void *);
 static int        cmd_sort(const void *, const void *);
 static kp_error_t command(struct kp_ctx *, int, char **);
 static kp_error_t help(struct kp_ctx *, int, char **);
@@ -213,7 +213,7 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 }
 
 static int
-cmd_cmp(const void *k, const void *e)
+cmd_search(const void *k, const void *e)
 {
 	return strcmp(k, ((struct cmd *)e)->name);
 }
@@ -233,7 +233,7 @@ find_command(const char *command)
 	const struct cmd *cmd;
 
 	qsort(cmds, CMD_COUNT, sizeof(struct cmd), cmd_sort);
-	cmd = bsearch(command, cmds, CMD_COUNT, sizeof(struct cmd), cmd_cmp);
+	cmd = bsearch(command, cmds, CMD_COUNT, sizeof(struct cmd), cmd_search);
 
 	if (!cmd)
 		kp_errx(KP_EINPUT, "unknown command %s", command);
