@@ -21,6 +21,7 @@ import subprocess
 import shutil
 import unittest
 import subprocess
+import logging
 
 class KPAgent(subprocess.Popen):
     def __init__(self, kp):
@@ -54,6 +55,10 @@ class KPTestCase(unittest.TestCase):
         self.kp_ws = os.path.join(os.environ['HOME'], '.kickpass')
         self.clear_text = os.path.join(os.environ['HOME'], 'editor-save.txt')
         self.agent = None
+
+    @classmethod
+    def setUpClass(cls):
+        logging.getLogger().setLevel(logging.INFO)
 
     def setUp(self):
         shutil.rmtree(self.kp_ws, ignore_errors=True)
@@ -95,6 +100,8 @@ class KPTestCase(unittest.TestCase):
 
     # Run commands
     def cmd(self, args, master=None, confirm_master=False, password=None, confirm_password=False, yesno=None):
+        options = {"master":master, "confirm_master":confirm_master, "password":password, "confirm_password":confirm_password, "yesno":yesno}
+        logging.info(" ".join([self.kp]+args) + " [" + ", ".join(["{}={}".format(k, v) for k, v in options.items()]) + "]")
         self.stdout = ""
         self.child = pexpect.spawn(self.kp, args)
 
