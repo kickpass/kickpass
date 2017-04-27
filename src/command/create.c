@@ -24,6 +24,7 @@
 
 #include "kickpass.h"
 
+#include "config.h"
 #include "command.h"
 #include "create.h"
 #include "editor.h"
@@ -36,7 +37,6 @@
 static kp_error_t create(struct kp_ctx *, int, char **);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
 static void       usage(void);
-static kp_error_t safe_open(struct kp_ctx *, struct kp_safe *);
 
 struct kp_cmd kp_cmd_create = {
 	.main  = create,
@@ -49,40 +49,6 @@ static bool generate = false;
 static int  password_len = 20;
 static int timeout = 3600;
 static bool open = false;
-
-static kp_error_t
-safe_open(struct kp_ctx *ctx, struct kp_safe *safe)
-{
-	kp_error_t ret;
-	struct kp_unsafe unsafe;
-
-	if (!ctx->agent.connected) {
-		ret = KP_EINPUT;
-		kp_warn(ret, "not connected to any agent");
-		return ret;
-	}
-
-	unsafe.timeout = timeout;
-	if ((ret = kp_safe_get_path(ctx, safe, unsafe.path,
-	                            PATH_MAX)) != KP_SUCCESS) {
-		return ret;
-	}
-	if (strlcpy(unsafe.password, safe->password,
-	            KP_PASSWORD_MAX_LEN) >= KP_PASSWORD_MAX_LEN) {
-		errno = ENOMEM;
-		return KP_ERRNO;
-	}
-	if (strlcpy(unsafe.metadata, safe->metadata,
-	            KP_METADATA_MAX_LEN) >= KP_METADATA_MAX_LEN) {
-		errno = ENOMEM;
-		return KP_ERRNO;
-	}
-
-	kp_agent_send(&ctx->agent, KP_MSG_STORE, &unsafe,
-	              sizeof(struct kp_unsafe));
-
-	return KP_SUCCESS;
-}
 
 kp_error_t
 create(struct kp_ctx *ctx, int argc, char **argv)
@@ -101,10 +67,17 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	/* Ask for password, otherwise it is asked on kp_safe_save which seems
-	 * weird for user */
-	if ((ret = ctx->password_prompt(ctx, "master", false, (char *)ctx->password)) != KP_SUCCESS) {
+	if ((ret = kp_cfg_load(ctx)) != KP_SUCCESS) {
+		kp_warn(ret, "cannot load kickpass config");
 		return ret;
+	}
+
+	if (ctx->password[0] == '\0') {
+		/* Ask for password, otherwise it is asked on kp_safe_save which seems
+		 * weird for user */
+		if ((ret = ctx->password_prompt(ctx, "master", false, (char *)ctx->password)) != KP_SUCCESS) {
+			return ret;
+		}
 	}
 
 	if ((ret = kp_safe_create(ctx, &safe, argv[optind])) != KP_SUCCESS) {
@@ -133,7 +106,8 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	if (open) {
-		if ((ret = safe_open(ctx, &safe)) != KP_SUCCESS) {
+		if ((ret = kp_safe_store(ctx, &safe, timeout)) != KP_SUCCESS) {
+			kp_warn(ret, "cannot store safe in agent");
 			goto out;
 		}
 	}

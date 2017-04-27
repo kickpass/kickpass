@@ -419,3 +419,36 @@ kp_safe_get_path(struct kp_ctx *ctx, struct kp_safe *safe, char *path, size_t si
 
 	return KP_SUCCESS;
 }
+
+kp_error_t
+kp_safe_store(struct kp_ctx *ctx, struct kp_safe *safe, int timeout)
+{
+	kp_error_t ret;
+	struct kp_unsafe unsafe;
+
+	if (!ctx->agent.connected) {
+		ret = KP_EINPUT;
+		return ret;
+	}
+
+	unsafe.timeout = timeout;
+	if ((ret = kp_safe_get_path(ctx, safe, unsafe.path,
+	                            PATH_MAX)) != KP_SUCCESS) {
+		return ret;
+	}
+	if (strlcpy(unsafe.password, safe->password,
+	            KP_PASSWORD_MAX_LEN) >= KP_PASSWORD_MAX_LEN) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+	if (strlcpy(unsafe.metadata, safe->metadata,
+	            KP_METADATA_MAX_LEN) >= KP_METADATA_MAX_LEN) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+
+	kp_agent_send(&ctx->agent, KP_MSG_STORE, &unsafe,
+	              sizeof(struct kp_unsafe));
+
+	return KP_SUCCESS;
+}
