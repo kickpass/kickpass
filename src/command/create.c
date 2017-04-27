@@ -68,7 +68,16 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	if ((ret = kp_cfg_load(ctx)) != KP_SUCCESS) {
+		kp_warn(ret, "cannot load kickpass config");
 		return ret;
+	}
+
+	if (ctx->password[0] == '\0') {
+		/* Ask for password, otherwise it is asked on kp_safe_save which seems
+		 * weird for user */
+		if ((ret = ctx->password_prompt(ctx, "master", false, (char *)ctx->password)) != KP_SUCCESS) {
+			return ret;
+		}
 	}
 
 	if ((ret = kp_safe_create(ctx, &safe, argv[optind])) != KP_SUCCESS) {
