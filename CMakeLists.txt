@@ -152,7 +152,7 @@ set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Werror")
 
 install(TARGETS kickpass libkickpass RUNTIME DESTINATION bin LIBRARY DESTINATION lib)
 install(FILES manual/kickpass.1 DESTINATION share/man/man1/)
-install(FILES extra/completion/zsh/_kickpass DESTINATION share/zsh/functions/Completion/Unix/)
+install(FILES extra/completion/zsh/_kickpass DESTINATION share/zsh/site-functions/)
 
 # Tests
 enable_testing()

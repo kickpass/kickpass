@@ -25,6 +25,7 @@
 #include <imsg.h>
 #include <sodium.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "kickpass.h"
@@ -35,7 +36,9 @@
 #define SOCKET_BACKLOG 128
 
 /* on some system stat.h uses a variable named __unused */
+#ifndef __unused
 #define __unused __attribute__((unused))
+#endif
 
 struct kp_store {
 	RB_ENTRY(kp_store) tree;
@@ -115,7 +118,7 @@ kp_agent_accept(struct kp_agent *agent, struct kp_agent *out)
 	out->connected = false;
 
 
-	if ((out->sock = accept(agent->sock, &out->sunaddr, &addrlen)) < 0) {
+	if ((out->sock = accept(agent->sock, (struct sockaddr *)&out->sunaddr, &addrlen)) < 0) {
 		return KP_ERRNO;
 	}
 

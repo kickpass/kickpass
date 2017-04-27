@@ -26,6 +26,7 @@
 #include <sodium.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <event2/event.h>
@@ -35,6 +36,10 @@
 #include "log.h"
 #include "command.h"
 #include "kpagent.h"
+
+#ifndef EPROTO
+#define EPROTO ENOPROTOOPT
+#endif
 
 #define TMP_TEMPLATE "/tmp/kickpass-XXXXXX"
 
