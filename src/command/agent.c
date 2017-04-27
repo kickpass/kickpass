@@ -37,6 +37,10 @@
 #include "command.h"
 #include "kpagent.h"
 
+#ifndef EPROTO
+#define EPROTO ENOPROTOOPT
+#endif
+
 #define TMP_TEMPLATE "/tmp/kickpass-XXXXXX"
 
 struct agent {
