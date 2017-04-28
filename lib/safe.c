@@ -106,7 +106,7 @@ kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 {
 	kp_error_t   ret;
 	struct stat  stats;
-	char         path[PATH_MAX];
+	char         path[PATH_MAX] = "";
 
 	assert(ctx);
 	assert(safe);
@@ -354,7 +354,7 @@ kp_error_t
 kp_safe_rename(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 {
 	kp_error_t ret;
-	char oldpath[PATH_MAX], newpath[PATH_MAX];
+	char oldpath[PATH_MAX] = "", newpath[PATH_MAX] = "";
 
 	assert(ctx);
 	assert(safe);
