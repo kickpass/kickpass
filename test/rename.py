@@ -33,7 +33,6 @@ class TestRenameCommand(kptest.KPTestCase):
 
     def test_rename_on_nonexistent_directory_is_successful(self):
         # Given
-        self.init()
         self.editor('date')
         self.create("old")
 
