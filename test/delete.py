@@ -35,7 +35,7 @@ class TestDeleteCommand(kptest.KPTestCase):
         self.create("test")
 
         # When
-        self.delete("test", master="Il0v3ST20")
+        self.delete("test", master="Il0v3ST20", rc=7)
 
         # Then
         self.assertSafeExists("test")

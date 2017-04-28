@@ -106,13 +106,20 @@ class KPTestCase(unittest.TestCase):
         self.assertTrue(os.path.isdir(self.kp_ws))
 
     # Run commands
-    def cmd(self, args, master=None, confirm_master=False, password=None, confirm_password=False, yesno=None):
+    def cmd(self, args, master=None, confirm_master=False, password=None, confirm_password=False, yesno=None, rc=0):
         options = {"master":master, "confirm_master":confirm_master, "password":password, "confirm_password":confirm_password, "yesno":yesno}
         logging.info(" ".join([self.kp]+args) + " [" + ", ".join(["{}={}".format(k, v) for k, v in options.items()]) + "]")
         self.stdout = ""
         cmd = [self.kp] + args
         if "VALGRIND_COMMAND" in os.environ:
-            cmd = [os.environ["VALGRIND_COMMAND"], "--log-file=valgrind-"+self.id()+".log"] + shlex.split(os.environ.get("VALGRIND_OPTIONS", "")) + cmd
+            for i in range(1, 256):
+                if i != rc:
+                    valgrind_rc = i
+                    break
+            cmd = [os.environ["VALGRIND_COMMAND"],
+                   "--log-file=valgrind-"+self.id()+".log",
+                   "--error-exitcode={}".format(valgrind_rc)] \
+                  + shlex.split(os.environ.get("VALGRIND_OPTIONS", "")) + cmd
         self.child = pexpect.spawn(cmd[0], cmd[1:])
 
         if master is not None:
@@ -137,7 +144,7 @@ class KPTestCase(unittest.TestCase):
             self.stdout = self.stdout + (line.decode(sys.stdin.encoding) if sys.stdin.encoding is not None else line)
 
         self.child.wait()
-        self.assertEqual(self.child.exitstatus, 0)
+        self.assertEqual(self.child.exitstatus, rc)
 
     def start_agent(self):
         self.agent = KPAgent(self.kp)
@@ -153,41 +160,41 @@ class KPTestCase(unittest.TestCase):
             del os.environ[env]
         self.agent = None
 
-    def init(self):
-        self.cmd(['init', '--memlimit', '16777216', '--opslimit', '32768'], master="test master password", confirm_master=True)
+    def init(self, rc=0):
+        self.cmd(['init', '--memlimit', '16777216', '--opslimit', '32768'], master="test master password", confirm_master=True, rc=rc)
 
-    def create(self, name, options=None, master="test master password", password="test password"):
+    def create(self, name, options=None, master="test master password", password="test password", rc=0):
         cmd = ['create']
         if options:
             cmd = cmd + options
-        self.cmd(cmd + [name], master=master, confirm_master=False, password=password, confirm_password=True)
+        self.cmd(cmd + [name], master=master, confirm_master=False, password=password, confirm_password=True, rc=rc)
 
-    def edit(self, name, options=None, master="test master password", password="test password", yesno=None):
+    def edit(self, name, options=None, master="test master password", password="test password", yesno=None, rc=0):
         cmd = ['edit']
         if options:
             cmd = cmd + options
-        self.cmd(cmd + [name], master=master, confirm_master=False, password=password, confirm_password=True, yesno=yesno)
+        self.cmd(cmd + [name], master=master, confirm_master=False, password=password, confirm_password=True, yesno=yesno, rc=rc)
 
-    def rename(self, old, new, options=None, master="test master password"):
+    def rename(self, old, new, options=None, master="test master password", rc=0):
         cmd = ['rename']
         if options:
             cmd = cmd + options
-        self.cmd(cmd + [old, new], master=master, confirm_master=False)
+        self.cmd(cmd + [old, new], master=master, confirm_master=False, rc=rc)
 
-    def cat(self, name, options=None, master="test master password"):
+    def cat(self, name, options=None, master="test master password", rc=0):
         cmd = ['cat']
         if options:
             cmd = cmd + options
-        self.cmd(cmd + [name], master=master, confirm_master=False)
+        self.cmd(cmd + [name], master=master, confirm_master=False, rc=rc)
 
-    def delete(self, name, options=None, master="test master password"):
+    def delete(self, name, options=None, master="test master password", rc=0):
         cmd = ['delete']
         if options:
             cmd = cmd + options
-        self.cmd(cmd + [name], master=master, confirm_master=False)
+        self.cmd(cmd + [name], master=master, confirm_master=False, rc=rc)
 
-    def open(self, name, options=None, master="test master password"):
+    def open(self, name, options=None, master="test master password", rc=0):
         cmd = ['open']
         if options:
             cmd = cmd + options
-        self.cmd(cmd + [name], master=master, confirm_master=False)
+        self.cmd(cmd + [name], master=master, confirm_master=False, rc=rc)
