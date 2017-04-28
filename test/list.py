@@ -44,7 +44,6 @@ class TestListCommand(kptest.KPTestCase):
 
     def test_list_subpath(self):
         # Given
-        self.init()
         self.editor('date')
         self.create("withoutdir")
         self.create("subdir/test")
