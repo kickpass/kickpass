@@ -68,6 +68,8 @@ kp_init(struct kp_ctx *ctx)
 	ctx->cfg.memlimit = crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_SENSITIVE/5;
 	ctx->cfg.opslimit = crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_SENSITIVE/5;
 
+	ctx->agent.connected = false;
+
 	return KP_SUCCESS;
 }
 

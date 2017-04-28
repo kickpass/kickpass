@@ -43,7 +43,11 @@ kp_safe_load(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 {
 	kp_error_t ret;
 	struct stat stats;
-	char path[PATH_MAX];
+	char path[PATH_MAX] = "";
+
+	assert(ctx);
+	assert(safe);
+	assert(name);
 
 	if ((ret = kp_safe_init(safe, name, false, false)) != KP_SUCCESS) {
 		return ret;
@@ -70,6 +74,9 @@ kp_safe_mkdir(struct kp_ctx *ctx, char *path)
 {
 	struct stat  stats;
 	char   *rdir;
+
+	assert(ctx);
+	assert(path);
 
 	rdir = path + strlen(ctx->ws_path);
 	rdir++; /* Skip first / as it is part of the ctx->ws */
@@ -99,7 +106,11 @@ kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 {
 	kp_error_t   ret;
 	struct stat  stats;
-	char         path[PATH_MAX];
+	char         path[PATH_MAX] = "";
+
+	assert(ctx);
+	assert(safe);
+	assert(name);
 
 	if ((ret = kp_safe_init(safe, name, true, false)) != KP_SUCCESS) {
 		return ret;
@@ -135,8 +146,10 @@ kp_error_t
 kp_safe_delete(struct kp_ctx *ctx, struct kp_safe *safe)
 {
 	kp_error_t ret;
-	char path[PATH_MAX];
+	char path[PATH_MAX] = "";
 
+	assert(ctx);
+	assert(safe);
 	assert(safe->open == true);
 
 	if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
@@ -173,11 +186,14 @@ kp_safe_delete(struct kp_ctx *ctx, struct kp_safe *safe)
 kp_error_t
 kp_safe_open(struct kp_ctx *ctx, struct kp_safe *safe, bool force)
 {
+	assert(ctx);
+	assert(safe);
+
 	/* handle not connected or not found and ask password */
 	if (!force && ctx->agent.connected) {
 		kp_error_t ret;
-		struct kp_unsafe unsafe;
-		char path[PATH_MAX];
+		struct kp_unsafe unsafe = KP_UNSAFE_INIT;
+		char path[PATH_MAX] = "";
 
 		if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
 			return ret;
@@ -227,6 +243,9 @@ fallback:
 kp_error_t
 kp_safe_save(struct kp_ctx *ctx, struct kp_safe *safe)
 {
+	assert(ctx);
+	assert(safe);
+
 	/* XXX is it still required to test master password ? */
 	if (ctx->password[0] == '\0') {
 		kp_error_t ret;
@@ -237,8 +256,8 @@ kp_safe_save(struct kp_ctx *ctx, struct kp_safe *safe)
 
 	if (ctx->agent.connected) {
 		kp_error_t ret;
-		struct kp_unsafe unsafe;
-		char path[PATH_MAX];
+		struct kp_unsafe unsafe = KP_UNSAFE_INIT;
+		char path[PATH_MAX] = "";
 
 		if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
 			return ret;
@@ -289,6 +308,9 @@ finally:
 kp_error_t
 kp_safe_close(struct kp_ctx *ctx, struct kp_safe *safe)
 {
+	assert(ctx);
+	assert(safe);
+
 	sodium_free((char *)safe->password);
 	sodium_free((char *)safe->metadata);
 
@@ -306,6 +328,9 @@ kp_safe_init(struct kp_safe *safe, const char *name, bool open, bool ro)
 {
 	char **password;
 	char **metadata;
+
+	assert(safe);
+	assert(name);
 
 	/* Init is the only able to set password and metadata memory */
 	password = (char **)&safe->password;
@@ -329,7 +354,11 @@ kp_error_t
 kp_safe_rename(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 {
 	kp_error_t ret;
-	char oldpath[PATH_MAX], newpath[PATH_MAX];
+	char oldpath[PATH_MAX] = "", newpath[PATH_MAX] = "";
+
+	assert(ctx);
+	assert(safe);
+	assert(name);
 
 	if ((ret = kp_safe_get_path(ctx, safe, oldpath, PATH_MAX)) != KP_SUCCESS) {
 		return ret;
@@ -345,7 +374,7 @@ kp_safe_rename(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 	}
 
 	if (ctx->agent.connected) {
-		struct kp_unsafe unsafe;
+		struct kp_unsafe unsafe = KP_UNSAFE_INIT;
 		bool result;
 
 		if ((ret = kp_agent_send(&ctx->agent, KP_MSG_DISCARD, oldpath,
@@ -401,6 +430,9 @@ finally:
 kp_error_t
 kp_safe_get_path(struct kp_ctx *ctx, struct kp_safe *safe, char *path, size_t size)
 {
+	assert(ctx);
+	assert(safe);
+	assert(path);
 
 	if (strlcpy(path, ctx->ws_path, size) >= size) {
 		errno = ENOMEM;
@@ -424,7 +456,7 @@ kp_error_t
 kp_safe_store(struct kp_ctx *ctx, struct kp_safe *safe, int timeout)
 {
 	kp_error_t ret;
-	struct kp_unsafe unsafe;
+	struct kp_unsafe unsafe = KP_UNSAFE_INIT;
 
 	if (!ctx->agent.connected) {
 		ret = KP_EINPUT;

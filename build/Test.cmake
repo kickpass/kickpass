@@ -21,7 +21,7 @@ find_program(VALGRIND_COMMAND valgrind)
 find_package(PythonInterp)
 
 if (VALGRIND_COMMAND)
-	set(VALGRIND_OPTIONS "-q --tool=memcheck --show-reachable=yes --leak-check=full --gen-suppressions=all --track-origins=yes --error-exitcode=1")
+	set(VALGRIND_OPTIONS "-q --tool=memcheck --show-reachable=yes --leak-check=full --gen-suppressions=all --track-origins=yes")
 	set(VALGRIND_OPTIONS "${VALGRIND_OPTIONS} --suppressions=${CTEST_MODULE_PATH}/test-functional.sup")
 endif()
 
