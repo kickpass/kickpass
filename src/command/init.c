@@ -44,7 +44,7 @@ struct kp_cmd kp_cmd_init = {
 kp_error_t
 init(struct kp_ctx *ctx, int argc, char **argv)
 {
-	kp_error_t ret;
+	kp_error_t ret = KP_SUCCESS;
 
 	if ((ret = parse_opt(ctx, argc, argv)) != KP_SUCCESS) {
 		return ret;

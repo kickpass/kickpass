@@ -456,7 +456,7 @@ kp_error_t
 kp_safe_store(struct kp_ctx *ctx, struct kp_safe *safe, int timeout)
 {
 	kp_error_t ret;
-	struct kp_unsafe unsafe;
+	struct kp_unsafe unsafe = KP_UNSAFE_INIT;
 
 	if (!ctx->agent.connected) {
 		ret = KP_EINPUT;
