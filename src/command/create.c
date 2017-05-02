@@ -75,7 +75,9 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 	if (ctx->password[0] == '\0') {
 		/* Ask for password, otherwise it is asked on kp_safe_save which seems
 		 * weird for user */
-		if ((ret = ctx->password_prompt(ctx, "master", false, (char *)ctx->password)) != KP_SUCCESS) {
+		if ((ret = ctx->password_prompt(ctx, false,
+		                                (char *)ctx->password,
+		                                "master")) != KP_SUCCESS) {
 			return ret;
 		}
 	}
@@ -90,7 +92,8 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 	if (generate) {
 		kp_password_generate(safe.password, password_len);
 	} else {
-		if ((ret = ctx->password_prompt(ctx, "safe", true, safe.password)) != KP_SUCCESS) {
+		if ((ret = ctx->password_prompt(ctx, true, safe.password,
+		                                "safe")) != KP_SUCCESS) {
 			goto out;
 		}
 	}

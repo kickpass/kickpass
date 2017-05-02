@@ -23,7 +23,7 @@
 #include "error.h"
 #include "kickpass_config.h"
 
-kp_error_t kp_readpass(struct kp_ctx *, const char *, bool, char *);
-kp_error_t kp_askpass(struct kp_ctx *, const char *, bool, char *);
+kp_error_t kp_readpass(struct kp_ctx *, bool, char *, const char *, ...);
+kp_error_t kp_askpass(struct kp_ctx *, bool, char *, const char *, ...);
 
 #endif /* KP_PROMPT_H */
