@@ -45,19 +45,27 @@ kp_error_t
 init(struct kp_ctx *ctx, int argc, char **argv)
 {
 	kp_error_t ret = KP_SUCCESS;
+	char sub[PATH_MAX] = "";
 
 	if ((ret = parse_opt(ctx, argc, argv)) != KP_SUCCESS) {
 		return ret;
 	}
 
-	ctx->password_prompt(ctx, "master", true, (char *)ctx->password);
+	if (optind < argc) {
+		if (strlcpy(sub, argv[optind++], PATH_MAX) >= PATH_MAX) {
+			errno = ENOMEM;
+			return KP_ERRNO;
+		}
+	}
 
-	if ((ret = kp_init_workspace(ctx)) != KP_SUCCESS) {
+	ctx->password_prompt(ctx, true, (char *)ctx->password, "master");
+
+	if ((ret = kp_init_workspace(ctx, sub)) != KP_SUCCESS) {
 		kp_warn(ret, "cannot init workspace");
 		return ret;
 	}
 
-	if ((ret = kp_cfg_create(ctx)) != KP_SUCCESS) {
+	if ((ret = kp_cfg_create(ctx, sub)) != KP_SUCCESS) {
 		kp_warn(ret, "cannot create configuration");
 		return ret;
 	}

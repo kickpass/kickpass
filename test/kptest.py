@@ -102,8 +102,11 @@ class KPTestCase(unittest.TestCase):
         with open(self.clear_text) as f:
             self.assertEqual(f.read().splitlines(), list(refs))
 
-    def assertWsExists(self):
-        self.assertTrue(os.path.isdir(self.kp_ws))
+    def assertWsExists(self, sub=None):
+        path = self.kp_ws
+        if sub is not None:
+            path = os.path.join(path, sub)
+        self.assertTrue(os.path.isdir(path))
 
     # Run commands
     def cmd(self, args, master=None, confirm_master=False, password=None, confirm_password=False, yesno=None, rc=0):
@@ -160,8 +163,11 @@ class KPTestCase(unittest.TestCase):
             del os.environ[env]
         self.agent = None
 
-    def init(self, rc=0):
-        self.cmd(['init', '--memlimit', '16777216', '--opslimit', '32768'], master="test master password", confirm_master=True, rc=rc)
+    def init(self, path=None, master="test master password", rc=0):
+        cmd = ['init', '--memlimit', '16777216', '--opslimit', '32768']
+        if path is not None:
+            cmd.append(path)
+        self.cmd(cmd, master=master, confirm_master=True, rc=rc)
 
     def create(self, name, options=None, master="test master password", password="test password", rc=0):
         cmd = ['create']

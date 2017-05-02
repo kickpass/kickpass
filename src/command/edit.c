@@ -25,6 +25,7 @@
 #include "kickpass.h"
 
 #include "command.h"
+#include "config.h"
 #include "edit.h"
 #include "editor.h"
 #include "password.h"
@@ -54,6 +55,7 @@ kp_error_t
 edit(struct kp_ctx *ctx, int argc, char **argv)
 {
 	kp_error_t ret = KP_SUCCESS;
+	char cfg_path[PATH_MAX] = "";
 	struct kp_safe safe;
 
 	if ((ret = parse_opt(ctx, argc, argv)) != KP_SUCCESS) {
@@ -63,6 +65,17 @@ edit(struct kp_ctx *ctx, int argc, char **argv)
 	if (argc - optind != 1) {
 		ret = KP_EINPUT;
 		kp_warn(ret, "missing safe name");
+		return ret;
+	}
+
+	if ((ret = kp_cfg_find(ctx, argv[optind], cfg_path, PATH_MAX))
+	    != KP_SUCCESS) {
+		kp_warn(ret, "cannot find workspace config");
+		return ret;
+	}
+
+	if ((ret = kp_cfg_load(ctx, cfg_path)) != KP_SUCCESS) {
+		kp_warn(ret, "cannot load kickpass config");
 		return ret;
 	}
 
@@ -112,7 +125,7 @@ edit_password(struct kp_ctx *ctx, struct kp_safe *safe)
 	bool confirm = true;
 
 	password = sodium_malloc(KP_PASSWORD_MAX_LEN);
-	if ((ret = ctx->password_prompt(ctx, "safe", true, password)) != KP_SUCCESS) {
+	if ((ret = ctx->password_prompt(ctx, true, password, "safe")) != KP_SUCCESS) {
 		goto out;
 	}
 

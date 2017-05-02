@@ -21,8 +21,9 @@
 
 #include "kickpass.h"
 
-kp_error_t kp_cfg_create(struct kp_ctx *);
-kp_error_t kp_cfg_load(struct kp_ctx *);
-kp_error_t kp_cfg_save(struct kp_ctx *);
+kp_error_t kp_cfg_create(struct kp_ctx *, const char *);
+kp_error_t kp_cfg_load(struct kp_ctx *, const char *);
+kp_error_t kp_cfg_save(struct kp_ctx *, const char *);
+kp_error_t kp_cfg_find(struct kp_ctx *, const char *, char *, size_t);
 
 #endif /* KP_CONFIG_H */

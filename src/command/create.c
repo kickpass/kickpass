@@ -54,6 +54,7 @@ kp_error_t
 create(struct kp_ctx *ctx, int argc, char **argv)
 {
 	kp_error_t ret;
+	char cfg_path[PATH_MAX] = "";
 	struct kp_safe safe;
 	char *password = NULL;
 
@@ -67,7 +68,13 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	if ((ret = kp_cfg_load(ctx)) != KP_SUCCESS) {
+	if ((ret = kp_cfg_find(ctx, argv[optind], cfg_path, PATH_MAX))
+	    != KP_SUCCESS) {
+		kp_warn(ret, "cannot find workspace config");
+		return ret;
+	}
+
+	if ((ret = kp_cfg_load(ctx, cfg_path)) != KP_SUCCESS) {
 		kp_warn(ret, "cannot load kickpass config");
 		return ret;
 	}
@@ -75,7 +82,9 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 	if (ctx->password[0] == '\0') {
 		/* Ask for password, otherwise it is asked on kp_safe_save which seems
 		 * weird for user */
-		if ((ret = ctx->password_prompt(ctx, "master", false, (char *)ctx->password)) != KP_SUCCESS) {
+		if ((ret = ctx->password_prompt(ctx, false,
+		                                (char *)ctx->password,
+		                                "master")) != KP_SUCCESS) {
 			return ret;
 		}
 	}
@@ -90,7 +99,8 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 	if (generate) {
 		kp_password_generate(safe.password, password_len);
 	} else {
-		if ((ret = ctx->password_prompt(ctx, "safe", true, safe.password)) != KP_SUCCESS) {
+		if ((ret = ctx->password_prompt(ctx, true, safe.password,
+		                                "safe")) != KP_SUCCESS) {
 			goto out;
 		}
 	}
