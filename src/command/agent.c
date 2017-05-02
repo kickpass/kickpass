@@ -19,10 +19,12 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/un.h>
+#include <sys/wait.h>
 
 #include <fcntl.h>
 #include <getopt.h>
 #include <imsg.h>
+#include <signal.h>
 #include <sodium.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,6 +63,7 @@ struct timeout {
 
 static kp_error_t agent(struct kp_ctx *, int, char **);
 static void agent_accept(evutil_socket_t, short, void *);
+static void agent_kill(evutil_socket_t, short, void *);
 static void timeout_discard(evutil_socket_t, short, void *);
 static void dispatch(evutil_socket_t, short, void *);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
@@ -72,7 +75,7 @@ static void       usage(void);
 struct kp_cmd kp_cmd_agent = {
 	.main  = agent,
 	.usage = usage,
-	.opts  = "agent [-d]",
+	.opts  = "agent [-d] [command [arg ...]]",
 	.desc  = "Run a kickpass agent in background",
 };
 
@@ -101,6 +104,14 @@ agent_accept(evutil_socket_t fd, short events, void *_agent)
 	conn->ev = event_new(agent->evb, conn->agent.kp_agent.sock,
 	               EV_READ | EV_PERSIST, dispatch, conn);
 	event_add(conn->ev, NULL);
+}
+
+static void
+agent_kill(evutil_socket_t fd, short events, void *_agent)
+{
+	struct agent *agent = _agent;
+
+	event_base_loopexit(agent->evb, NULL);
 }
 
 static void
@@ -161,7 +172,7 @@ kp_error_t
 agent(struct kp_ctx *ctx, int argc, char **argv)
 {
 	kp_error_t ret = KP_SUCCESS;
-	pid_t parent_pid;
+	pid_t agent_pid = 0, child_pid = 0, parent_pid = 0;
 	char socket_dir[PATH_MAX];
 	char socket_path[PATH_MAX];
 	struct agent agent;
@@ -172,8 +183,50 @@ agent(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	parent_pid = getpid();
+	if (daemonize) {
+		parent_pid = getpid();
 
+		if ((agent_pid = fork()) < 0) {
+			ret = KP_ERRNO;
+			kp_warn(ret, "cannot daemonize");
+			return ret;
+		}
+
+		if (agent_pid != 0) {
+			sigset_t set;
+			int sig, wstatus;
+
+			if (sigemptyset(&set) < 0) {
+				ret = KP_ERRNO;
+				kp_warn(ret, "cannot wait for child");
+				return ret;
+			}
+
+			if (sigaddset(&set, SIGCONT) < 0) {
+				ret = KP_ERRNO;
+				kp_warn(ret, "cannot wait for child");
+				return ret;
+			}
+
+			if (sigaddset(&set, SIGCHLD) < 0) {
+				ret = KP_ERRNO;
+				kp_warn(ret, "cannot wait for child");
+				return ret;
+			}
+
+			sigprocmask(SIG_BLOCK, &set, NULL);
+			sigwait(&set, &sig);
+
+			if (sig == SIGCHLD) {
+				waitpid(agent_pid, &wstatus, 0);
+				exit(wstatus);
+			}
+
+			exit(KP_SUCCESS);
+		}
+	}
+
+	agent_pid = getpid();
 	if (strlcpy(socket_dir, TMP_TEMPLATE, PATH_MAX) >= PATH_MAX) {
 		errno = ENAMETOOLONG;
 		ret = KP_ERRNO;
@@ -188,7 +241,7 @@ agent(struct kp_ctx *ctx, int argc, char **argv)
 	}
 
 	if (snprintf(socket_path, PATH_MAX, "%s/agent.%ld", socket_dir,
-				(long)parent_pid) >= PATH_MAX) {
+				(long)agent_pid) >= PATH_MAX) {
 		errno = ENAMETOOLONG;
 		ret = KP_ERRNO;
 		kp_warn(ret, "cannot create socket");
@@ -205,21 +258,59 @@ agent(struct kp_ctx *ctx, int argc, char **argv)
 		goto out;
 	}
 
+	if (setenv(KP_AGENT_SOCKET_ENV, socket_path, 1) < 0) {
+		ret = KP_ERRNO;
+		kp_warn(ret, "cannot set environment");
+		goto out;
+	}
+
 	fprintf(stdout, "%s=%s\n", KP_AGENT_SOCKET_ENV, socket_path);
 	fflush(stdout);
 
-	if (daemonize) {
-		if (daemon(0, 0) != 0) {
-			ret = KP_ERRNO;
-			kp_warn(ret, "cannot daemonize");
-			goto out;
+	if (optind < argc) {
+		child_pid = fork();
+		if (child_pid == 0) {
+			if (execvp(argv[optind], argv + optind) < 0) {
+				kp_warn(ret, "cannot exec child");
+			}
 		}
 	}
+
+	if (daemonize) {
+		int devnull;
+
+		if (chdir("/") < 0) {
+			ret = KP_ERRNO;
+			kp_warn(ret, "cannot chdir to /");
+			return ret;
+		}
+
+		if ((devnull = open("/dev/null", O_RDWR)) < 0) {
+			ret = KP_ERRNO;
+			kp_warn(ret, "cannot close standard inputs");
+			return ret;
+		}
+
+		dup2(devnull, STDIN_FILENO);
+		dup2(devnull, STDOUT_FILENO);
+		dup2(devnull, STDERR_FILENO);
+
+		close(devnull);
+
+		kill(parent_pid, SIGCONT);
+	}
+
 	agent.evb = event_base_new();
 
 	ev = event_new(agent.evb, agent.kp_agent.sock, EV_READ | EV_PERSIST,
 	               agent_accept, &agent);
 	event_add(ev, NULL);
+
+	if (child_pid != 0) {
+		ev = event_new(agent.evb, SIGCHLD, EV_SIGNAL | EV_PERSIST,
+		               agent_kill, &agent);
+		event_add(ev, NULL);
+	}
 
 	event_base_dispatch(agent.evb);
 
@@ -231,14 +322,14 @@ out:
 	if (stat(socket_path, &sb) == 0) {
 		if (unlink(socket_path) != 0) {
 			kp_warn(KP_ERRNO, "cannot delete agent socket %s",
-					socket_path);
+			        socket_path);
 		}
 	}
 
 	if (stat(socket_dir, &sb) == 0) {
-		if (unlink(socket_path) != 0) {
+		if (rmdir(socket_dir) != 0) {
 			kp_warn(KP_ERRNO, "cannot delete agent socket dir %s",
-					socket_dir);
+			        socket_dir);
 		}
 	}
 
