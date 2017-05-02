@@ -77,5 +77,17 @@ class TestCreateCommand(kptest.KPTestCase):
         # Then
         self.assertStdoutEquals("Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
 
+    def test_create_in_sub_workspace_is_successful(self):
+        # Given
+        self.init("sub", master="sub master password")
+        self.editor('env', env="Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
+        self.create("sub/subdir/test", master="sub master password")
+
+        # When
+        self.cat("sub/subdir/test", master="sub master password")
+
+        # Then
+        self.assertStdoutEquals("Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
+
 if __name__ == '__main__':
         unittest.main()

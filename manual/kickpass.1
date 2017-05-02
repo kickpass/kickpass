@@ -22,7 +22,7 @@
 .Sh SYNOPSIS
 .Nm kickpass Oo Fl hv Oc
 .Nm kickpass Cm help Oo Ar command Oc
-.Nm kickpass Cm init
+.Nm kickpass Cm init Oo Ar sub Oc
 .Nm kickpass Cm create Oo Fl gl Ar len Oc Ar safe
 .Nm kickpass Cm open Oo Fl pm Oc Ar safe
 .Nm kickpass Cm edit Oo Fl pmgl Oc Ar safe
@@ -69,8 +69,8 @@ Print kickpass help
 .El
 .Ss Nm kickpass Cm help Oo Ar command Oc
 Print general help or command help.
-.Ss Nm kickpass Cm init
-Initialize a kickpass workspace.
+.Ss Nm kickpass Cm init Oo Ar sub Oc
+Initialize a kickpass workspace or a sub-workspace.
 .Ss Nm kickpass Cm create Oo Fl gl Oc Ar safe
 Create a new password safe.
 .Bl -tag -width flag

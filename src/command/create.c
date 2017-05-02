@@ -54,6 +54,7 @@ kp_error_t
 create(struct kp_ctx *ctx, int argc, char **argv)
 {
 	kp_error_t ret;
+	char cfg_path[PATH_MAX] = "";
 	struct kp_safe safe;
 	char *password = NULL;
 
@@ -67,7 +68,13 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	if ((ret = kp_cfg_load(ctx)) != KP_SUCCESS) {
+	if ((ret = kp_cfg_find(ctx, argv[optind], cfg_path, PATH_MAX))
+	    != KP_SUCCESS) {
+		kp_warn(ret, "cannot find workspace config");
+		return ret;
+	}
+
+	if ((ret = kp_cfg_load(ctx, cfg_path)) != KP_SUCCESS) {
 		kp_warn(ret, "cannot load kickpass config");
 		return ret;
 	}

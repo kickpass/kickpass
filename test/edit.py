@@ -117,5 +117,21 @@ class TestEditCommand(kptest.KPTestCase):
         self.assertStdoutEquals("42",
                                 "But a RocknRolla, oh, he's different. Why? Because a real RocknRolla wants the fucking lot.")
 
+    def test_edit_in_sub_workspace_is_successful(self):
+        # Given
+        self.init("sub", master="sub master password")
+        self.editor('env', env="But a RocknRolla, oh, he's different. Why? Because a real RocknRolla wants the fucking lot.")
+        self.create("sub/test", master="sub master password")
+        self.editor('save')
+
+        # When
+        self.edit("sub/test", master="sub master password")
+
+        # Then
+        self.assertSafeExists("sub/test")
+        self.assertSafeIsBigEnough("sub/test")
+        self.assertClearTextExists()
+        self.assertClearTextEquals("But a RocknRolla, oh, he's different. Why? Because a real RocknRolla wants the fucking lot.")
+
 if __name__ == '__main__':
         unittest.main()

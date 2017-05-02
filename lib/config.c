@@ -56,13 +56,23 @@ struct config {
 };
 
 kp_error_t
-kp_cfg_create(struct kp_ctx *ctx)
+kp_cfg_create(struct kp_ctx *ctx, const char *sub)
 {
 	kp_error_t ret;
+	char path[PATH_MAX] = "";
 	struct kp_safe cfg_safe;
 
-	if ((ret = kp_safe_create(ctx, &cfg_safe, KP_CONFIG_SAFE_NAME))
-			!= KP_SUCCESS) {
+	if (strlcpy(path , sub, PATH_MAX) >= PATH_MAX) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+
+	if (strlcat(path , "/" KP_CONFIG_SAFE_NAME, PATH_MAX) >= PATH_MAX) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+
+	if ((ret = kp_safe_create(ctx, &cfg_safe, path)) != KP_SUCCESS) {
 		return ret;
 	}
 
@@ -83,14 +93,24 @@ kp_cfg_create(struct kp_ctx *ctx)
 }
 
 kp_error_t
-kp_cfg_load(struct kp_ctx *ctx)
+kp_cfg_load(struct kp_ctx *ctx, const char *sub)
 {
 	kp_error_t ret;
+	char path[PATH_MAX] = "";
 	struct kp_safe cfg_safe;
 	char *line = NULL, *save_line = NULL;
 
-	if ((ret = kp_safe_load(ctx, &cfg_safe, KP_CONFIG_SAFE_NAME))
-			!= KP_SUCCESS) {
+	if (strlcpy(path , sub, PATH_MAX) >= PATH_MAX) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+
+	if (strlcat(path , "/" KP_CONFIG_SAFE_NAME, PATH_MAX) >= PATH_MAX) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+
+	if ((ret = kp_safe_load(ctx, &cfg_safe, path)) != KP_SUCCESS) {
 		return ret;
 	}
 
@@ -132,9 +152,67 @@ kp_cfg_load(struct kp_ctx *ctx)
 }
 
 kp_error_t
-kp_cfg_save(struct kp_ctx *ctx)
+kp_cfg_save(struct kp_ctx *ctx, const char *sub)
 {
 	/* Nothing to do for now */
+	return KP_SUCCESS;
+}
+
+kp_error_t
+kp_cfg_find(struct kp_ctx *ctx, const char *path, char *cfg_path, size_t size)
+{
+	char *dir = NULL;
+	struct stat stats;
+
+	if (strlcpy(cfg_path, "/", size) >= size) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+
+	if (strlcat(cfg_path, path, size) >= size) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+
+	while ((dir = strrchr(cfg_path, '/')) != NULL) {
+		char abspath[PATH_MAX] = "";
+
+		dir[0] = '\0';
+
+		if (strlcpy(abspath, ctx->ws_path, PATH_MAX) >= PATH_MAX) {
+			errno = ENOMEM;
+			return KP_ERRNO;
+		}
+
+		if (strlcat(abspath, "/", PATH_MAX) >= PATH_MAX) {
+			errno = ENOMEM;
+			return KP_ERRNO;
+		}
+
+		if (strlcat(abspath, cfg_path, PATH_MAX) >= PATH_MAX) {
+			errno = ENOMEM;
+			return KP_ERRNO;
+		}
+
+		if (strlcat(abspath, "/" KP_CONFIG_SAFE_NAME, PATH_MAX) >= PATH_MAX) {
+			return KP_ERRNO;
+		}
+
+		if (stat(abspath, &stats) < 0) {
+			if (errno == ENOENT) {
+				continue;
+			}
+			return KP_ERRNO;
+		} else {
+			break;
+		}
+	}
+
+	if (dir == NULL) {
+		errno = ENOENT;
+		return KP_ERRNO;
+	}
+
 	return KP_SUCCESS;
 }
 
