@@ -13,23 +13,35 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\"
-.Dd $Mdocdate$
+.Dd May 5, 2017
 .Dt KICKPASS 1
 .Os
 .Sh NAME
 .Nm kickpass
 .Nd a stupid simple password safe
 .Sh SYNOPSIS
-.Nm kickpass Oo Fl hv Oc
-.Nm kickpass Cm help Oo Ar command Oc
-.Nm kickpass Cm init Oo Ar sub Oc
-.Nm kickpass Cm create Oo Fl gl Ar len Oc Ar safe
-.Nm kickpass Cm open Oo Fl pm Oc Ar safe
-.Nm kickpass Cm edit Oo Fl pmgl Oc Ar safe
-.Nm kickpass Cm copy Ar safe
-.Nm kickpass Cm list Oo Ar path Oc
-.Nm kickpass Cm delete Ar safe
-.Nm kickpass Cm agent Oo Fl d Oc Oo Ar command Oo Ar arg ... Oc Oc
+.Nm
+.Oo Fl hv Oc
+.Nm
+.Cm help Oo Ar command Oc
+.Nm
+.Cm init Oo Ar sub Oc
+.Nm
+.Cm cat Oo Fl p Oc Ar safe
+.Nm
+.Cm create Oo Fl gl Ar len Oc Ar safe
+.Nm
+.Cm open Oo Fl t Oc Ar safe
+.Nm
+.Cm edit Oo Fl pmgl Oc Ar safe
+.Nm
+.Cm copy Ar safe
+.Nm
+.Cm list Oo Ar path Oc
+.Nm
+.Cm delete Ar safe
+.Nm
+.Cm agent Oo Fl d Oc Oo Ar command Oo Ar arg ... Oc Oc
 .Sh DESCRIPTION
 .Nm
 is a stupid simple password safe. It keep each password in a specific
@@ -59,19 +71,35 @@ kickpass list www
 will list all safe under the directory
 .Pa $HOME/.kickpass/www/
 \&.
-.Ss Nm kickpass Oo Fl hv Oc
+.Ss Nm Oo Fl hv Oc
 Don't do anything
 .Bl -tag -width flag
 .It Fl v Fl -version
-Print kickpass version
+Print
+.Nm
+version
 .It Fl h Fl -help
-Print kickpass help
+Print
+.Nm
+help
 .El
-.Ss Nm kickpass Cm help Oo Ar command Oc
+.Ss Nm Cm help Oo Ar command Oc
 Print general help or command help.
-.Ss Nm kickpass Cm init Oo Ar sub Oc
-Initialize a kickpass workspace or a sub-workspace.
-.Ss Nm kickpass Cm create Oo Fl gl Oc Ar safe
+.Ss Nm Cm init Oo Ar sub Oc
+Initialize a
+.Nm
+workspace or a sub-workspace.
+.Ss Nm Cm cat Oo Fl p Oc Ar safe
+Open
+.Ar safe
+and print
+.Ar safe
+metadata to stdout.
+.Bl -tag -width flag
+.It Fl p Fl -password
+Print the password to stdout
+.El
+.Ss Nm Cm create Oo Fl gl Oc Ar safe
 Create a new password safe.
 .Bl -tag -width flag
 .It Fl g Fl -generate
@@ -81,19 +109,17 @@ Generate a random password of
 .Ar len
 length
 .El
-.Ss Nm kickpass Cm open Oo Fl pm Oc Ar safe
+.Ss Nm Cm open Oo Fl t Oc Ar safe
 Open
 .Ar safe
-and print
-.Ar safe
-metada on stdout
+and load it in
+.Nm
+agent
 .Bl -tag -width flag
-.It Fl p Fl -password
-Print password
-.It Fl m Fl -metadata
-Print metadata
+.It Fl t Fl -timeout
+Sets the timeout to connect to the agent default in seconds (3600s)
 .El
-.Ss Nm kickpass Cm edit Oo Fl pmgl Oc Ar safe
+.Ss Nm Cm edit Oo Fl pmgl Oc Ar safe
 Prompt for a new password and edit metadata from
 .Ar safe
 using
@@ -111,23 +137,29 @@ Generate a random password of
 .Ar len
 length
 .El
-.Ss Nm kickpass Cm copy Ar safe
+.Ss Nm Cm copy Ar safe
 Copy
 .Ar safe
 password into X primary and secondary clipboards. Password can be pasted only
 once.
-.Ss Nm kickpass Cm list Oo Ar path Oc
+.Ss Nm Cm list Oo Ar path Oc
 List available safes starting from
 .Ar path
-relatively to kickpass workspace or from root of kickpass workspace if
+relatively to
+.Nm
+workspace or from root of
+.Nm
+workspace if
 .Ar path
 is not given.
-.Ss Nm kickpass Cm delete Oo Fl f Oc Ar safe
+.Ss Nm Cm delete Oo Fl f Oc Ar safe
 Delete
 .Ar safe
 \&.
-.Ss Nm kickpass agent Oo Fl d Oc Oo Ar command Oo arg ... Oc Oc
-Start a kickpass agent that will store your opened safe. Agent can be used by
+.Ss Nm Cm agent Oo Fl d Oc Oo Ar command Oo arg ... Oc Oc
+Start a
+.Nm
+agent that will store your opened safe. Agent can be used by
 exporting
 .Ev KP_AGENT_SOCK
 environment variable. Optionnaly starts
@@ -141,21 +173,29 @@ Do not daemonize agent.
 The following variables are used by kickpass:
 .Bl -tag -width BLOCKSIZE
 .It Ev HOME
-The user's login directory. Used to compute kickpass workspace path.
+The user's login directory. Used to compute
+.Nm
+workspace path.
 .It Ev EDITOR
 The user's preferred utility to edit text files. Used to edit safe.
 .It Ev KP_AGENT_SOCK
-Socket used to communicate with kickpass agent. Path to socket is printed to
+Socket used to communicate with
+.Nm
+agent. Path to socket is printed to
 stdout when at agent startup.
 .El
 .Sh FILES
 The following files and directories are used by kickpass:
 .Bl -tag -width BLOCKSIZE
 .It Pa $HOME/.kickpass/
-The kickpass working directory.
+The
+.Nm
+working directory.
 .El
 .Sh EXAMPLES
-Initialize a kickpass workspace.
+Initialize a
+.Nm
+workspace.
 .Bd -literal -offset indent
 kickpass init
 .Ed
@@ -165,7 +205,7 @@ kickpass create -g www/my_safe
 .Ed
 Display safe content on stdout.
 .Bd -literal -offset indent
-kickpass open www/my_safe
+kickpass cat www/my_safe
 .Ed
 Edit a safe.
 .Bd -literal -offset indent
