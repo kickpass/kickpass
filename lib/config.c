@@ -138,6 +138,7 @@ kp_cfg_load(struct kp_ctx *ctx, const char *sub)
 
 		config = bsearch(key, configs, N_CONFIG, sizeof(struct config), config_search);
 		if (config == NULL) {
+			line = strtok_r(NULL, "\n", &save_line);
 			continue;
 		}
 
