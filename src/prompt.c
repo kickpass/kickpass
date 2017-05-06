@@ -47,7 +47,7 @@ kp_askpass(struct kp_ctx *ctx, bool confirm, char *password, const char *fmt, ..
 	size_t len = 0;
 	pid_t pid;
 	int pipefd[2], status;
-	FILE *fout;
+	FILE *fout = NULL;
 	void (*sigchld_handler)(int);
 
 	if ((askpass = getenv("KP_ASKPASS")) == NULL) {
