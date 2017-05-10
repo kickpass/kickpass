@@ -37,7 +37,7 @@ static void usage(void);
 struct kp_cmd kp_cmd_cat = {
 	.main  = cat,
 	.usage = usage,
-	.opts  = "cat <safe>",
+	.opts  = "cat [-pm] <safe>",
 	.desc  = "Open a password safe and print its content on stdout",
 };
 

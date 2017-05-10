@@ -28,8 +28,8 @@ include(GetGitRevisionDescription)
 git_describe(KickPass_VERSION "--always")
 if (NOT KickPass_VERSION OR "$ENV{TRAVIS}")
 	set(KickPass_VERSION_MAJOR 0)
-	set(KickPass_VERSION_MINOR 1)
-	set(KickPass_VERSION_PATCH 1)
+	set(KickPass_VERSION_MINOR 2)
+	set(KickPass_VERSION_PATCH 0)
 else()
 	message(STATUS "Kickpass git version: ${KickPass_VERSION}")
 	string(REGEX REPLACE "v([0-9]+).*" "\\1"
@@ -81,14 +81,14 @@ check_library_exists(util imsg_init "imsg.h" HAVE_IMSG)
 if (HAVE_IMSG)
 	set(LIBS ${LIBS} util)
 else()
-	add_library(libimsg SHARED
+	add_library(imsg STATIC
 		${CMAKE_SOURCE_DIR}/compat/bsd/imsg-buffer.c
 		${CMAKE_SOURCE_DIR}/compat/bsd/imsg.c
 		${CMAKE_SOURCE_DIR}/compat/bsd/imsg.h
 	)
 
 	include_directories(${CMAKE_SOURCE_DIR}/compat/bsd/)
-	set(LIBS ${LIBS} libimsg)
+	set(LIBS ${LIBS} imsg)
 endif()
 
 find_package(Event2 REQUIRED)

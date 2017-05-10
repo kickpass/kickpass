@@ -98,7 +98,7 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 	int opt;
 	kp_error_t ret = KP_SUCCESS;
 	static struct option longopts[] = {
-		{ "timeout", no_argument,       NULL, 'd' },
+		{ "timeout", no_argument,       NULL, 't' },
 		{ NULL,      0,                 NULL, 0   },
 	};
 

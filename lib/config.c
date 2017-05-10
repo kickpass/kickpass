@@ -14,6 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/stat.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -135,11 +137,9 @@ kp_cfg_load(struct kp_ctx *ctx, const char *sub)
 		value = strtok(NULL, ":");
 
 		config = bsearch(key, configs, N_CONFIG, sizeof(struct config), config_search);
-		if (config == NULL) {
-			continue;
+		if (config != NULL) {
+			config->setter(config, ctx, value);
 		}
-
-		config->setter(config, ctx, value);
 
 		line = strtok_r(NULL, "\n", &save_line);
 	}
