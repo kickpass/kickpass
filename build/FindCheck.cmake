@@ -18,6 +18,11 @@ include(FindPackageHandleStandardArgs)
 
 find_path(CHECK_INCLUDE_DIRS NAMES check.h)
 find_library(CHECK_LIBRARIES NAMES check)
+find_library(SUBUNIT_LIBRARIES NAMES subunit)
+
+if(NOT SUBUNIT_LIBRARIES MATCHES "NOTFOUND$")
+	list(APPEND CHECK_LIBRARIES ${SUBUNIT_LIBRARIES})
+endif()
 
 find_package_handle_standard_args(Check
 	REQUIRED_VARS CHECK_INCLUDE_DIRS CHECK_LIBRARIES)

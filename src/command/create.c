@@ -24,6 +24,7 @@
 
 #include "kickpass.h"
 
+#include "config.h"
 #include "command.h"
 #include "create.h"
 #include "editor.h"
@@ -31,6 +32,7 @@
 #include "prompt.h"
 #include "safe.h"
 #include "log.h"
+#include "kpagent.h"
 
 static kp_error_t create(struct kp_ctx *, int, char **);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
@@ -41,16 +43,18 @@ struct kp_cmd kp_cmd_create = {
 	.usage = usage,
 	.opts  = "create [-hgl] <safe>",
 	.desc  = "Create a new password safe",
-	.lock  = true,
 };
 
 static bool generate = false;
 static int  password_len = 20;
+static int timeout = 3600;
+static bool open = false;
 
 kp_error_t
 create(struct kp_ctx *ctx, int argc, char **argv)
 {
 	kp_error_t ret;
+	char cfg_path[PATH_MAX] = "";
 	struct kp_safe safe;
 	char *password = NULL;
 
@@ -64,6 +68,27 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
+	if ((ret = kp_cfg_find(ctx, argv[optind], cfg_path, PATH_MAX))
+	    != KP_SUCCESS) {
+		kp_warn(ret, "cannot find workspace config");
+		return ret;
+	}
+
+	if ((ret = kp_cfg_load(ctx, cfg_path)) != KP_SUCCESS) {
+		kp_warn(ret, "cannot load kickpass config");
+		return ret;
+	}
+
+	if (ctx->password[0] == '\0') {
+		/* Ask for password, otherwise it is asked on kp_safe_save which seems
+		 * weird for user */
+		if ((ret = ctx->password_prompt(ctx, false,
+		                                (char *)ctx->password,
+		                                "master")) != KP_SUCCESS) {
+			return ret;
+		}
+	}
+
 	if ((ret = kp_safe_create(ctx, &safe, argv[optind])) != KP_SUCCESS) {
 		if (ret == KP_ERRNO && errno == EEXIST) {
 			kp_warn(ret, "use 'edit' command to edit an existing safe");
@@ -74,7 +99,8 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 	if (generate) {
 		kp_password_generate(safe.password, password_len);
 	} else {
-		if ((ret = kp_prompt_password("safe", true, safe.password)) != KP_SUCCESS) {
+		if ((ret = ctx->password_prompt(ctx, true, safe.password,
+		                                "safe")) != KP_SUCCESS) {
 			goto out;
 		}
 	}
@@ -87,6 +113,13 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 
 	if ((ret = kp_safe_save(ctx, &safe)) != KP_SUCCESS) {
 		goto out;
+	}
+
+	if (open) {
+		if ((ret = kp_safe_store(ctx, &safe, timeout)) != KP_SUCCESS) {
+			kp_warn(ret, "cannot store safe in agent");
+			goto out;
+		}
 	}
 
 	if ((ret = kp_safe_close(ctx, &safe)) != KP_SUCCESS) {
@@ -108,16 +141,24 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 	static struct option longopts[] = {
 		{ "generate", no_argument,       NULL, 'g' },
 		{ "length",   required_argument, NULL, 'l' },
+		{ "open",     no_argument,       NULL, 'o' },
+		{ "timeout",  required_argument, NULL, 't' },
 		{ NULL,       0,                 NULL, 0   },
 	};
 
-	while ((opt = getopt_long(argc, argv, "gl:", longopts, NULL)) != -1) {
+	while ((opt = getopt_long(argc, argv, "gl:ot:", longopts, NULL)) != -1) {
 		switch (opt) {
 		case 'g':
 			generate = true;
 			break;
 		case 'l':
 			password_len = atoi(optarg);
+			break;
+		case 'o':
+			open = true;
+			break;
+		case 't':
+			timeout = atoi(optarg);
 			break;
 		default:
 			ret = KP_EINPUT;
@@ -134,4 +175,6 @@ usage(void)
 	printf("options:\n");
 	printf("    -g, --generate     Randomly generate a password\n");
 	printf("    -l, --length=len   Length of the generated passwerd. Default to 20\n");
+	printf("    -o, --open         Keep safe open in agent\n");
+	printf("    -t, --timeout      Set safe timeout. Default to %d s\n", timeout);
 }

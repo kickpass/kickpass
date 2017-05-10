@@ -25,33 +25,37 @@
 #include "kickpass.h"
 
 #include "command.h"
+#include "config.h"
 #include "edit.h"
 #include "editor.h"
+#include "password.h"
 #include "prompt.h"
 #include "safe.h"
 #include "log.h"
 
 static kp_error_t edit(struct kp_ctx *ctx, int argc, char **argv);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
-static kp_error_t edit_password(struct kp_safe *);
+static kp_error_t edit_password(struct kp_ctx *, struct kp_safe *);
 static kp_error_t confirm_empty_password(bool *);
 static void usage(void);
 
 struct kp_cmd kp_cmd_edit = {
 	.main  = edit,
 	.usage = usage,
-	.opts  = "edit [-pm] <safe>",
+	.opts  = "edit [-pmgl] <safe>",
 	.desc  = "Edit a password safe with $EDIT",
-	.lock  = true,
 };
 
 static bool password = false;
 static bool metadata = false;
+static bool generate = false;
+static int  password_len = 20;
 
 kp_error_t
 edit(struct kp_ctx *ctx, int argc, char **argv)
 {
 	kp_error_t ret = KP_SUCCESS;
+	char cfg_path[PATH_MAX] = "";
 	struct kp_safe safe;
 
 	if ((ret = parse_opt(ctx, argc, argv)) != KP_SUCCESS) {
@@ -64,17 +68,34 @@ edit(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	if ((ret = kp_safe_load(ctx, &safe, argv[optind])) != KP_SUCCESS) {
+	if ((ret = kp_cfg_find(ctx, argv[optind], cfg_path, PATH_MAX))
+	    != KP_SUCCESS) {
+		kp_warn(ret, "cannot find workspace config");
 		return ret;
 	}
 
-	if ((ret = kp_safe_open(ctx, &safe)) != KP_SUCCESS) {
+	if ((ret = kp_cfg_load(ctx, cfg_path)) != KP_SUCCESS) {
+		kp_warn(ret, "cannot load kickpass config");
+		return ret;
+	}
+
+	if ((ret = kp_safe_load(ctx, &safe, argv[optind])) != KP_SUCCESS) {
+		kp_warn(ret, "cannot load safe");
+		return ret;
+	}
+
+	if ((ret = kp_safe_open(ctx, &safe, true)) != KP_SUCCESS) {
+		kp_warn(ret, "cannot open safe");
 		return ret;
 	}
 
 	if (password) {
-		if ((ret = edit_password(&safe)) != KP_SUCCESS) {
-			return ret;
+		if (generate) {
+			kp_password_generate(safe.password, password_len);
+		} else {
+			if ((ret = edit_password(ctx, &safe)) != KP_SUCCESS) {
+				return ret;
+			}
 		}
 	}
 
@@ -96,15 +117,15 @@ edit(struct kp_ctx *ctx, int argc, char **argv)
 }
 
 static kp_error_t
-edit_password(struct kp_safe *safe)
+edit_password(struct kp_ctx *ctx, struct kp_safe *safe)
 {
 	kp_error_t ret = KP_SUCCESS;
 	char *password;
 	size_t password_len;
 	bool confirm = true;
 
-	password = sodium_malloc(KP_PASSWORD_MAX_LEN+1);
-	if ((ret = kp_prompt_password("safe", true, password)) != KP_SUCCESS) {
+	password = sodium_malloc(KP_PASSWORD_MAX_LEN);
+	if ((ret = ctx->password_prompt(ctx, true, password, "safe")) != KP_SUCCESS) {
 		goto out;
 	}
 
@@ -131,8 +152,8 @@ confirm_empty_password(bool *confirm)
 {
 	kp_error_t ret = KP_SUCCESS;
 	char *prompt = "Empty password. Do you really want to update password ? (y/n) [n] ";
-	char *response;
-	size_t response_len;
+	char *response = NULL;
+	size_t response_len = 0;
 	FILE *tty;
 
 	*confirm = false;
@@ -146,9 +167,15 @@ confirm_empty_password(bool *confirm)
 
 	fprintf(tty, "%s", prompt);
 	fflush(tty);
-	response = fgetln(stdin, &response_len);
+	if (getline(&response, &response_len, stdin) < 0) {
+		ret = KP_ERRNO;
+		kp_warn(ret, "cannot read answer");
+		return ret;
+	}
 
 	if (response[0] == 'y') *confirm = true;
+
+	free(response);
 
 	fclose(tty);
 	return ret;
@@ -162,16 +189,24 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 	static struct option longopts[] = {
 		{ "password", no_argument, NULL, 'p' },
 		{ "metadata", no_argument, NULL, 'm' },
+		{ "generate", no_argument,       NULL, 'g' },
+		{ "length",   required_argument, NULL, 'l' },
 		{ NULL,       0,           NULL, 0   },
 	};
 
-	while ((opt = getopt_long(argc, argv, "pm", longopts, NULL)) != -1) {
+	while ((opt = getopt_long(argc, argv, "pmgl:", longopts, NULL)) != -1) {
 		switch (opt) {
 		case 'p':
 			password = true;
 			break;
 		case 'm':
 			metadata = true;
+			break;
+		case 'g':
+			generate = true;
+			break;
+		case 'l':
+			password_len = atoi(optarg);
 			break;
 		default:
 			ret = KP_EINPUT;
@@ -199,5 +234,7 @@ usage(void)
 {
 	printf("options:\n");
 	printf("    -p, --password     Edit only password\n");
+	printf("    -g, --generate     Randomly generate a password\n");
+	printf("    -l, --length=len   Length of the generated passwerd. Default to 20\n");
 	printf("    -m, --metadata     Edit only metadata\n");
 }

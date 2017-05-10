@@ -20,7 +20,6 @@ class TestDeleteCommand(kptest.KPTestCase):
 
     def test_delete_is_successful(self):
         # Given
-        self.init()
         self.editor('date')
         self.create("test")
 
@@ -32,15 +31,45 @@ class TestDeleteCommand(kptest.KPTestCase):
 
     def test_delete_refuse_to_delete_without_valid_password(self):
         # Given
-        self.init()
         self.editor('date')
         self.create("test")
 
         # When
-        self.delete("test", master="Il0v3ST20")
+        self.delete("test", master="Il0v3ST20", rc=7)
 
         # Then
         self.assertSafeExists("test")
+
+    @kptest.with_agent
+    def test_delete_with_agent_is_successful(self):
+        # Given
+        self.editor('date')
+        self.create("test")
+        self.open("test")
+
+        # When
+        self.delete("test")
+
+        # Then
+        self.assertSafeDoesntExists("test")
+
+    @kptest.with_agent
+    def test_delete_with_agent_remove_safe_from_agent(self):
+        # Given
+        self.editor('date')
+        self.create("test")
+        self.open("test")
+        self.delete("test")
+
+        # When
+        # Recreate test to ensure older test isn't in agent
+        self.editor('env', env="Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
+        self.create("test")
+
+        # Then
+        # cat should ask for password, thus master param is not set to None
+        self.cat("test")
+        self.assertStdoutEquals("Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
 
 if __name__ == '__main__':
         unittest.main()

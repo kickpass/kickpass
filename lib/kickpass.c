@@ -63,23 +63,12 @@ kp_init(struct kp_ctx *ctx)
 		return KP_ERRNO;
 	}
 
+	ctx->password[0] = '\0';
+
 	ctx->cfg.memlimit = crypto_pwhash_scryptsalsa208sha256_MEMLIMIT_SENSITIVE/5;
 	ctx->cfg.opslimit = crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_SENSITIVE/5;
 
-	return KP_SUCCESS;
-}
-
-/*
- * Open the main configuration with the master password.
- */
-kp_error_t
-kp_load(struct kp_ctx *ctx)
-{
-	kp_error_t ret;
-
-	if ((ret = kp_cfg_load(ctx)) != KP_SUCCESS) {
-		return ret;
-	}
+	ctx->agent.connected = false;
 
 	return KP_SUCCESS;
 }
@@ -93,17 +82,36 @@ kp_fini(struct kp_ctx *ctx)
 }
 
 kp_error_t
-kp_init_workspace(struct kp_ctx *ctx)
+kp_init_workspace(struct kp_ctx *ctx, const char *sub)
 {
 	kp_error_t ret = KP_SUCCESS;
 	struct stat stats;
+	char path[PATH_MAX] = "";
 
-	if (stat(ctx->ws_path, &stats) == 0) {
+	if (strlcpy(path , ctx->ws_path, PATH_MAX) >= PATH_MAX) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+
+	if (strlcat(path , "/", PATH_MAX) >= PATH_MAX) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+
+	if (strlcat(path , sub, PATH_MAX) >= PATH_MAX) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+
+	if (stat(path, &stats) == 0) {
 		errno = EEXIST;
 		ret = KP_ERRNO;
 		goto out;
 	} else if (errno & ENOENT) {
-		mkdir(ctx->ws_path, 0700);
+		if (mkdir(path, 0700) < 0) {
+			ret = KP_ERRNO;
+			goto out;
+		}
 	} else {
 		ret = KP_ERRNO;
 		goto out;

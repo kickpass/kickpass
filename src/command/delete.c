@@ -34,7 +34,6 @@ struct kp_cmd kp_cmd_delete = {
 	.usage = NULL,
 	.opts  = "delete <safe>",
 	.desc  = "Delete a password safe after password confirmation",
-	.lock  = true,
 };
 
 kp_error_t
@@ -55,21 +54,18 @@ delete(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	if ((ret = kp_safe_open(ctx, &safe)) != KP_SUCCESS) {
+	if ((ret = kp_safe_open(ctx, &safe, true)) != KP_SUCCESS) {
 		kp_warn(ret, "don't delete safe");
 		return ret;
 	}
 
-	if (kp_safe_get_path(ctx, &safe, path, PATH_MAX) != KP_SUCCESS) {
-		kp_warn(ret, "cannot compute safe path");
-		return ret;
-	}
-
-	if (unlink(path) != 0) {
-		ret = KP_ERRNO;
-		kp_warn(ret, "cannot delete safe %s"
+	if ((ret = kp_safe_delete(ctx, &safe)) != KP_SUCCESS) {
+		kp_warn(ret, "cannot delete safe %s\n"
 			"you can delete it manually with the following command:\n"
-			"\trm %s", argv[optind], path);
+			"\trm %s\n"
+			"you should also stop any running agent with the following command:\n"
+			"\tkillall \"kickpass agent\"",
+			argv[optind], path);
 		return ret;
 	}
 

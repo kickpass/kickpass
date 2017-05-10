@@ -14,12 +14,31 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 import collections
-import sys
 import os
 import pexpect
-import subprocess
+import shlex
 import shutil
+import subprocess
+import logging
+import sys
 import unittest
+
+class KPAgent(subprocess.Popen):
+    def __init__(self, kp):
+        super(KPAgent, self).__init__([kp, 'agent', '-d'], stdout=subprocess.PIPE, universal_newlines=True)
+        env, value = self.stdout.readline().strip().split('=')
+        self.env = {env: value}
+        os.environ.update(self.env)
+
+
+def with_agent(f):
+    def wrapper(self):
+        self.start_agent()
+        f(self)
+        self.stop_agent()
+
+    return wrapper
+
 
 class KPTestCase(unittest.TestCase):
     EDITORS = {
@@ -35,9 +54,22 @@ class KPTestCase(unittest.TestCase):
         self.editor_path = os.environ['EDITOR_PATH']
         self.kp_ws = os.path.join(os.environ['HOME'], '.kickpass')
         self.clear_text = os.path.join(os.environ['HOME'], 'editor-save.txt')
+        self.agent = None
+
+    @classmethod
+    def setUpClass(cls):
+        logging.getLogger().setLevel(logging.INFO)
 
     def setUp(self):
         shutil.rmtree(self.kp_ws, ignore_errors=True)
+        self.init()
+
+    def tearDown(self):
+        if self.agent is not None:
+            self.agent.terminate()
+            for env in self.agent.env:
+                del os.environ[env]
+            self.agent = None
 
     # Env
     def editor(self, editor, env=None):
@@ -70,13 +102,28 @@ class KPTestCase(unittest.TestCase):
         with open(self.clear_text) as f:
             self.assertEqual(f.read().splitlines(), list(refs))
 
-    def assertWsExists(self):
-        self.assertTrue(os.path.isdir(self.kp_ws))
+    def assertWsExists(self, sub=None):
+        path = self.kp_ws
+        if sub is not None:
+            path = os.path.join(path, sub)
+        self.assertTrue(os.path.isdir(path))
 
     # Run commands
-    def cmd(self, args, master=None, confirm_master=False, password=None, confirm_password=False, yesno=None):
+    def cmd(self, args, master=None, confirm_master=False, password=None, confirm_password=False, yesno=None, rc=0):
+        options = {"master":master, "confirm_master":confirm_master, "password":password, "confirm_password":confirm_password, "yesno":yesno}
+        logging.info(" ".join([self.kp]+args) + " [" + ", ".join(["{}={}".format(k, v) for k, v in options.items()]) + "]")
         self.stdout = ""
-        self.child = pexpect.spawn(self.kp, args)
+        cmd = [self.kp] + args
+        if "VALGRIND_COMMAND" in os.environ:
+            for i in range(1, 256):
+                if i != rc:
+                    valgrind_rc = i
+                    break
+            cmd = [os.environ["VALGRIND_COMMAND"],
+                   "--log-file=valgrind-"+self.id()+".log",
+                   "--error-exitcode={}".format(valgrind_rc)] \
+                  + shlex.split(os.environ.get("VALGRIND_OPTIONS", "")) + cmd
+        self.child = pexpect.spawn(cmd[0], cmd[1:])
 
         if master is not None:
             self.child.expect('password:')
@@ -97,37 +144,63 @@ class KPTestCase(unittest.TestCase):
             self.child.sendline(yesno)
 
         for line in self.child:
-            self.stdout = self.stdout + line.decode(sys.stdin.encoding)
+            self.stdout = self.stdout + (line.decode(sys.stdin.encoding) if sys.stdin.encoding is not None else line)
 
-    def init(self):
-        self.cmd(['init'], master="test master password", confirm_master=True)
+        self.child.wait()
+        self.assertEqual(self.child.exitstatus, rc)
 
-    def create(self, name, options=None, master="test master password", password="test password"):
+    def start_agent(self):
+        self.agent = KPAgent(self.kp)
+
+    def stop_agent(self):
+        res = self.agent.poll()
+        self.assertIsNone(res)
+        self.agent.terminate()
+        res = self.agent.wait()
+        self.agent.stdout.close()
+        self.assertIsNotNone(res)
+        for env in self.agent.env:
+            del os.environ[env]
+        self.agent = None
+
+    def init(self, path=None, master="test master password", rc=0):
+        cmd = ['init', '--memlimit', '16777216', '--opslimit', '32768']
+        if path is not None:
+            cmd.append(path)
+        self.cmd(cmd, master=master, confirm_master=True, rc=rc)
+
+    def create(self, name, options=None, master="test master password", password="test password", rc=0):
         cmd = ['create']
         if options:
             cmd = cmd + options
-        self.cmd(cmd + [name], master=master, confirm_master=False, password=password, confirm_password=True)
+        self.cmd(cmd + [name], master=master, confirm_master=False, password=password, confirm_password=True, rc=rc)
 
-    def edit(self, name, options=None, master="test master password", password="test password", yesno=None):
+    def edit(self, name, options=None, master="test master password", password="test password", yesno=None, rc=0):
         cmd = ['edit']
         if options:
             cmd = cmd + options
-        self.cmd(cmd + [name], master=master, confirm_master=False, password=password, confirm_password=True, yesno=yesno)
+        self.cmd(cmd + [name], master=master, confirm_master=False, password=password, confirm_password=True, yesno=yesno, rc=rc)
 
-    def rename(self, old, new, options=None, master="test master password"):
+    def rename(self, old, new, options=None, master="test master password", rc=0):
         cmd = ['rename']
         if options:
             cmd = cmd + options
-        self.cmd(cmd + [old, new], master=master, confirm_master=False)
+        self.cmd(cmd + [old, new], master=master, confirm_master=False, rc=rc)
 
-    def open(self, name, options=None, master="test master password"):
-        cmd = ['open']
+    def cat(self, name, options=None, master="test master password", rc=0):
+        cmd = ['cat']
         if options:
             cmd = cmd + options
-        self.cmd(cmd + [name], master=master, confirm_master=False)
+        self.cmd(cmd + [name], master=master, confirm_master=False, rc=rc)
 
-    def delete(self, name, options=None, master="test master password"):
+    def delete(self, name, options=None, master="test master password", rc=0):
         cmd = ['delete']
         if options:
             cmd = cmd + options
-        self.cmd(cmd + [name], master=master, confirm_master=False)
+        self.cmd(cmd + [name], master=master, confirm_master=False, rc=rc)
+
+    def open(self, name, options=None, master="test master password", rc=0):
+        cmd = ['open']
+        if options:
+            cmd = cmd + options
+        self.cmd(cmd + [name], master=master, confirm_master=False, rc=rc)

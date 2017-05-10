@@ -9,6 +9,15 @@ _kp_safes()
 	_wanted safe expl "Safe" _multi_parts / files
 }
 
+(( $+functions[_kp_path] )) ||
+_kp_path()
+{
+	local files expl
+
+	paths=(${(f)"$(_call_program files kickpass ls 2>/dev/null | sed 's#\(.*/\)[^/]\+$#\1#' | sort -u)"})
+	_wanted path expl "Path" _multi_parts / paths
+}
+
 (( $+functions[_kp-help] )) ||
 _kp-help()
 {
@@ -38,8 +47,8 @@ _kp-create()
 		*:'Safe name:' && return
 }
 
-(( $+functions[_kp-open] )) ||
-_kp-open()
+(( $+functions[_kp-cat] )) ||
+_kp-cat()
 {
 	_arguments \
 		{-p,--password}'[Print password]' \
@@ -90,7 +99,16 @@ _kp-copy()
 (( $+functions[_kp-list] )) ||
 _kp-list()
 {
-	# Nothing
+	_arguments \
+		:'Path to list:->path' && return
+
+	case $state in
+		(path)
+			_alternative 'safe::_kp_path'
+			;;
+	esac
+
+	return
 }
 
 (( $+functions[_kp-delete] )) ||
@@ -132,12 +150,13 @@ _kp_commands()
 		help:'Get some help' \
 		init:'Initialize a new password safe directory' \
 		{create,new,insert}:'Create a new password safe' \
-		{open,show,cat}:'Open a password safe and print its content on stdout' \
+		{cat,show}:'Open a password safe and print its content on stdout' \
 		edit:'Edit a password safe with $EDIT' \
 		copy:'Copy a password (first line of safe) into X clipboard' \
 		{list,ls}:'List available safes' \
 		{delete,rm,remove,destroy}:'Delete a password safe' \
 		{rename,mv,move}:'Rename a password safe'
+		agent:'Start a kickpass agent in background' \
 	)
 
 	_tags kp-commands
@@ -179,10 +198,9 @@ _kickpass()
 			cmds[new]=create
 			cmds[insert]=create
 
-			# open
-			cmds[open]=open
-			cmds[show]=open
-			cmds[cat]=open
+			# cat
+			cmds[cat]=cat
+			cmds[show]=cat
 
 			# edit
 			cmds[edit]=edit
@@ -204,6 +222,9 @@ _kickpass()
 			cmds[rename]=rename
 			cmds[move]=rename
 			cmds[mv]=rename
+
+			# agent
+			cmds[agent]=agent
 
 			cmd=$cmds[$words[1]]
 

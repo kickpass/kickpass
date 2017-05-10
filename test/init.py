@@ -20,12 +20,23 @@ class TestInitCommand(kptest.KPTestCase):
 
     def test_init_is_successful(self):
         # Given
+        # Init is done in setUp()
 
         # When
-        self.init()
 
         # Then
         self.assertWsExists()
+
+    def test_init_sub_workspace_is_successful(self):
+        # Given
+        # Init is done in setUp()
+
+        # When
+        self.init("work/")
+
+        # Then
+        self.assertWsExists()
+        self.assertWsExists("work/")
 
 if __name__ == '__main__':
         unittest.main()

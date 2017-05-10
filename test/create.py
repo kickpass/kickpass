@@ -20,7 +20,6 @@ class TestCreateCommand(kptest.KPTestCase):
 
     def test_create_is_successful(self):
         # Given
-        self.init()
         self.editor('date')
 
         # When
@@ -32,7 +31,6 @@ class TestCreateCommand(kptest.KPTestCase):
 
     def test_create_with_subdir_is_successful(self):
         # Given
-        self.init()
         self.editor('date')
 
         # When
@@ -44,16 +42,52 @@ class TestCreateCommand(kptest.KPTestCase):
 
     def test_create_with_password_generation_is_successful(self):
         # Given
-        self.init()
         self.editor('save')
 
         # When
         self.create("test", options=["-g", "-l", "42"], password=None)
 
         # Then
-        self.open("test", options=["-p"])
+        self.cat("test", options=["-p"])
         passwd = self.stdout.splitlines()[1]
         self.assertEqual(len(passwd), 42)
+
+    @kptest.with_agent
+    def test_create_with_agent_is_successful(self):
+        # Given
+        self.editor('env', env="Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
+        self.create("test")
+
+        # When
+        # cat should ask for password, thus master param is not set to None
+        self.cat("test")
+
+        # Then
+        self.assertStdoutEquals("Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
+
+    @kptest.with_agent
+    def test_create_open_with_agent_is_successful(self):
+        # Given
+        self.editor('env', env="Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
+        self.create("test", options=["-o"])
+
+        # When
+        self.cat("test", master=None)
+
+        # Then
+        self.assertStdoutEquals("Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
+
+    def test_create_in_sub_workspace_is_successful(self):
+        # Given
+        self.init("sub", master="sub master password")
+        self.editor('env', env="Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
+        self.create("sub/subdir/test", master="sub master password")
+
+        # When
+        self.cat("sub/subdir/test", master="sub master password")
+
+        # Then
+        self.assertStdoutEquals("Watch out for turtles. They'll bite you if you put your fingers in their mouths.")
 
 if __name__ == '__main__':
         unittest.main()

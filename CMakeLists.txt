@@ -22,13 +22,16 @@ set(CTEST_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build)
 # Configure project
 project(KickPass C)
 
+include(CheckLibraryExists)
+
 include(GetGitRevisionDescription)
 git_describe(KickPass_VERSION "--always")
-if (NOT KickPass_VERSION)
+if (NOT KickPass_VERSION OR "$ENV{TRAVIS}")
 	set(KickPass_VERSION_MAJOR 0)
-	set(KickPass_VERSION_MINOR 1)
-	set(KickPass_VERSION_PATCH 1)
+	set(KickPass_VERSION_MINOR 2)
+	set(KickPass_VERSION_PATCH 0)
 else()
+	message(STATUS "Kickpass git version: ${KickPass_VERSION}")
 	string(REGEX REPLACE "v([0-9]+).*" "\\1"
 		KickPass_VERSION_MAJOR ${KickPass_VERSION})
 	string(REGEX REPLACE "v[0-9]+\\.([0-9]+).*" "\\1"
@@ -36,13 +39,11 @@ else()
 	string(REGEX REPLACE "v[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1"
 		KickPass_VERSION_PATCH ${KickPass_VERSION})
 endif()
+message(STATUS "Kickpass version: ${KickPass_VERSION_MAJOR}.${KickPass_VERSION_MINOR}.${KickPass_VERSION_PATCH}")
 
 include_directories("${PROJECT_BINARY_DIR}/include/")
 include_directories("${PROJECT_SOURCE_DIR}/include/")
 include_directories("${PROJECT_SOURCE_DIR}/src/")
-
-# Configure portability
-include(build/compat/bsd.cmake)
 
 set(SRCS
 	src/editor.c
@@ -55,8 +56,10 @@ set(SRCS
 	src/command/edit.c
 	src/command/init.c
 	src/command/list.c
-	src/command/open.c
+	src/command/cat.c
 	src/command/rename.c
+	src/command/agent.c
+	src/command/open.c
 )
 
 # Configure dependencies
@@ -64,6 +67,33 @@ find_package(Sodium 1.0.0 REQUIRED)
 message(STATUS "Libsodium version: ${SODIUM_VERSION}")
 include_directories(${SODIUM_INCLUDE_DIRS})
 set(LIBS ${LIBS} ${SODIUM_LIBRARIES})
+
+check_library_exists(c readpassphrase "readpassphrase.h" HAVE_READPASSPHRASE)
+if (NOT HAVE_READPASSPHRASE)
+	find_package(BSD REQUIRED)
+	include_directories(${BSD_INCLUDE_DIRS}/bsd)
+	set(LIBS ${LIBS} ${BSD_LIBRARIES})
+	# Add _GNU_SOURCE for asprintf
+	add_definitions(-DLIBBSD_OVERLAY -D_GNU_SOURCE)
+endif()
+
+check_library_exists(util imsg_init "imsg.h" HAVE_IMSG)
+if (HAVE_IMSG)
+	set(LIBS ${LIBS} util)
+else()
+	add_library(imsg STATIC
+		${CMAKE_SOURCE_DIR}/compat/bsd/imsg-buffer.c
+		${CMAKE_SOURCE_DIR}/compat/bsd/imsg.c
+		${CMAKE_SOURCE_DIR}/compat/bsd/imsg.h
+	)
+
+	include_directories(${CMAKE_SOURCE_DIR}/compat/bsd/)
+	set(LIBS ${LIBS} imsg)
+endif()
+
+find_package(Event2 REQUIRED)
+include_directories(${EVENT2_INCLUDE_DIRS})
+set(LIBS ${LIBS} ${EVENT2_LIBRARIES})
 
 find_package(X11)
 if (X11_FOUND)
@@ -94,6 +124,7 @@ add_library(libkickpass SHARED
 	lib/password.c
 	lib/safe.c
 	lib/storage.c
+	lib/kpagent.c
 )
 
 set_target_properties(libkickpass PROPERTIES
@@ -121,7 +152,7 @@ set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Werror")
 
 install(TARGETS kickpass libkickpass RUNTIME DESTINATION bin LIBRARY DESTINATION lib)
 install(FILES manual/kickpass.1 DESTINATION share/man/man1/)
-install(FILES extra/completion/zsh/_kickpass DESTINATION share/zsh/functions/Completion/Unix/)
+install(FILES extra/completion/zsh/_kickpass DESTINATION share/zsh/site-functions/)
 
 # Tests
 enable_testing()

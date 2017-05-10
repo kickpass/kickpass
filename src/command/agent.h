@@ -14,18 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef KP_COMMAND_H
-#define KP_COMMAND_H
+#ifndef KP_AGENT_H
+#define KP_AGENT_H
 
-#include <stdbool.h>
+#include "command.h"
 
-#include "kickpass.h"
+extern struct kp_cmd kp_cmd_agent;
 
-struct kp_cmd {
-	kp_error_t (*main)(struct kp_ctx *, int, char **);
-	void       (*usage)(void);
-	char        *opts;
-	char        *desc;
-};
-
-#endif /* KP_COMMAND_H */
+#endif /* KP_AGENT_H */

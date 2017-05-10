@@ -16,8 +16,8 @@
 
 include(FindPackageHandleStandardArgs)
 
-find_path(GPGME_INCLUDE_DIRS NAMES gpgme.h)
-find_library(GPGME_LIBRARIES NAMES gpgme)
+find_path(EVENT2_INCLUDE_DIRS NAMES event2/event.h)
+find_library(EVENT2_LIBRARIES NAMES event_core)
 
-find_package_handle_standard_args(GPGME
-	REQUIRED_VARS GPGME_INCLUDE_DIRS GPGME_LIBRARIES)
+find_package_handle_standard_args(Event2
+	REQUIRED_VARS EVENT2_INCLUDE_DIRS EVENT2_LIBRARIES)

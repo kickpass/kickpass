@@ -18,6 +18,7 @@
 
 #include <dirent.h>
 #include <errno.h>
+#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,7 +30,8 @@
 #include "log.h"
 
 static kp_error_t list(struct kp_ctx *, int, char **);
-static kp_error_t list_dir(char ***, int *, char *);
+static kp_error_t list_dir(struct kp_ctx *, char *, char *, bool);
+static kp_error_t list_dir_r(char ***, int *, char *);
 static int        path_sort(const void *, const void *);
 
 struct kp_cmd kp_cmd_list = {
@@ -37,34 +39,42 @@ struct kp_cmd kp_cmd_list = {
 	.usage = NULL,
 	.opts  = "list",
 	.desc  = "List available safes",
-	.lock  = false,
 };
 
-kp_error_t
+static kp_error_t
 list(struct kp_ctx *ctx, int argc, char **argv)
 {
-	char **safes = NULL;
-	int nsafes = 0;
 	int i;
-	size_t ignore;
 
-	list_dir(&safes, &nsafes, ctx->ws_path);
-
-	qsort(safes, nsafes, sizeof(char *), path_sort);
-
-	ignore = strlen(ctx->ws_path) + 1;
-	for (i = 0; i < nsafes; i++) {
-		printf("%s\n", safes[i] + ignore);
-		free(safes[i]);
+	if (argc == optind) {
+		list_dir(ctx, ctx->ws_path, "", false);
 	}
 
-	free(safes);
+	for (i = optind; i < argc; i++) {
+		char path[PATH_MAX];
+
+		if (strlcpy(path, ctx->ws_path, PATH_MAX) >= PATH_MAX) {
+			errno = ENOMEM;
+			return KP_ERRNO;
+		}
+
+		if (strlcat(path, "/", PATH_MAX) >= PATH_MAX) {
+			errno = ENOMEM;
+			return KP_ERRNO;
+		}
+		if (strlcat(path, argv[i],  PATH_MAX) >= PATH_MAX) {
+			errno = ENOMEM;
+			return KP_ERRNO;
+		}
+
+		list_dir(ctx, path, "  ", true);
+	}
 
 	return KP_SUCCESS;
 }
 
-kp_error_t
-list_dir(char ***safes, int *nsafes, char *root)
+static kp_error_t
+list_dir_r(char ***safes, int *nsafes, char *root)
 {
 	kp_error_t ret = KP_SUCCESS;
 	DIR *dirp;
@@ -126,7 +136,7 @@ list_dir(char ***safes, int *nsafes, char *root)
 			(*nsafes)++;
 			break;
 		case DT_DIR:
-			ret = list_dir(safes, nsafes, path);
+			ret = list_dir_r(safes, nsafes, path);
 		}
 	}
 
@@ -136,7 +146,40 @@ out:
 	return ret;
 }
 
-int
+static kp_error_t
+list_dir(struct kp_ctx *ctx, char *root, char *indent, bool print_path)
+{
+	kp_error_t ret;
+	char **safes = NULL;
+	int nsafes = 0, i = 0;
+	size_t ignore;
+
+	safes = calloc(nsafes, sizeof(char *));
+
+	if ((ret = list_dir_r(&safes, &nsafes, root)) != KP_SUCCESS) {
+		goto out;
+	}
+
+	qsort(safes, nsafes, sizeof(char *), path_sort);
+
+	if (print_path) {
+		printf("%s/\n", root + strlen(ctx->ws_path) + 1);
+	}
+	ignore = strlen(root) + 1;
+	for (i = 0; i < nsafes; i++) {
+		printf("%s%s\n", indent, safes[i] + ignore);
+	}
+
+out:
+	for (i = 0; i < nsafes; i++) {
+		free(safes[i]);
+	}
+	free(safes);
+
+	return ret;
+}
+
+static int
 path_sort(const void *a, const void *b)
 {
 	return strncmp(*(const char **)a, *(const char **)b, PATH_MAX);
