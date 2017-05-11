@@ -27,9 +27,6 @@
 
 #include "config.h"
 
-/*
- * Init kickpass with a working directory and its corresponding master password.
- */
 kp_error_t
 kp_init(struct kp_ctx *ctx)
 {
