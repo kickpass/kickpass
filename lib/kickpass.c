@@ -44,12 +44,12 @@ kp_init(struct kp_ctx *ctx)
 	}
 
 	if (strlcpy(ctx->ws_path, home, PATH_MAX) >= PATH_MAX) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 
 	if (strlcat(ctx->ws_path, "/" KP_PATH, PATH_MAX) >= PATH_MAX) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 
@@ -94,17 +94,17 @@ kp_init_workspace(struct kp_ctx *ctx, const char *sub)
 	assert(sub);
 
 	if (strlcpy(path , ctx->ws_path, PATH_MAX) >= PATH_MAX) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 
 	if (strlcat(path , "/", PATH_MAX) >= PATH_MAX) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 
 	if (strlcat(path , sub, PATH_MAX) >= PATH_MAX) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 

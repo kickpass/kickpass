@@ -65,12 +65,12 @@ kp_cfg_create(struct kp_ctx *ctx, const char *sub)
 	struct kp_safe cfg_safe;
 
 	if (strlcpy(path , sub, PATH_MAX) >= PATH_MAX) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 
 	if (strlcat(path , "/" KP_CONFIG_SAFE_NAME, PATH_MAX) >= PATH_MAX) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 
@@ -103,12 +103,12 @@ kp_cfg_load(struct kp_ctx *ctx, const char *sub)
 	char *line = NULL, *save_line = NULL;
 
 	if (strlcpy(path , sub, PATH_MAX) >= PATH_MAX) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 
 	if (strlcat(path , "/" KP_CONFIG_SAFE_NAME, PATH_MAX) >= PATH_MAX) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 
@@ -165,12 +165,12 @@ kp_cfg_find(struct kp_ctx *ctx, const char *path, char *cfg_path, size_t size)
 	struct stat stats;
 
 	if (strlcpy(cfg_path, "/", size) >= size) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 
 	if (strlcat(cfg_path, path, size) >= size) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 
@@ -180,17 +180,17 @@ kp_cfg_find(struct kp_ctx *ctx, const char *path, char *cfg_path, size_t size)
 		dir[0] = '\0';
 
 		if (strlcpy(abspath, ctx->ws_path, PATH_MAX) >= PATH_MAX) {
-			errno = ENOMEM;
+			errno = ENAMETOOLONG;
 			return KP_ERRNO;
 		}
 
 		if (strlcat(abspath, "/", PATH_MAX) >= PATH_MAX) {
-			errno = ENOMEM;
+			errno = ENAMETOOLONG;
 			return KP_ERRNO;
 		}
 
 		if (strlcat(abspath, cfg_path, PATH_MAX) >= PATH_MAX) {
-			errno = ENOMEM;
+			errno = ENAMETOOLONG;
 			return KP_ERRNO;
 		}
 
