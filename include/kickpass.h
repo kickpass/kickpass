@@ -54,5 +54,7 @@ struct kp_ctx {
 kp_error_t kp_init(struct kp_ctx *);
 kp_error_t kp_fini(struct kp_ctx *);
 kp_error_t kp_init_workspace(struct kp_ctx *, const char *);
+const char *kp_version_string(void);
+int kp_version_major(void);
 
 #endif /* KP_KICKPASS_H */

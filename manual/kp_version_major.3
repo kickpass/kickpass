@@ -1,0 +1,38 @@
+.\"
+.\" Copyright (c) 2017 Paul Fariello <paul@fariello.eu>
+.\"
+.\" Permission to use, copy, modify, and distribute this software for any
+.\" purpose with or without fee is hereby granted, provided that the above
+.\" copyright notice and this permission notice appear in all copies.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+.\" WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+.\" MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+.\" ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+.\" WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+.\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+.\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.Dd May 11, 2017
+.Dt KP_VERSION_STRING 3
+.Os
+.Sh NAME
+.Nm kp_version_major
+.Nd "get the current kickpass major version"
+.Sh LIBRARY
+.Lb libkickpass
+.Sh SYNOPSIS
+.In kickpass/kickpass.h
+.Ft int
+.Fn kp_version_major "void"
+.Sh DESCRIPTION
+Returns the current kickpass major version.
+.Sh RETURN VALUES
+.Nm
+is always successful and returns the current kickpass major version.
+.Sh SEE ALSO
+.Xr kp_version_string 3
+.Sh AUTHORS
+.Nm
+is written by
+.An Paul Fariello Aq Mt paul@fariello.eu .
