@@ -258,10 +258,7 @@ command(struct kp_ctx *ctx, int argc, char **argv)
 static kp_error_t
 show_version(struct kp_ctx *ctx)
 {
-	printf("KickPass version %d.%d.%d\n",
-			KICKPASS_VERSION_MAJOR,
-			KICKPASS_VERSION_MINOR,
-			KICKPASS_VERSION_PATCH);
+	printf("KickPass version %s\n", kp_version_string());
 
 	return KP_EXIT;
 }

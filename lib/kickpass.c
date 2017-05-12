@@ -117,3 +117,15 @@ kp_init_workspace(struct kp_ctx *ctx, const char *sub)
 out:
 	return ret;
 }
+
+const char *
+kp_version_string(void)
+{
+	return KICKPASS_VERSION_STRING;
+}
+
+int
+kp_version_major(void)
+{
+	return KICKPASS_VERSION_MAJOR;
+}
