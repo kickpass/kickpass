@@ -128,12 +128,12 @@ kp_safe_create(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 		errno = EEXIST;
 		return KP_ERRNO;
 	} else if (errno != ENOENT) {
-		return errno;
+		return KP_ERRNO;
 	}
 
 	safe->cipher = open(path, O_RDWR | O_NONBLOCK | O_CREAT, S_IRUSR | S_IWUSR);
 	if (safe->cipher < 0) {
-		return errno;
+		return KP_ERRNO;
 	}
 
 	return KP_SUCCESS;
@@ -337,7 +337,7 @@ kp_safe_init(struct kp_safe *safe, const char *name, bool open, bool ro)
 	metadata = (char **)&safe->metadata;
 
 	if (strlcpy(safe->name, name, PATH_MAX) >= PATH_MAX) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 
@@ -365,7 +365,7 @@ kp_safe_rename(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 	}
 
 	if (strlcpy(safe->name, name, PATH_MAX) >= PATH_MAX) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 
@@ -392,7 +392,7 @@ kp_safe_rename(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 		}
 
 		if (strlcpy(unsafe.path, newpath, PATH_MAX) >= PATH_MAX) {
-			errno = ENOMEM;
+			errno = ENAMETOOLONG;
 			goto finally;
 		}
 
@@ -435,17 +435,17 @@ kp_safe_get_path(struct kp_ctx *ctx, struct kp_safe *safe, char *path, size_t si
 	assert(path);
 
 	if (strlcpy(path, ctx->ws_path, size) >= size) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 
 	if (strlcat(path, "/", size) >= size) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 
 	if (strlcat(path, safe->name, size) >= size) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 

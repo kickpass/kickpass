@@ -298,7 +298,7 @@ kp_agent_discard(struct kp_agent *agent, char *path)
 	struct kp_agent_safe safe;
 
 	if (strlcpy(safe.path, path, PATH_MAX) > PATH_MAX) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 	needle.safe = &safe;
@@ -322,7 +322,7 @@ kp_agent_search(struct kp_agent *agent, char *path, struct kp_agent_safe **_safe
 	struct kp_agent_safe safe;
 
 	if (strlcpy(safe.path, path, PATH_MAX) > PATH_MAX) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 	needle.safe = &safe;
