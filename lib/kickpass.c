@@ -16,6 +16,7 @@
 
 #include <sys/stat.h>
 
+#include <assert.h>
 #include <stddef.h>
 #include <stdlib.h>
 
@@ -32,6 +33,8 @@ kp_init(struct kp_ctx *ctx)
 {
 	const char *home;
 	char **password;
+
+	assert(ctx);
 
 	password = (char **)&ctx->password;
 
@@ -73,6 +76,8 @@ kp_init(struct kp_ctx *ctx)
 kp_error_t
 kp_fini(struct kp_ctx *ctx)
 {
+	assert(ctx);
+
 	sodium_free(ctx->password);
 
 	return KP_SUCCESS;
@@ -84,6 +89,9 @@ kp_init_workspace(struct kp_ctx *ctx, const char *sub)
 	kp_error_t ret = KP_SUCCESS;
 	struct stat stats;
 	char path[PATH_MAX] = "";
+
+	assert(ctx);
+	assert(sub);
 
 	if (strlcpy(path , ctx->ws_path, PATH_MAX) >= PATH_MAX) {
 		errno = ENOMEM;
