@@ -33,11 +33,6 @@
 
 static kp_error_t kp_safe_init(struct kp_safe *, const char *, bool, bool);
 
-/*
- * Load an existing safe.
- * Init the kp_safe structure and open the cipher file.
- * The returned safe is closed.
- */
 kp_error_t
 kp_safe_load(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 {
@@ -237,14 +232,12 @@ fallback:
 	return kp_storage_open(ctx, safe);
 }
 
-/*
- * Save a safe.
- */
 kp_error_t
 kp_safe_save(struct kp_ctx *ctx, struct kp_safe *safe)
 {
 	assert(ctx);
 	assert(safe);
+	assert(safe->open == true);
 
 	/* XXX is it still required to test master password ? */
 	if (ctx->password[0] == '\0') {
