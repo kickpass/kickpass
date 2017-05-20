@@ -192,11 +192,11 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 
 	/* Ensure we are at the beginning of the safe */
 	if (lseek(safe->cipher, 0, SEEK_SET) != 0) {
-		return errno;
+		return KP_ERRNO;
 	}
 
 	if (ftruncate(safe->cipher, 0) != 0) {
-		return errno;
+		return KP_ERRNO;
 	}
 
 	if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
@@ -239,13 +239,13 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 
 	if (write(safe->cipher, packed_header, KP_STORAGE_HEADER_SIZE)
 			< KP_STORAGE_HEADER_SIZE) {
-		ret = errno;
+		ret = KP_ERRNO;
 		goto out;
 	}
 
 	if (write(safe->cipher, cipher, cipher_size)
 			< cipher_size) {
-		ret = errno;
+		ret = KP_ERRNO;
 		goto out;
 	}
 
@@ -274,7 +274,7 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 	if (read(safe->cipher, packed_header, KP_STORAGE_HEADER_SIZE)
 			!= KP_STORAGE_HEADER_SIZE) {
 		if (errno != 0) {
-			ret = errno;
+			ret = KP_ERRNO;
 		} else {
 			ret = KP_INVALID_STORAGE;
 		}
