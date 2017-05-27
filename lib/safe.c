@@ -80,10 +80,10 @@ kp_safe_mkdir(struct kp_ctx *ctx, char *path)
 		if (stat(path, &stats) != 0) {
 			if (errno == ENOENT) {
 				if (mkdir(path, 0700) < 0) {
-					return errno;
+					return KP_ERRNO;
 				}
 			} else {
-				return errno;
+				return KP_ERRNO;
 			}
 		}
 		*rdir = '/';
@@ -305,7 +305,7 @@ kp_safe_close(struct kp_ctx *ctx, struct kp_safe *safe)
 	sodium_free((char *)safe->metadata);
 
 	if (close(safe->cipher) < 0) {
-		return errno;
+		return KP_ERRNO;
 	}
 
 	safe->cipher = 0;
@@ -411,7 +411,7 @@ finally:
 	}
 
 	if (rename(oldpath, newpath) != 0) {
-		return errno;
+		return KP_ERRNO;
 	}
 
 	return KP_SUCCESS;
