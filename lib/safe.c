@@ -290,11 +290,6 @@ finally:
 	return kp_storage_save(ctx, safe);
 }
 
-/*
- * Close a safe.
- * Take care of cleaning the safe plain text and closing the opened file
- * descriptor.
- */
 kp_error_t
 kp_safe_close(struct kp_ctx *ctx, struct kp_safe *safe)
 {
