@@ -175,9 +175,6 @@ kp_safe_delete(struct kp_ctx *ctx, struct kp_safe *safe)
 	return KP_SUCCESS;
 }
 
-/*
- * Open a safe.
- */
 kp_error_t
 kp_safe_open(struct kp_ctx *ctx, struct kp_safe *safe, bool force)
 {
