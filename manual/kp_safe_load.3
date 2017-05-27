@@ -32,6 +32,12 @@ Load
 safe into
 .Fa safe .
 The safe returned is closed. No cleartext is available.
+.Pp
+Internally,
+.Nm
+checks that
+.Fa safe
+file exists and opens it.
 .Sh RETURN VALUES
 Upon successful completion, the value
 .Er KP_SUCCESS
