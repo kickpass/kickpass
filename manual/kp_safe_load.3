@@ -34,10 +34,12 @@ safe into
 The safe returned is closed. No cleartext is available.
 .Pp
 Internally,
-.Nm
+.Fn kp_safe_load
 checks that
 .Fa safe
-file exists and opens it.
+file exists and
+.Xr open 2
+it.
 .Sh RETURN VALUES
 Upon successful completion, the value
 .Er KP_SUCCESS
