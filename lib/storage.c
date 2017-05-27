@@ -298,7 +298,8 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 
 	if (cipher_size - crypto_aead_chacha20poly1305_ABYTES
 			> KP_PLAIN_MAX_SIZE) {
-		ret = ENOMEM;
+		errno = ENOMEM;
+		ret = KP_ERRNO;
 		goto out;
 	}
 
