@@ -215,7 +215,8 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 	/* alloc cipher to max size */
 	cipher = malloc(plain_size+crypto_aead_chacha20poly1305_ABYTES);
 	if (!cipher) {
-		ret = ENOMEM;
+		errno = ENOMEM;
+		ret = KP_ERRNO;
 		goto out;
 	}
 

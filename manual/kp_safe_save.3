@@ -43,6 +43,8 @@ is returned; otherwise any KP_* error is returned.
 .Fn kp_safe_save
 can fail with the one of the following errors:
 .Bl -tag -width Er
+.It Bq Er KP_EENCRYPT
+Encryption error.
 .It Bq Er KP_ERRNO
 If standard error is specified in
 .Er errno
