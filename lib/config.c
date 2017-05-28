@@ -74,7 +74,11 @@ kp_cfg_create(struct kp_ctx *ctx, const char *sub)
 		return KP_ERRNO;
 	}
 
-	if ((ret = kp_safe_create(ctx, &cfg_safe, path)) != KP_SUCCESS) {
+	if ((ret = kp_safe_init(ctx, &cfg_safe, path)) != KP_SUCCESS) {
+		return ret;
+	}
+
+	if ((ret = kp_safe_open(ctx, &cfg_safe, KP_CREATE)) != KP_SUCCESS) {
 		return ret;
 	}
 
@@ -112,11 +116,11 @@ kp_cfg_load(struct kp_ctx *ctx, const char *sub)
 		return KP_ERRNO;
 	}
 
-	if ((ret = kp_safe_load(ctx, &cfg_safe, path)) != KP_SUCCESS) {
+	if ((ret = kp_safe_init(ctx, &cfg_safe, path)) != KP_SUCCESS) {
 		return ret;
 	}
 
-	if ((ret = kp_safe_open(ctx, &cfg_safe, false)) != KP_SUCCESS) {
+	if ((ret = kp_safe_open(ctx, &cfg_safe, 0)) != KP_SUCCESS) {
 		return ret;
 	}
 

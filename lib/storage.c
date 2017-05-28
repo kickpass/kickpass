@@ -25,8 +25,9 @@
 #include <stdint.h>
 
 #include <assert.h>
-#include <sodium.h>
+#include <fcntl.h>
 #include <locale.h>
+#include <sodium.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -182,6 +183,7 @@ kp_error_t
 kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 {
 	kp_error_t ret = KP_SUCCESS;
+	int cipher_fd;
 	unsigned char *cipher = NULL, *plain = NULL;
 	unsigned long long cipher_size, plain_size;
 	struct kp_storage_header header = KP_STORAGE_HEADER_INIT;
@@ -193,22 +195,31 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 	assert(safe);
 	assert(safe->open == true);
 
+	if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
+		return ret;
+	}
+
+	cipher_fd = open(path, O_WRONLY | O_NONBLOCK | O_CREAT,
+	                 S_IRUSR | S_IWUSR);
+	if (cipher_fd < 0) {
+		ret = KP_ERRNO;
+		goto out;
+	}
+
 	password_len = strlen(safe->password);
 	assert(password_len < KP_PASSWORD_MAX_LEN);
 	metadata_len = strlen(safe->metadata);
 	assert(metadata_len < KP_METADATA_MAX_LEN);
 
 	/* Ensure we are at the beginning of the safe */
-	if (lseek(safe->cipher, 0, SEEK_SET) != 0) {
-		return KP_ERRNO;
+	if (lseek(cipher_fd, 0, SEEK_SET) != 0) {
+		ret = KP_ERRNO;
+		goto out;
 	}
 
-	if (ftruncate(safe->cipher, 0) != 0) {
-		return KP_ERRNO;
-	}
-
-	if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
-		return ret;
+	if (ftruncate(cipher_fd, 0) != 0) {
+		ret = KP_ERRNO;
+		goto out;
 	}
 
 	/* construct full plain */
@@ -242,23 +253,23 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 	if ((ret = kp_storage_encrypt(ctx, &header,
 	                              packed_header, KP_STORAGE_HEADER_SIZE,
 	                              plain, plain_size, cipher, &cipher_size))
-		!= KP_SUCCESS) {
+	    != KP_SUCCESS) {
 		goto out;
 	}
 
-	if (write(safe->cipher, packed_header, KP_STORAGE_HEADER_SIZE)
+	if (write(cipher_fd, packed_header, KP_STORAGE_HEADER_SIZE)
 	    < KP_STORAGE_HEADER_SIZE) {
 		ret = KP_ERRNO;
 		goto out;
 	}
 
-	if (write(safe->cipher, cipher, cipher_size)
-	    < cipher_size) {
+	if (write(cipher_fd, cipher, cipher_size) < cipher_size) {
 		ret = KP_ERRNO;
 		goto out;
 	}
 
 out:
+	close(cipher_fd);
 	sodium_free(plain);
 	free(cipher);
 
@@ -269,18 +280,29 @@ kp_error_t
 kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 {
 	kp_error_t ret = KP_SUCCESS;
+	int cipher_fd;
 	unsigned char *cipher = NULL, *plain = NULL;
 	unsigned long long cipher_size, plain_size;
 	struct kp_storage_header header = KP_STORAGE_HEADER_INIT;
 	unsigned char packed_header[KP_STORAGE_HEADER_SIZE];
 	size_t password_len;
+	char path[PATH_MAX];
 
 	assert(ctx);
 	assert(safe);
-	assert(safe->open == false);
+
+	if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
+		return ret;
+	}
+
+	cipher_fd = open(path, O_RDONLY | O_NONBLOCK);
+	if (cipher_fd < 0) {
+		ret = KP_ERRNO;
+		goto out;
+	}
 
 	errno = 0;
-	if (read(safe->cipher, packed_header, KP_STORAGE_HEADER_SIZE)
+	if (read(cipher_fd, packed_header, KP_STORAGE_HEADER_SIZE)
 	    != KP_STORAGE_HEADER_SIZE) {
 		if (errno != 0) {
 			ret = KP_ERRNO;
@@ -297,7 +319,7 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 
 	/* alloc cipher to max size */
 	cipher = malloc(KP_PLAIN_MAX_SIZE+crypto_aead_chacha20poly1305_ABYTES);
-	cipher_size = read(safe->cipher, cipher,
+	cipher_size = read(cipher_fd, cipher,
 	                   KP_PLAIN_MAX_SIZE
 	                   +crypto_aead_chacha20poly1305_ABYTES);
 
@@ -330,9 +352,8 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 	/* ensure null termination */
 	safe->metadata[KP_METADATA_MAX_LEN-1] = '\0';
 
-	safe->open = true;
-
 out:
+	close(cipher_fd);
 	sodium_free(plain);
 	free(cipher);
 

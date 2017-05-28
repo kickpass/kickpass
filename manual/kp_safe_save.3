@@ -27,14 +27,22 @@
 .Ft kp_error_t
 .Fn kp_safe_save "struct kp_ctx *ctx" "struct kp_safe *safe"
 .Sh DESCRIPTION
-Save
+Encrypt cleartext password and metadata from
 .Fa safe
-onto disk and optionnaly agent.
+and write it to the corresponding file.
 .Pp
 .Fa safe
 must be open. If
 .Fa safe
-is already opened in an agent, it will be updated with new values.
+is already stored in an agent
+.Fn kp_safe_save
+will update the agent with cleartext values.
+.Pp
+.Fn password_prompt
+from
+.Fa ctx
+is called if master password is absent from
+.Fa ctx .
 .Sh RETURN VALUES
 Upon successful completion, the value
 .Er KP_SUCCESS
