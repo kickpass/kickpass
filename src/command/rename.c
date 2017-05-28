@@ -51,26 +51,25 @@ do_rename(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	if ((ret = kp_safe_load(ctx, &safe, argv[optind])) != KP_SUCCESS) {
-		kp_warn(ret, "cannot load safe");
+	if ((ret = kp_safe_init(ctx, &safe, argv[optind])) != KP_SUCCESS) {
+		kp_warn(ret, "cannot init %s", argv[optind]);
 		return ret;
 	}
 
-	optind++;
-
-	if ((ret = kp_safe_open(ctx, &safe, true)) != KP_SUCCESS) {
-		kp_warn(ret, "cannot open safe");
+	if ((ret = kp_safe_open(ctx, &safe, KP_FORCE)) != KP_SUCCESS) {
+		kp_warn(ret, "cannot open %s", argv[optind]);
 		goto fail;
 	}
 
-	if ((ret = kp_safe_rename(ctx, &safe, argv[optind])) != KP_SUCCESS) {
-		kp_warn(ret, "cannot change safe name");
+	if ((ret = kp_safe_rename(ctx, &safe, argv[optind+1])) != KP_SUCCESS) {
+		kp_warn(ret, "cannot rename %s into %s", argv[optind],
+		        argv[optind+1]);
 		return ret;
 	}
 
 	if ((ret = kp_safe_close(ctx, &safe)) != KP_SUCCESS) {
 		kp_warn(ret, "cannot cleanly close safe"
-			"clear text password might have leaked");
+		             "clear text password might have leaked");
 		return ret;
 	}
 
@@ -79,7 +78,7 @@ do_rename(struct kp_ctx *ctx, int argc, char **argv)
 fail:
 	if ((ret = kp_safe_close(ctx, &safe)) != KP_SUCCESS) {
 		kp_warn(ret, "cannot cleanly close safe"
-			"clear text password might have leaked");
+		             "clear text password might have leaked");
 		return ret;
 	}
 

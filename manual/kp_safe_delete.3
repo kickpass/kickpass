@@ -30,17 +30,9 @@
 Safely delete a
 .Fa safe .
 .Pp
-The
-.Fn kp_safe_delete
-function takes a pointer to an initialized
-.Fa ctx
-and a pointer to the opened
-.Fa safe
-to be deleted.
-.Pp
 If connected to a kickpass agent the
 .Fn kp_safe_delete
-function will also delete the
+function will also remove
 .Fa safe
 from the agent.
 .Sh RETURN VALUES
@@ -65,8 +57,6 @@ Filename too long.
 Permission denied.
 .El
 .Sh SEE ALSO
-.Xr kp_safe_create 3 ,
-.Xr kp_safe_load 3 ,
 .Xr kp_safe_save 3 ,
 .Xr kp_safe_open 3 ,
 .Xr kp_safe_close 3 ,

@@ -29,10 +29,7 @@
 .Sh DESCRIPTION
 Close
 .Fa safe
-and safely delete cleartext password and metadata.
-.Pp
-.Fa safe
-cannot be used anymore afterward.
+and safely clear cleartext password and metadata.
 .Sh RETURN VALUES
 Upon successful completion, the value
 .Er KP_SUCCESS
@@ -50,8 +47,6 @@ Input/output error.
 .El
 .Sh SEE ALSO
 .Xr kp_safe_delete 3 ,
-.Xr kp_safe_create 3 ,
-.Xr kp_safe_load 3 ,
 .Xr kp_safe_open 3 ,
 .Xr kp_safe_save 3 ,
 .Xr kp_safe_get_path 3 ,

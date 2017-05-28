@@ -25,20 +25,41 @@
 .In kickpass/kickpass.h
 .In kickpass/safe.h
 .Ft kp_error_t
-.Fn kp_safe_open "struct kp_ctx *ctx" "struct kp_safe *safe" "bool force"
+.Fn kp_safe_open "struct kp_ctx *ctx" "struct kp_safe *safe" "int flags"
 .Sh DESCRIPTION
 Open
 .Fa safe .
-Clear text password and metadata are then available at safe->password and
+Cleartext password and metadata are then available at safe->password and
 safe->metadata.
-If an agent is available and
-.Fa safe
-is already opened in it, password_prompt callback from
-.Fa ctx
-is not called.
+.Pp
+If an agent is available
+.Fn kp_safe_open
+will try to get cleartext values from the agent.
+The following flags can be bitwise-or'd in
+.Fa flags :
+.Pp
+.Bl -tag -offset indent -compact -width Dv
+.It Dv KP_FORCE
+Ignore agent and always get cleartext values from encrypted file.
+.It Dv KP_CREATE
+Ensure encrypted file doesn't exists and create new cleartext values that
+can be modified afterward.
+.El
+.Pp
 If
-.Fa force
-is set to true, password_prompt callback is always called.
+.Dv Bl KP_CREATE
+is set
+.Dv KP_FORCE
+has no meaning and is therefore ignored.
+.Pp
+.Fn password_prompt
+from
+.Fa ctx
+is only called if master password is absent from
+.Fa ctx
+and if
+.Fa safe
+is not stored in agent.
 .Sh RETURN VALUES
 Upon successful completion, the value
 .Er KP_SUCCESS
@@ -63,12 +84,12 @@ Not enough space.
 Permission denied.
 .It Bq Er ENOENT
 No such file or directory.
+.It Bq Er EEXIST
+File exists.
 .El
 .Sh SEE ALSO
 .Xr kp_safe_delete 3 ,
-.Xr kp_safe_create 3 ,
 .Xr kp_safe_save 3 ,
-.Xr kp_safe_load 3 ,
 .Xr kp_safe_close 3 ,
 .Xr kp_safe_get_path 3 ,
 .Xr kp_safe_rename 3 ,

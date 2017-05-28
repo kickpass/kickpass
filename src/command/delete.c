@@ -49,18 +49,18 @@ delete(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	if ((ret = kp_safe_load(ctx, &safe, argv[optind])) != KP_SUCCESS) {
-		kp_warn(ret, "cannot load safe");
+	if ((ret = kp_safe_init(ctx, &safe, argv[optind])) != KP_SUCCESS) {
+		kp_warn(ret, "cannot init %s", argv[optind]);
 		return ret;
 	}
 
-	if ((ret = kp_safe_open(ctx, &safe, true)) != KP_SUCCESS) {
-		kp_warn(ret, "don't delete safe");
+	if ((ret = kp_safe_open(ctx, &safe, KP_FORCE)) != KP_SUCCESS) {
+		kp_warn(ret, "cannot delete %s", argv[optind]);
 		return ret;
 	}
 
 	if ((ret = kp_safe_delete(ctx, &safe)) != KP_SUCCESS) {
-		kp_warn(ret, "cannot delete safe %s\n"
+		kp_warn(ret, "cannot delete %s\n"
 			"you can delete it manually with the following command:\n"
 			"\trm %s\n"
 			"you should also stop any running agent with the following command:\n"
