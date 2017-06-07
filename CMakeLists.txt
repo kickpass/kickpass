@@ -128,9 +128,17 @@ add_library(libkickpass SHARED
 	lib/kpagent.c
 )
 
+file(GLOB PUBLIC_HEADERS
+	${PROJECT_SOURCE_DIR}/include/*.h
+	${PROJECT_BINARY_DIR}/include/*.h
+)
+
 set_target_properties(libkickpass PROPERTIES
 	VERSION ${KickPass_VERSION_MAJOR}.${KickPass_VERSION_MINOR}.${KickPass_VERSION_PATCH}
-	SOVERSION ${KickPass_VERSION_MAJOR})
+	SOVERSION ${KickPass_VERSION_MAJOR}
+	PUBLIC_HEADER "${PUBLIC_HEADERS}"
+	OUTPUT_NAME kickpass
+)
 set_target_properties(libkickpass PROPERTIES OUTPUT_NAME kickpass)
 set_target_properties(libkickpass PROPERTIES C_STANDARD 99)
 
@@ -152,7 +160,11 @@ set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Werror")
 
 # Configure install
 
-install(TARGETS kickpass libkickpass RUNTIME DESTINATION bin LIBRARY DESTINATION lib)
+install(TARGETS kickpass libkickpass
+	RUNTIME DESTINATION bin
+	LIBRARY DESTINATION lib
+	PUBLIC_HEADER DESTINATION include/kickpass
+)
 install(FILES manual/kickpass.1 DESTINATION share/man/man1/)
 install(FILES extra/completion/zsh/_kickpass DESTINATION share/zsh/site-functions/)
 
