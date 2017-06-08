@@ -43,7 +43,7 @@ struct kp_agent {
 struct kp_ctx {
 	char ws_path[PATH_MAX];
 	struct kp_agent agent;
-	kp_error_t (*password_prompt)(struct kp_ctx *, bool, char *, const char *, ...) __attribute__((format(printf, 4, 5)));
+	kp_error_t (*password_prompt)(struct kp_ctx *, bool, char *, const char *, va_list ap);
 	char * const password;
 	struct {
 		long long unsigned opslimit;
@@ -56,5 +56,6 @@ kp_error_t kp_fini(struct kp_ctx *);
 kp_error_t kp_init_workspace(struct kp_ctx *, const char *);
 const char *kp_version_string(void);
 int kp_version_major(void);
+kp_error_t kp_password_prompt(struct kp_ctx *, bool, char *, const char *, ...) __attribute__((format(printf, 4, 5)));
 
 #endif /* KP_KICKPASS_H */

@@ -30,6 +30,7 @@
 #define KP_EENCRYPT         8
 #define KP_INVALID_MSG      9
 #define KP_EXIT             10
+#define KP_NOPROMPT         11
 
 typedef int kp_error_t;
 

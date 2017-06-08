@@ -133,7 +133,9 @@ kp_safe_open(struct kp_ctx *ctx, struct kp_safe *safe, int flags)
 fallback:
 	if (ctx->password[0] == '\0') {
 		kp_error_t ret;
-		if ((ret = ctx->password_prompt(ctx, false, (char *)ctx->password, "master")) != KP_SUCCESS) {
+		if ((ret = kp_password_prompt(ctx, false,
+		                              (char *)ctx->password,
+		                              "master")) != KP_SUCCESS) {
 			return ret;
 		}
 	}
@@ -150,7 +152,9 @@ kp_safe_save(struct kp_ctx *ctx, struct kp_safe *safe)
 
 	if (ctx->password[0] == '\0') {
 		kp_error_t ret;
-		if ((ret = ctx->password_prompt(ctx, false, (char *)ctx->password, "master")) != KP_SUCCESS) {
+		if ((ret = kp_password_prompt(ctx, false,
+		                              (char *)ctx->password,
+		                              "master")) != KP_SUCCESS) {
 			return ret;
 		}
 	}

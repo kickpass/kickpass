@@ -37,11 +37,10 @@
 
 
 kp_error_t
-kp_askpass(struct kp_ctx *ctx, bool confirm, char *password, const char *fmt, ...)
+kp_askpass(struct kp_ctx *ctx, bool confirm, char *password, const char *fmt, va_list ap)
 {
 	kp_error_t ret = KP_SUCCESS;
 	char *prompt_fmt = NULL, *prompt = NULL;
-	va_list ap;
 	char *askpass = NULL;
 	char *output = NULL;
 	size_t len = 0;
@@ -80,11 +79,9 @@ kp_askpass(struct kp_ctx *ctx, bool confirm, char *password, const char *fmt, ..
 			kp_err(KP_ERRNO, "cannot build prompt");
 		}
 
-		va_start(ap, fmt);
 		if (vasprintf(&prompt, prompt_fmt, ap) < 0) {
 			kp_err(KP_ERRNO, "cannot build prompt");
 		}
-		va_end(ap);
 
 		execlp(askpass, askpass, prompt, (char *)NULL);
 
@@ -133,11 +130,10 @@ out:
 }
 
 kp_error_t
-kp_readpass(struct kp_ctx *ctx, bool confirm, char *password, const char *fmt, ...)
+kp_readpass(struct kp_ctx *ctx, bool confirm, char *password, const char *fmt, va_list ap)
 {
 	kp_error_t ret = KP_SUCCESS;
 	char *prompt_fmt = NULL, *prompt = NULL;
-	va_list ap;
 	char *confirmation = NULL;
 
 	assert(fmt);
@@ -147,11 +143,9 @@ kp_readpass(struct kp_ctx *ctx, bool confirm, char *password, const char *fmt, .
 		kp_err(KP_ERRNO, "cannot build prompt");
 	}
 
-	va_start(ap, fmt);
 	if (vasprintf(&prompt, prompt_fmt, ap) < 0) {
 		kp_err(KP_ERRNO, "cannot build prompt");
 	}
-	va_end(ap);
 
 	if (readpassphrase(prompt, password, KP_PASSWORD_MAX_LEN,
 				RPP_ECHO_OFF | RPP_REQUIRE_TTY) == NULL) {

@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 
 #include <assert.h>
+#include <stdarg.h>
 #include <stddef.h>
 #include <stdlib.h>
 
@@ -136,4 +137,23 @@ int
 kp_version_major(void)
 {
 	return KICKPASS_VERSION_MAJOR;
+}
+
+kp_error_t
+kp_password_prompt(struct kp_ctx *ctx, bool confirm, char *password, const char *fmt, ...)
+{
+	kp_error_t ret;
+	va_list ap;
+
+	assert(ctx);
+
+	if (ctx->password_prompt == NULL) {
+		return KP_NOPROMPT;
+	}
+
+	va_start(ap, fmt);
+	ret = ctx->password_prompt(ctx, confirm, password, fmt, ap);
+	va_end(ap);
+
+	return ret;
 }
