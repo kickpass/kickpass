@@ -208,11 +208,24 @@ finally:
 kp_error_t
 kp_safe_close(struct kp_ctx *ctx, struct kp_safe *safe)
 {
+	char **password;
+	char **metadata;
+
 	assert(ctx);
 	assert(safe);
 
+	if (!safe->open) {
+		return KP_SUCCESS;
+	}
+
 	sodium_free((char *)safe->password);
 	sodium_free((char *)safe->metadata);
+
+	password = (char **)&safe->password;
+	metadata = (char **)&safe->metadata;
+
+	*password = NULL;
+	*metadata = NULL;
 
 	safe->open = false;
 
