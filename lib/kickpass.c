@@ -54,7 +54,7 @@ kp_init(struct kp_ctx *ctx)
 		return KP_ERRNO;
 	}
 
-	if (sodium_init() != 0) {
+	if (sodium_init() < 0) {
 		return KP_EINTERNAL;
 	}
 
