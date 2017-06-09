@@ -26,6 +26,9 @@ static const char *errstr[] = {
 	"invalid HOME environmnent variable",
 	"decryption error",
 	"encryption error",
+	"invalid message",
+	"",
+	"no prompt set in ctx",
 };
 
 const char *
