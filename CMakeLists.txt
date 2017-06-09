@@ -66,20 +66,21 @@ set(SRCS
 find_package(Sodium 1.0.0 REQUIRED)
 message(STATUS "Libsodium version: ${SODIUM_VERSION}")
 include_directories(${SODIUM_INCLUDE_DIRS})
-set(LIBS ${LIBS} ${SODIUM_LIBRARIES})
+set(LIB_LIBS ${LIB_LIBS} ${SODIUM_LIBRARIES})
 
 check_library_exists(c readpassphrase "readpassphrase.h" HAVE_READPASSPHRASE)
 if (NOT HAVE_READPASSPHRASE)
 	find_package(BSD REQUIRED)
 	include_directories(${BSD_INCLUDE_DIRS}/bsd)
 	set(LIBS ${LIBS} ${BSD_LIBRARIES})
+	set(LIB_LIBS ${LIB_LIBS} ${BSD_LIBRARIES})
 	# Add _GNU_SOURCE for asprintf
 	add_definitions(-DLIBBSD_OVERLAY -D_GNU_SOURCE)
 endif()
 
 check_library_exists(util imsg_init "imsg.h" HAVE_IMSG)
 if (HAVE_IMSG)
-	set(LIBS ${LIBS} util)
+	set(LIB_LIBS ${LIB_LIBS} util)
 else()
 	add_library(imsg STATIC
 		${CMAKE_SOURCE_DIR}/compat/bsd/imsg-buffer.c
@@ -88,7 +89,10 @@ else()
 	)
 
 	include_directories(${CMAKE_SOURCE_DIR}/compat/bsd/)
-	set(LIBS ${LIBS} imsg)
+	set_target_properties(imsg PROPERTIES
+		POSITION_INDEPENDENT_CODE ON
+	)
+	set(LIB_LIBS ${LIB_LIBS} imsg)
 endif()
 
 find_package(Event2 REQUIRED)
@@ -138,9 +142,12 @@ set_target_properties(libkickpass PROPERTIES
 	SOVERSION ${KickPass_VERSION_MAJOR}
 	PUBLIC_HEADER "${PUBLIC_HEADERS}"
 	OUTPUT_NAME kickpass
+	POSITION_INDEPENDENT_CODE ON
 )
 set_target_properties(libkickpass PROPERTIES OUTPUT_NAME kickpass)
 set_target_properties(libkickpass PROPERTIES C_STANDARD 99)
+
+target_link_libraries(libkickpass ${LIB_LIBS})
 
 target_link_libraries(kickpass libkickpass)
 
