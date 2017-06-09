@@ -22,6 +22,7 @@ import subprocess
 import logging
 import sys
 import unittest
+import tempfile
 
 class KPAgent(subprocess.Popen):
     def __init__(self, kp):
@@ -52,8 +53,6 @@ class KPTestCase(unittest.TestCase):
         # Get env vars
         self.kp = os.environ['KP']
         self.editor_path = os.environ['EDITOR_PATH']
-        self.kp_ws = os.path.join(os.environ['HOME'], '.kickpass')
-        self.clear_text = os.path.join(os.environ['HOME'], 'editor-save.txt')
         self.agent = None
 
     @classmethod
@@ -61,10 +60,14 @@ class KPTestCase(unittest.TestCase):
         logging.getLogger().setLevel(logging.INFO)
 
     def setUp(self):
-        shutil.rmtree(self.kp_ws, ignore_errors=True)
+        self.home = tempfile.TemporaryDirectory()
+        self.kp_ws = os.path.join(self.home.name, '.kickpass')
+        self.clear_text = os.path.join(self.home.name, 'editor-save.txt')
+        os.environ['HOME'] = self.home.name
         self.init()
 
     def tearDown(self):
+        self.home.cleanup()
         if self.agent is not None:
             self.agent.terminate()
             for env in self.agent.env:
