@@ -65,6 +65,7 @@ kp_safe_open(struct kp_ctx *ctx, struct kp_safe *safe, int flags)
 	char **password;
 	char **metadata;
 	char path[PATH_MAX] = "";
+	struct stat stats;
 
 	assert(ctx);
 	assert(safe);
@@ -85,19 +86,20 @@ kp_safe_open(struct kp_ctx *ctx, struct kp_safe *safe, int flags)
 	safe->metadata[0] = '\0';
 
 	if (KP_CREATE & flags) {
-		struct stat stats;
-
+		/* Ensure path to safe exists */
 		if ((ret = kp_safe_mkdir(ctx, path)) != KP_SUCCESS) {
 			return ret;
 		}
+	}
 
-		if (stat(path, &stats) == 0) {
-			errno = EEXIST;
-			return KP_ERRNO;
-		} else if (errno != ENOENT) {
-			return KP_ERRNO;
-		}
+	/* Either safe exist or we want to create it */
+	if ((stat(path, &stats) == 0) == (bool)(KP_CREATE & flags)) {
+		errno = (KP_CREATE & flags)?EEXIST:ENOENT;
+		return KP_ERRNO;
+	}
 
+	if (KP_CREATE & flags) {
+		/* Safe file will be created when save is called */
 		return KP_SUCCESS;
 	}
 
