@@ -25,6 +25,7 @@
 #include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdarg.h>
 
 #include "kickpass_config.h"
 
