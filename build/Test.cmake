@@ -18,7 +18,7 @@ include(FindPythonModule)
 
 find_package(Check)
 find_program(VALGRIND_COMMAND valgrind)
-find_package(PythonInterp)
+find_package(PythonInterp 3)
 
 if (VALGRIND_COMMAND)
 	set(VALGRIND_OPTIONS "-q --tool=memcheck --show-reachable=yes --leak-check=full --gen-suppressions=all --track-origins=yes")
