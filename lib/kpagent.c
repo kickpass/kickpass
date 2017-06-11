@@ -22,7 +22,6 @@
 #include <sys/un.h>
 
 #include <assert.h>
-#include <imsg.h>
 #include <sodium.h>
 #include <stdlib.h>
 #include <string.h>
@@ -31,6 +30,7 @@
 #include "kickpass.h"
 
 #include "error.h"
+#include "imsg.h"
 #include "kpagent.h"
 
 #define SOCKET_BACKLOG 128

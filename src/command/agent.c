@@ -23,7 +23,6 @@
 
 #include <fcntl.h>
 #include <getopt.h>
-#include <imsg.h>
 #include <signal.h>
 #include <sodium.h>
 #include <stdio.h>
@@ -35,9 +34,10 @@
 
 #include "kickpass.h"
 
-#include "log.h"
 #include "command.h"
+#include "imsg.h"
 #include "kpagent.h"
+#include "log.h"
 
 #ifndef EPROTO
 #define EPROTO ENOPROTOOPT

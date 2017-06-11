@@ -22,13 +22,14 @@
 #include <sys/uio.h>
 #include <sys/un.h>
 
-#include <imsg.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "error.h"
 #include "kickpass_config.h"
+
+#include "error.h"
+#include "imsg.h"
 
 #define KP_PASSWORD_MAX_LEN 4096
 #define KP_METADATA_MAX_LEN 4096

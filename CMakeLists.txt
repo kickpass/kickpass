@@ -68,8 +68,8 @@ message(STATUS "Libsodium version: ${SODIUM_VERSION}")
 include_directories(${SODIUM_INCLUDE_DIRS})
 set(LIB_LIBS ${LIB_LIBS} ${SODIUM_LIBRARIES})
 
-check_library_exists(c readpassphrase "readpassphrase.h" HAVE_READPASSPHRASE)
-if (NOT HAVE_READPASSPHRASE)
+check_library_exists(c readpassphrase "readpassphrase.h" HAS_READPASSPHRASE)
+if (NOT HAS_READPASSPHRASE)
 	find_package(BSD REQUIRED)
 	include_directories(${BSD_INCLUDE_DIRS}/bsd)
 	set(LIBS ${LIBS} ${BSD_LIBRARIES})
@@ -78,8 +78,8 @@ if (NOT HAVE_READPASSPHRASE)
 	add_definitions(-DLIBBSD_OVERLAY -D_GNU_SOURCE)
 endif()
 
-check_library_exists(util imsg_init "imsg.h" HAVE_IMSG)
-if (HAVE_IMSG)
+check_library_exists(util imsg_init "imsg.h" HAS_IMSG)
+if (HAS_IMSG)
 	set(LIB_LIBS ${LIB_LIBS} util)
 else()
 	add_library(imsg STATIC
@@ -93,6 +93,7 @@ else()
 		POSITION_INDEPENDENT_CODE ON
 	)
 	set(LIB_LIBS ${LIB_LIBS} imsg)
+	set(PUBLIC_HEADERS ${PUBLIC_HEADERS} ${CMAKE_SOURCE_DIR}/compat/bsd/imsg.h)
 endif()
 
 find_package(Event2 REQUIRED)
@@ -135,6 +136,7 @@ add_library(libkickpass SHARED
 file(GLOB PUBLIC_HEADERS
 	${PROJECT_SOURCE_DIR}/include/*.h
 	${PROJECT_BINARY_DIR}/include/*.h
+	${PUBLIC_HEADERS}
 )
 
 set_target_properties(libkickpass PROPERTIES

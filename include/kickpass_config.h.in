@@ -26,5 +26,6 @@
 #define KP_PATH ".kickpass"
 
 #cmakedefine HAS_X11
+#cmakedefine HAS_IMSG
 
 #endif /* KP_KICKPASS_CONFIG_H */
