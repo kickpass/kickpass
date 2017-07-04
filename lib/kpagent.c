@@ -174,27 +174,29 @@ kp_agent_receive(struct kp_agent *agent, enum kp_agent_msg_type type, void *data
 {
 	kp_error_t ret;
 	struct imsg imsg;
+	ssize_t ssize = 0;
 
 	assert(agent);
 
-	/* Try to get one from ibuf */
-	if (imsg_get(&agent->ibuf, &imsg) > 0) {
-		goto available;
-	}
+	do {
+		/* Try to get one from ibuf */
+		if ((ssize = imsg_get(&agent->ibuf, &imsg)) > 0) {
+			continue;
+		}
 
-	/* Nothing in buf try to read from conn */
-	if (imsg_read(&agent->ibuf) < 0) {
-		imsg_clear(&agent->ibuf);
-		/* XXX clean conn */
-		return KP_ERRNO;
-	}
+		/* Nothing in buf try to read from conn */
+		if (imsg_read(&agent->ibuf) <= 0) {
+			imsg_clear(&agent->ibuf);
+			/* XXX clean conn */
+			return KP_ERRNO;
+		}
 
-	/* Try to get one from ibuf */
-	if (imsg_get(&agent->ibuf, &imsg) < 0) {
-		return KP_ERRNO;
-	}
+		/* Try to get one from ibuf */
+		if ((ssize = imsg_get(&agent->ibuf, &imsg)) < 0) {
+			return KP_ERRNO;
+		}
+	} while (ssize <= 0);
 
-available:
 	if (imsg.hdr.type > KP_MSG_ERROR) {
 		/* XXX report real error */
 		ret = KP_INVALID_MSG;
