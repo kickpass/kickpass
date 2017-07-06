@@ -26,7 +26,7 @@ import unittest
 class KPAgent(subprocess.Popen):
     def __init__(self, kp):
         super(KPAgent, self).__init__([kp, 'agent', '-d'], stdout=subprocess.PIPE, universal_newlines=True)
-        env, value = self.stdout.readline().strip().split('=')
+        env, value = self.stdout.readline().strip().split(';')[0].split('=')
         self.env = {env: value}
         os.environ.update(self.env)
 

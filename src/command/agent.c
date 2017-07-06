@@ -264,7 +264,8 @@ agent(struct kp_ctx *ctx, int argc, char **argv)
 		goto out;
 	}
 
-	fprintf(stdout, "%s=%s\n", KP_AGENT_SOCKET_ENV, socket_path);
+	fprintf(stdout, "%s=%s; export %s;\n", KP_AGENT_SOCKET_ENV,
+	        socket_path, KP_AGENT_SOCKET_ENV);
 	fflush(stdout);
 
 	if (optind < argc) {
