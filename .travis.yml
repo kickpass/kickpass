@@ -1,4 +1,8 @@
 language: c
+compiler:
+  - clang
+  - gcc
+dist: trusty
 install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq check libevent-dev
@@ -12,5 +16,6 @@ install:
   - tar xJf libbsd-0.7.0.tar.xz
   - cd libbsd-0.7.0 && ./configure --prefix=/usr --libdir=/lib/x86_64-linux-gnu && make && sudo make install
 script:
-  - cd ~/build
-  - mkdir kickpass-build && cd kickpass-build && cmake -DCMAKE_INSTALL_PREFIX=/usr ~/build/paulfariello/kickpass && make && make test ARGS="-V"
+  - mkdir ~/build/kickpass-build
+  - cd ~/build/kickpass-build
+  - cmake -DBUILD=Debug $TRAVIS_BUILD_DIR && make && make test ARGS="-V"
