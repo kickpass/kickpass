@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/kickpass/kickpass.svg?branch=develop)](https://travis-ci.org/paulfariello/kickpass)
+[![Build Status](https://travis-ci.org/kickpass/kickpass.svg?branch=develop)](https://travis-ci.org/kickpass/kickpass)
 
 Kickpass
 ========
