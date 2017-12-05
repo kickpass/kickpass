@@ -24,9 +24,6 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 
-/* TODO remove */
-#include <assert.h>
-
 #include "kickpass.h"
 
 #include "command.h"
@@ -51,7 +48,7 @@ copy(struct kp_ctx *ctx, int argc, char **argv)
 	struct kp_safe safe;
 	Display *display;
 	Window window;
-	Atom XA_CLIPBOARD, XA_COMPOUND_TEXT, XA_UTF8_STRING, XA_TARGETS;
+	Atom XA_CLIPBOARD, XA_TARGETS;
 	bool replied = false;
 	size_t password_len;
 
@@ -76,8 +73,6 @@ copy(struct kp_ctx *ctx, int argc, char **argv)
 	display = XOpenDisplay(NULL);
 
 	XA_CLIPBOARD     = XInternAtom(display, "CLIPBOARD", True);
-	XA_COMPOUND_TEXT = XInternAtom(display, "COMPOUND_TEXT", True);
-	XA_UTF8_STRING   = XInternAtom(display, "UTF8_STRING", True);
 	XA_TARGETS       = XInternAtom(display, "TARGETS", True);
 
 	window = XCreateSimpleWindow(display, DefaultRootWindow(display), 0, 0, 1, 1, 0, 0, 0);
@@ -95,6 +90,14 @@ copy(struct kp_ctx *ctx, int argc, char **argv)
 		XEvent event;
 		XSelectionRequestEvent *request;
 		XSelectionEvent reply;
+		Atom possibleTargets[] = {
+			XInternAtom(display, "STRING", True),
+			XInternAtom(display, "TEXT", True),
+			XInternAtom(display, "COMPOUND_TEXT", True),
+			XInternAtom(display, "UTF8_STRING", True),
+			XInternAtom(display, "text/plain", False),
+			XInternAtom(display, "text/plain;charset=utf-8", False),
+		};
 
 		XNextEvent(display, &event);
 
@@ -114,29 +117,37 @@ copy(struct kp_ctx *ctx, int argc, char **argv)
 		reply.time       = request->time;
 
 		if (request->target == XA_TARGETS) {
-			Atom possibleTargets[] = {
-				XA_STRING,
-				XA_UTF8_STRING,
-				XA_COMPOUND_TEXT
-			};
 
 			XChangeProperty(display, request->requestor,
 					request->property, XA_ATOM, 32,
 					PropModeReplace,
 					(unsigned char *) possibleTargets, 3);
-		} else if (request->target == XA_STRING
-				|| request->target == XA_UTF8_STRING
-				|| request->target == XA_COMPOUND_TEXT) {
-			XChangeProperty(display, request->requestor,
-					request->property, request->target,
-					8, PropModeReplace,
-					(unsigned char *)safe.password,
-					password_len);
-			replied = true;
 		} else {
-			kp_warn(KP_EINPUT, "don't know what to answer");
-			reply.property = None;
-			replied = true;
+			bool supported = false;
+			for (int i = 0;
+			     i < sizeof(possibleTargets)/sizeof(possibleTargets[0]);
+			     i++) {
+				supported |= (request->target == possibleTargets[i]);
+			}
+
+			if (supported) {
+				XChangeProperty(display, request->requestor,
+						request->property, request->target,
+						8, PropModeReplace,
+						(unsigned char *)safe.password,
+						password_len);
+				replied = true;
+			} else {
+				char *name = XGetAtomName(display,
+				                          request->target);
+				kp_warn(KP_EINPUT, "don't know what to answer to %s",
+				        name);
+				if (name) {
+					XFree(name);
+				}
+				reply.property = None;
+				replied = true;
+			}
 		}
 
 		XSendEvent(display, event.xselectionrequest.requestor, 0, 0,
