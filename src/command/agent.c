@@ -307,6 +307,8 @@ agent(struct kp_ctx *ctx, int argc, char **argv)
 	               agent_accept, &agent);
 	event_add(ev, NULL);
 
+signal(SIGPIPE, SIG_IGN);
+
 	if (child_pid != 0) {
 		ev = event_new(agent.evb, SIGCHLD, EV_SIGNAL | EV_PERSIST,
 		               agent_kill, &agent);
