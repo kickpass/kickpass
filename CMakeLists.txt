@@ -112,6 +112,7 @@ configure_file(
 )
 
 add_executable(kickpass ${SRCS})
+set_target_properties(kickpass PROPERTIES C_STANDARD 99)
 
 # Link all dependencies
 target_link_libraries(kickpass ${LIBS})
@@ -131,6 +132,7 @@ set_target_properties(libkickpass PROPERTIES
 	VERSION ${KickPass_VERSION_MAJOR}.${KickPass_VERSION_MINOR}.${KickPass_VERSION_PATCH}
 	SOVERSION ${KickPass_VERSION_MAJOR})
 set_target_properties(libkickpass PROPERTIES OUTPUT_NAME kickpass)
+set_target_properties(libkickpass PROPERTIES C_STANDARD 99)
 
 target_link_libraries(kickpass libkickpass)
 
