@@ -64,8 +64,8 @@ kp_cfg_create(struct kp_ctx *ctx, const char *sub)
 	char path[PATH_MAX] = "";
 	struct kp_safe cfg_safe;
 
-	if (snprintf(path, PATH_MAX, "%s/%s/" KP_CONFIG_SAFE_NAME,
-            ctx->ws_path, sub) >= PATH_MAX) {
+	if (snprintf(path, PATH_MAX, "%s%s" KP_CONFIG_SAFE_NAME,
+	    strlen(sub) == 0 ? "": "/", sub) >= PATH_MAX) {
 		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
@@ -102,8 +102,8 @@ kp_cfg_load(struct kp_ctx *ctx, const char *sub)
 	struct kp_safe cfg_safe;
 	char *line = NULL, *save_line = NULL;
 
-	if (snprintf(path, PATH_MAX, "%s/%s/" KP_CONFIG_SAFE_NAME,
-            ctx->ws_path, sub) >= PATH_MAX) {
+	if (snprintf(path, PATH_MAX, "%s%s" KP_CONFIG_SAFE_NAME,
+	    strlen(sub) == 0 ? "": "/", sub) >= PATH_MAX) {
 		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
