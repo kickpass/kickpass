@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 
 #include <assert.h>
+#include <fcntl.h>
 #include <sodium.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,7 +31,7 @@
 #include "storage.h"
 #include "kpagent.h"
 
-static kp_error_t kp_safe_mkdir(struct kp_ctx *, char *);
+static kp_error_t kp_safe_mkdir(struct kp_ctx *, const char *);
 
 kp_error_t
 kp_safe_init(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
@@ -50,6 +51,8 @@ kp_safe_init(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 	*password = NULL;
 	*metadata = NULL;
 
+	memset(safe->name, '\0', PATH_MAX);
+
 	if (strlcpy(safe->name, name, PATH_MAX) >= PATH_MAX) {
 		errno = ENAMETOOLONG;
 		return KP_ERRNO;
@@ -64,7 +67,6 @@ kp_safe_open(struct kp_ctx *ctx, struct kp_safe *safe, int flags)
 	kp_error_t ret;
 	char **password;
 	char **metadata;
-	char path[PATH_MAX] = "";
 	struct stat stats;
 
 	assert(ctx);
@@ -73,10 +75,6 @@ kp_safe_open(struct kp_ctx *ctx, struct kp_safe *safe, int flags)
 
 	password = (char **)&safe->password;
 	metadata = (char **)&safe->metadata;
-
-	if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
-		return ret;
-	}
 
 	safe->open = true;
 
@@ -87,14 +85,15 @@ kp_safe_open(struct kp_ctx *ctx, struct kp_safe *safe, int flags)
 
 	if (KP_CREATE & flags) {
 		/* Ensure path to safe exists */
-		if ((ret = kp_safe_mkdir(ctx, path)) != KP_SUCCESS) {
+		if ((ret = kp_safe_mkdir(ctx, safe->name)) != KP_SUCCESS) {
 			return ret;
 		}
 	}
 
 	/* Either safe exist or we want to create it */
-	if ((stat(path, &stats) == 0) == (bool)(KP_CREATE & flags)) {
-		errno = (KP_CREATE & flags)?EEXIST:ENOENT;
+	if ((fstatat(ctx->ws_fd, safe->name, &stats, 0) == 0)
+	    == (bool)(KP_CREATE & flags)) {
+		errno = (KP_CREATE & flags) ? EEXIST : ENOENT;
 		return KP_ERRNO;
 	}
 
@@ -106,7 +105,7 @@ kp_safe_open(struct kp_ctx *ctx, struct kp_safe *safe, int flags)
 	if (!(KP_FORCE & flags) && ctx->agent.connected) {
 		struct kp_unsafe unsafe = KP_UNSAFE_INIT;
 
-		if ((ret = kp_agent_send(&ctx->agent, KP_MSG_SEARCH, path,
+		if ((ret = kp_agent_send(&ctx->agent, KP_MSG_SEARCH, safe->name,
 		    PATH_MAX)) != KP_SUCCESS) {
 			/* TODO log reason in verbose mode */
 			goto fallback;
@@ -118,13 +117,13 @@ kp_safe_open(struct kp_ctx *ctx, struct kp_safe *safe, int flags)
 			goto fallback;
 		}
 
-		if (strlcpy(safe->password, unsafe.password, KP_PASSWORD_MAX_LEN)
-		    >= KP_PASSWORD_MAX_LEN) {
+		if (strlcpy(safe->password, unsafe.password,
+		            KP_PASSWORD_MAX_LEN) >= KP_PASSWORD_MAX_LEN) {
 			errno = ENOMEM;
 			return KP_ERRNO;
 		}
-		if (strlcpy(safe->metadata, unsafe.metadata, KP_METADATA_MAX_LEN)
-		    >= KP_METADATA_MAX_LEN) {
+		if (strlcpy(safe->metadata, unsafe.metadata,
+		            KP_METADATA_MAX_LEN) >= KP_METADATA_MAX_LEN) {
 			errno = ENOMEM;
 			return KP_ERRNO;
 		}
@@ -164,13 +163,8 @@ kp_safe_save(struct kp_ctx *ctx, struct kp_safe *safe)
 	if (ctx->agent.connected) {
 		kp_error_t ret;
 		struct kp_unsafe unsafe = KP_UNSAFE_INIT;
-		char path[PATH_MAX] = "";
 
-		if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
-			return ret;
-		}
-
-		if ((ret = kp_agent_send(&ctx->agent, KP_MSG_SEARCH, path,
+		if ((ret = kp_agent_send(&ctx->agent, KP_MSG_SEARCH, safe->name,
 		    PATH_MAX)) != KP_SUCCESS) {
 			/* TODO log reason in verbose mode */
 			goto finally;
@@ -238,33 +232,29 @@ kp_error_t
 kp_safe_delete(struct kp_ctx *ctx, struct kp_safe *safe)
 {
 	kp_error_t ret;
-	char path[PATH_MAX] = "";
 
 	assert(ctx);
 	assert(safe);
 	assert(safe->open);
 
-	if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
-		return ret;
-	}
-
 	if (ctx->agent.connected) {
 		bool result;
 
-		if ((ret = kp_agent_send(&ctx->agent, KP_MSG_DISCARD, path,
-		    PATH_MAX)) != KP_SUCCESS) {
+		if ((ret = kp_agent_send(&ctx->agent, KP_MSG_DISCARD,
+		                         safe->name, PATH_MAX)) != KP_SUCCESS) {
 			/* TODO log reason in verbose mode */
 			return ret;
 		}
 
 		if ((ret = kp_agent_receive(&ctx->agent, KP_MSG_DISCARD,
-		    &result, sizeof(bool))) != KP_SUCCESS) {
+		                            &result, sizeof(bool)))
+		    != KP_SUCCESS) {
 			/* TODO log reason in verbose mode */
 			return ret;
 		}
 	}
 
-	if (unlink(path) != 0) {
+	if (unlinkat(ctx->ws_fd, safe->name, 0) != 0) {
 		ret = KP_ERRNO;
 		return ret;
 	}
@@ -276,14 +266,15 @@ kp_error_t
 kp_safe_rename(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 {
 	kp_error_t ret;
-	char oldpath[PATH_MAX] = "", newpath[PATH_MAX] = "";
+	char oldname[PATH_MAX] = "";
 
 	assert(ctx);
 	assert(safe);
 	assert(name);
 
-	if ((ret = kp_safe_get_path(ctx, safe, oldpath, PATH_MAX)) != KP_SUCCESS) {
-		return ret;
+	if (strlcpy(oldname, safe->name, PATH_MAX) >= PATH_MAX) {
+		errno = ENOMEM;
+		return KP_ERRNO;
 	}
 
 	if (strlcpy(safe->name, name, PATH_MAX) >= PATH_MAX) {
@@ -291,16 +282,12 @@ kp_safe_rename(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 		return KP_ERRNO;
 	}
 
-	if ((ret = kp_safe_get_path(ctx, safe, newpath, PATH_MAX)) != KP_SUCCESS) {
-		return ret;
-	}
-
 	if (ctx->agent.connected) {
 		struct kp_unsafe unsafe = KP_UNSAFE_INIT;
 		bool result;
 
-		if ((ret = kp_agent_send(&ctx->agent, KP_MSG_DISCARD, oldpath,
-		    PATH_MAX)) != KP_SUCCESS) {
+		if ((ret = kp_agent_send(&ctx->agent, KP_MSG_DISCARD,
+		    oldname, PATH_MAX)) != KP_SUCCESS) {
 			/* TODO log reason in verbose mode */
 			goto finally;
 		}
@@ -313,7 +300,7 @@ kp_safe_rename(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 			goto finally;
 		}
 
-		if (strlcpy(unsafe.path, newpath, PATH_MAX) >= PATH_MAX) {
+		if (strlcpy(unsafe.path, safe->name, PATH_MAX) >= PATH_MAX) {
 			errno = ENAMETOOLONG;
 			goto finally;
 		}
@@ -338,37 +325,12 @@ kp_safe_rename(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 
 
 finally:
-	if ((ret = kp_safe_mkdir(ctx, newpath)) != KP_SUCCESS) {
+	if ((ret = kp_safe_mkdir(ctx, safe->name)) != KP_SUCCESS) {
 		return ret;
 	}
 
-	if (rename(oldpath, newpath) != 0) {
-		return KP_ERRNO;
-	}
-
-	return KP_SUCCESS;
-}
-
-kp_error_t
-kp_safe_get_path(struct kp_ctx *ctx, struct kp_safe *safe, char *path, size_t size)
-{
-	assert(ctx);
-	assert(safe);
-	assert(path);
-
-	if (strlcpy(path, ctx->ws_path, size) >= size) {
-		errno = ENAMETOOLONG;
-		return KP_ERRNO;
-	}
-
-	if (strlcat(path, "/", size) >= size) {
-		errno = ENAMETOOLONG;
-		return KP_ERRNO;
-	}
-
-	if (strlcat(path, safe->name, size) >= size) {
-		errno = ENAMETOOLONG;
-		return KP_ERRNO;
+	if (renameat(ctx->ws_fd, oldname, ctx->ws_fd, safe->name) != 0) {
+		return errno;
 	}
 
 	return KP_SUCCESS;
@@ -386,9 +348,9 @@ kp_safe_store(struct kp_ctx *ctx, struct kp_safe *safe, int timeout)
 	}
 
 	unsafe.timeout = timeout;
-	if ((ret = kp_safe_get_path(ctx, safe, unsafe.path,
-	                            PATH_MAX)) != KP_SUCCESS) {
-		return ret;
+	if (strlcpy(unsafe.path, safe->name, PATH_MAX) >= PATH_MAX) {
+		errno = ENOMEM;
+		return KP_ERRNO;
 	}
 	if (strlcpy(unsafe.password, safe->password,
 	            KP_PASSWORD_MAX_LEN) >= KP_PASSWORD_MAX_LEN) {
@@ -408,25 +370,28 @@ kp_safe_store(struct kp_ctx *ctx, struct kp_safe *safe, int timeout)
 }
 
 static kp_error_t
-kp_safe_mkdir(struct kp_ctx *ctx, char *path)
+kp_safe_mkdir(struct kp_ctx *ctx, const char *name)
 {
-	struct stat  stats;
-	char   *rdir;
+	struct stat stats;
+	char path[PATH_MAX], *rdir;
 
 	assert(ctx);
-	assert(path);
 
-	rdir = path + strlen(ctx->ws_path);
-	rdir++; /* Skip first / as it is part of the ctx->ws */
+	if (strlcpy(path, name, PATH_MAX) >= PATH_MAX) {
+		errno = ENOMEM;
+		return (KP_ERRNO);
+	}
+
+	rdir = path;
 	while ((rdir = strchr(rdir, '/'))) {
 		*rdir = '\0';
-		if (stat(path, &stats) != 0) {
+		if (fstatat(ctx->ws_fd, path, &stats, 0) != 0) {
 			if (errno == ENOENT) {
-				if (mkdir(path, 0700) < 0) {
-					return KP_ERRNO;
+				if (mkdirat(ctx->ws_fd, path, 0700) < 0) {
+					return errno;
 				}
 			} else {
-				return KP_ERRNO;
+				return errno;
 			}
 		}
 		*rdir = '/';

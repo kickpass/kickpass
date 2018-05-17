@@ -190,18 +190,14 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 	struct kp_storage_header header = KP_STORAGE_HEADER_INIT;
 	unsigned char packed_header[KP_STORAGE_HEADER_SIZE];
 	size_t password_len, metadata_len;
-	char path[PATH_MAX];
 
 	assert(ctx);
 	assert(safe);
 	assert(safe->open == true);
 
-	if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
-		return ret;
-	}
-
-	cipher_fd = open(path, O_WRONLY | O_NONBLOCK | O_CREAT,
-	                 S_IRUSR | S_IWUSR);
+	cipher_fd = openat(ctx->ws_fd, safe->name,
+	                   O_WRONLY | O_NONBLOCK | O_CREAT,
+	                   S_IRUSR | S_IWUSR);
 	if (cipher_fd < 0) {
 		ret = KP_ERRNO;
 		goto out;
@@ -287,16 +283,11 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 	struct kp_storage_header header = KP_STORAGE_HEADER_INIT;
 	unsigned char packed_header[KP_STORAGE_HEADER_SIZE];
 	size_t password_len;
-	char path[PATH_MAX];
 
 	assert(ctx);
 	assert(safe);
 
-	if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
-		return ret;
-	}
-
-	cipher_fd = open(path, O_RDONLY | O_NONBLOCK);
+	cipher_fd = openat(ctx->ws_fd, safe->name, O_RDONLY | O_NONBLOCK);
 	if (cipher_fd < 0) {
 		ret = KP_ERRNO;
 		goto out;

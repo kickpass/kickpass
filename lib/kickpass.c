@@ -21,6 +21,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+#include <fcntl.h>
 #include <readpassphrase.h>
 #include <sodium.h>
 #include <string.h>
@@ -72,13 +73,12 @@ kp_init(struct kp_ctx *ctx)
 
 	ctx->agent.connected = false;
 
-	if (access(ctx->ws_path, R_OK) != 0) {
+	if ((ctx->ws_fd = open(ctx->ws_path, O_DIRECTORY|O_CLOEXEC)) < 0) {
 		if (errno == ENOENT)
 			return KP_ENOWORKSPACE;
 		else
 			return KP_ERRNO;
 	}
-
 
 	return KP_SUCCESS;
 }
@@ -132,6 +132,9 @@ kp_init_workspace(struct kp_ctx *ctx, const char *sub)
 		goto out;
 	}
 
+	if ((ctx->ws_fd = open(ctx->ws_path, O_DIRECTORY|O_CLOEXEC)) < 0) {
+		ret = KP_ERRNO;
+	}
 out:
 	return ret;
 }

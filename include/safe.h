@@ -49,7 +49,6 @@ kp_error_t kp_safe_open(struct kp_ctx *, struct kp_safe *, int);
 kp_error_t kp_safe_save(struct kp_ctx *, struct kp_safe *);
 kp_error_t kp_safe_close(struct kp_ctx *, struct kp_safe *);
 kp_error_t kp_safe_delete(struct kp_ctx *, struct kp_safe *);
-kp_error_t kp_safe_get_path(struct kp_ctx *, struct kp_safe *, char *, size_t);
 kp_error_t kp_safe_rename(struct kp_ctx *, struct kp_safe *, const char *);
 kp_error_t kp_safe_store(struct kp_ctx *, struct kp_safe *, int);
 

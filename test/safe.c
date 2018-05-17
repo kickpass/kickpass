@@ -26,7 +26,6 @@ START_TEST(test_safe_init)
 	/* Given */
 	struct kp_ctx  ctx;
 	struct kp_safe safe;
-	char path[PATH_MAX];
 
 	strlcpy(ctx.ws_path, "/home/user/.kickpass", PATH_MAX);
 
@@ -34,8 +33,7 @@ START_TEST(test_safe_init)
 	kp_safe_init(&ctx, &safe, "dir/safe");
 
 	/* Then */
-	kp_safe_get_path(&ctx, &safe, path, PATH_MAX);
-	ck_assert_str_eq(path, "/home/user/.kickpass/dir/safe");
+	ck_assert_str_eq(safe.name, "dir/safe");
 }
 END_TEST
 

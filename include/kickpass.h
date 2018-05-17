@@ -43,6 +43,7 @@ struct kp_agent {
 };
 
 struct kp_ctx {
+	int ws_fd;
 	char ws_path[PATH_MAX];
 	struct kp_agent agent;
 	kp_error_t (*password_prompt)(struct kp_ctx *, bool, char *, const char *, va_list ap);

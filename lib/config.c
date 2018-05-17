@@ -65,7 +65,7 @@ kp_cfg_create(struct kp_ctx *ctx, const char *sub)
 	struct kp_safe cfg_safe;
 
 	if (snprintf(path, PATH_MAX, "%s%s" KP_CONFIG_SAFE_NAME,
-	    strlen(sub) == 0 ? "": "/", sub) >= PATH_MAX) {
+	    sub, strlen(sub) == 0 ? "": "/") >= PATH_MAX) {
 		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
@@ -103,7 +103,7 @@ kp_cfg_load(struct kp_ctx *ctx, const char *sub)
 	char *line = NULL, *save_line = NULL;
 
 	if (snprintf(path, PATH_MAX, "%s%s" KP_CONFIG_SAFE_NAME,
-	    strlen(sub) == 0 ? "": "/", sub) >= PATH_MAX) {
+	    sub, strlen(sub) == 0 ? "": "/") >= PATH_MAX) {
 		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
@@ -160,17 +160,13 @@ kp_cfg_find(struct kp_ctx *ctx, const char *path, char *cfg_path, size_t size)
 	char *dir = NULL;
 	struct stat stats;
 
-	if (strlcpy(cfg_path, "/", size) >= size) {
-		errno = ENAMETOOLONG;
-		return KP_ERRNO;
-	}
-
 	if (strlcat(cfg_path, path, size) >= size) {
 		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 
-	while ((dir = strrchr(cfg_path, '/')) != NULL) {
+	while ((dir = strrchr(cfg_path, '/')) != NULL
+	       || ((dir != cfg_path) && (dir = cfg_path))) {
 		char abspath[PATH_MAX] = "";
 
 		dir[0] = '\0';
