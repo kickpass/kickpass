@@ -24,6 +24,7 @@
 #include <readpassphrase.h>
 #include <sodium.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "kickpass.h"
 
@@ -70,6 +71,14 @@ kp_init(struct kp_ctx *ctx)
 	ctx->cfg.opslimit = crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_SENSITIVE/5;
 
 	ctx->agent.connected = false;
+
+	if (access(ctx->ws_path, R_OK) != 0) {
+		if (errno == ENOENT)
+			return KP_ENOWORKSPACE;
+		else
+			return KP_ERRNO;
+	}
+
 
 	return KP_SUCCESS;
 }

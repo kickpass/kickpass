@@ -121,9 +121,6 @@ main(int argc, char **argv)
 {
 	int ret;
 	struct kp_ctx ctx;
-	char *socket_path = NULL;
-
-	kp_init(&ctx);
 
 	if ((ret = parse_opt(&ctx, argc, argv)) != KP_SUCCESS) {
 		goto out;
@@ -131,19 +128,6 @@ main(int argc, char **argv)
 
 	if ((ret = setup_prompt(&ctx)) != KP_SUCCESS) {
 		goto out;
-	}
-
-	/* Try to connect to agent */
-	if ((socket_path = getenv(KP_AGENT_SOCKET_ENV)) != NULL) {
-		if ((ret = kp_agent_init(&ctx.agent, socket_path)) != KP_SUCCESS) {
-			kp_warn(ret, "cannot connect to agent socket %s", socket_path);
-			return ret;
-		}
-
-		if ((ret = kp_agent_connect(&ctx.agent)) != KP_SUCCESS) {
-			kp_warn(ret, "cannot connect to agent socket %s", socket_path);
-			return ret;
-		}
 	}
 
 	ret = command(&ctx, argc, argv);
@@ -238,7 +222,10 @@ find_command(const char *command)
 static kp_error_t
 command(struct kp_ctx *ctx, int argc, char **argv)
 {
+	extern char *__progname;
 	struct kp_cmd *cmd;
+	char *socket_path = NULL;
+	kp_error_t ret;
 
 	if (optind >= argc)
 		kp_errx(KP_EINPUT, "missing command");
@@ -248,6 +235,29 @@ command(struct kp_ctx *ctx, int argc, char **argv)
 		cmd = &kp_cmd_help;
 	} else {
 		cmd = find_command(argv[optind]);
+	}
+
+	ret = kp_init(ctx);
+	if (ret == KP_ENOWORKSPACE) {
+		if (strncmp(argv[optind], "init", 5) != 0) {
+			kp_errx(KP_EINPUT, "No workspace, first run "
+			    "`%s init`", __progname);
+		}
+	} else if (ret != KP_SUCCESS) {
+		kp_err(KP_EINPUT, "An error occured while opening the workspace");
+	}
+
+	/* Try to connect to agent */
+	if ((socket_path = getenv(KP_AGENT_SOCKET_ENV)) != NULL) {
+		if ((ret = kp_agent_init(&ctx->agent, socket_path)) != KP_SUCCESS) {
+			kp_warn(ret, "cannot connect to agent socket %s", socket_path);
+			return ret;
+		}
+
+		if ((ret = kp_agent_connect(&ctx->agent)) != KP_SUCCESS) {
+			kp_warn(ret, "cannot connect to agent socket %s", socket_path);
+			return ret;
+		}
 	}
 
 	optind++;
