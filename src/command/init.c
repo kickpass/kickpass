@@ -58,7 +58,9 @@ init(struct kp_ctx *ctx, int argc, char **argv)
 		}
 	}
 
-	ctx->password_prompt(ctx, true, (char *)ctx->password, "master");
+	if ((ret = ctx->password_prompt(ctx, true, (char *)ctx->password, "master")) != KP_SUCCESS) {
+		return (ret);
+	}
 
 	if ((ret = kp_init_workspace(ctx, sub)) != KP_SUCCESS) {
 		kp_warn(ret, "cannot init workspace");
