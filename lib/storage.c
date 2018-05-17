@@ -178,7 +178,6 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 	unsigned long long cipher_size, plain_size;
 	struct kp_storage_header header = KP_STORAGE_HEADER_INIT;
 	unsigned char packed_header[KP_STORAGE_HEADER_SIZE];
-	char path[PATH_MAX];
 	size_t password_len, metadata_len;
 
 	assert(ctx);
@@ -197,10 +196,6 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 
 	if (ftruncate(safe->cipher, 0) != 0) {
 		return errno;
-	}
-
-	if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
-		return ret;
 	}
 
 	/* construct full plain */
