@@ -300,7 +300,7 @@ kp_safe_rename(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 			goto finally;
 		}
 
-		if (strlcpy(unsafe.path, safe->name, PATH_MAX) >= PATH_MAX) {
+		if (strlcpy(unsafe.name, safe->name, PATH_MAX) >= PATH_MAX) {
 			errno = ENAMETOOLONG;
 			goto finally;
 		}
@@ -348,7 +348,7 @@ kp_safe_store(struct kp_ctx *ctx, struct kp_safe *safe, int timeout)
 	}
 
 	unsafe.timeout = timeout;
-	if (strlcpy(unsafe.path, safe->name, PATH_MAX) >= PATH_MAX) {
+	if (strlcpy(unsafe.name, safe->name, PATH_MAX) >= PATH_MAX) {
 		errno = ENOMEM;
 		return KP_ERRNO;
 	}

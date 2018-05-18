@@ -41,7 +41,7 @@
 #endif
 
 struct kp_agent_safe {
-	char path[PATH_MAX]; /* name of the safe */
+	char name[PATH_MAX]; /* name of the safe */
 	char * const password;      /* plain text password (null terminated) */
 	char * const metadata;      /* plain text metadata (null terminated) */
 };
@@ -292,7 +292,7 @@ kp_agent_store(struct kp_agent *agent, struct kp_unsafe *unsafe)
 		return ret;
 	}
 
-	if (strlcpy(safe->path, unsafe->path, PATH_MAX) >= PATH_MAX) {
+	if (strlcpy(safe->name, unsafe->name, PATH_MAX) >= PATH_MAX) {
 		errno = ENOMEM;
 		ret = KP_ERRNO;
 		goto out;
@@ -331,14 +331,14 @@ out:
 }
 
 kp_error_t
-kp_agent_discard(struct kp_agent *agent, char *path, bool silent)
+kp_agent_discard(struct kp_agent *agent, const char *name, bool silent)
 {
 	kp_error_t ret;
 	struct kp_store needle, *store;
 	struct kp_agent_safe safe;
 	bool result = true;
 
-	if (strlcpy(safe.path, path, PATH_MAX) > PATH_MAX) {
+	if (strlcpy(safe.name, name, PATH_MAX) > PATH_MAX) {
 		errno = ENAMETOOLONG;
 		ret = KP_ERRNO;
 		goto failure;
@@ -355,8 +355,11 @@ kp_agent_discard(struct kp_agent *agent, char *path, bool silent)
 	kp_agent_safe_free(agent, store->safe);
 	RB_REMOVE(storage, &storage, store);
 
-	if (silent) return KP_SUCCESS;
-	return kp_agent_send(agent, KP_MSG_DISCARD, &result, sizeof(bool));
+	if (silent) {
+		return KP_SUCCESS;
+	} else {
+		return kp_agent_send(agent, KP_MSG_DISCARD, &result, sizeof(bool));
+	}
 
 failure:
 	kp_agent_error(agent, ret);
@@ -364,14 +367,14 @@ failure:
 }
 
 kp_error_t
-kp_agent_search(struct kp_agent *agent, char *path)
+kp_agent_search(struct kp_agent *agent, const char *name)
 {
 	kp_error_t ret;
 	struct kp_store needle, *store;
 	struct kp_agent_safe safe;
 	struct kp_unsafe unsafe = KP_UNSAFE_INIT;
 
-	if (strlcpy(safe.path, path, PATH_MAX) > PATH_MAX) {
+	if (strlcpy(safe.name, name, PATH_MAX) > PATH_MAX) {
 		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
@@ -384,7 +387,7 @@ kp_agent_search(struct kp_agent *agent, char *path)
 		goto failure;
 	}
 
-	if (strlcpy(unsafe.path, store->safe->path, PATH_MAX) >= PATH_MAX) {
+	if (strlcpy(unsafe.name, store->safe->name, PATH_MAX) >= PATH_MAX) {
 		errno = ENOMEM;
 		ret = KP_ERRNO;
 		goto failure;
@@ -413,7 +416,7 @@ failure:
 static int
 store_cmp(struct kp_store *a, struct kp_store *b)
 {
-	return strncmp(a->safe->path, b->safe->path, PATH_MAX);
+	return strncmp(a->safe->name, b->safe->name, PATH_MAX);
 }
 
 RB_GENERATE_STATIC(storage, kp_store, tree, store_cmp);

@@ -58,7 +58,7 @@ struct conn {
 
 struct timeout {
 	struct agent *agent;
-	char path[PATH_MAX];
+	char name[PATH_MAX];
 };
 
 static kp_error_t agent(struct kp_ctx *, int, char **);
@@ -353,9 +353,9 @@ store(struct agent *agent, struct kp_unsafe *unsafe)
 			return KP_ERRNO;
 		}
 		timeout->agent = agent;
-		if (strlcpy(timeout->path, unsafe->path,
-		            PATH_MAX) >= PATH_MAX) {
-			errno = ENOMEM;
+		if (strlcpy(timeout->name, unsafe->name, PATH_MAX)
+		    >= PATH_MAX) {
+			errno = ENAMETOOLONG;
 			return KP_ERRNO;
 		}
 		timeval.tv_sec = unsafe->timeout;
@@ -373,7 +373,7 @@ timeout_discard(evutil_socket_t fd, short events, void *_timeout)
 	struct timeout *timeout = _timeout;
 	struct kp_agent *kp_agent = &timeout->agent->kp_agent;
 
-	kp_agent_discard(kp_agent, timeout->path, true);
+	kp_agent_discard(kp_agent, timeout->name, true);
 
 	free(timeout);
 }
