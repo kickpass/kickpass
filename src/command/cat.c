@@ -60,13 +60,13 @@ cat(struct kp_ctx *ctx, int argc, char **argv)
 		return ret;
 	}
 
-	if ((ret = kp_safe_load(ctx, &safe, argv[optind])) != KP_SUCCESS) {
-		kp_warn(ret, "cannot load safe");
+	if ((ret = kp_safe_init(ctx, &safe, argv[optind])) != KP_SUCCESS) {
+		kp_warn(ret, "cannot init %s", argv[optind]);
 		return ret;
 	}
 
-	if ((ret = kp_safe_open(ctx, &safe, false)) != KP_SUCCESS) {
-		kp_warn(ret, "cannot open safe");
+	if ((ret = kp_safe_open(ctx, &safe, 0)) != KP_SUCCESS) {
+		kp_warn(ret, "cannot open %s", argv[optind]);
 		return ret;
 	}
 

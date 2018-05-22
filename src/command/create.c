@@ -82,14 +82,19 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 	if (ctx->password[0] == '\0') {
 		/* Ask for password, otherwise it is asked on kp_safe_save which seems
 		 * weird for user */
-		if ((ret = ctx->password_prompt(ctx, false,
-		                                (char *)ctx->password,
-		                                "master")) != KP_SUCCESS) {
+		if ((ret = kp_password_prompt(ctx, false,
+		                              (char *)ctx->password,
+		                              "master")) != KP_SUCCESS) {
 			return ret;
 		}
 	}
 
-	if ((ret = kp_safe_create(ctx, &safe, argv[optind])) != KP_SUCCESS) {
+	if ((ret = kp_safe_init(ctx, &safe, argv[optind])) != KP_SUCCESS) {
+		kp_warn(ret, "cannot init %s", argv[optind]);
+		goto out;
+	}
+
+	if ((ret = kp_safe_open(ctx, &safe, KP_CREATE)) != KP_SUCCESS) {
 		if (ret == KP_ERRNO && errno == EEXIST) {
 			kp_warn(ret, "use 'edit' command to edit an existing safe");
 		}
@@ -99,8 +104,8 @@ create(struct kp_ctx *ctx, int argc, char **argv)
 	if (generate) {
 		kp_password_generate(safe.password, password_len);
 	} else {
-		if ((ret = ctx->password_prompt(ctx, true, safe.password,
-		                                "safe")) != KP_SUCCESS) {
+		if ((ret = kp_password_prompt(ctx, true, safe.password,
+		                              "safe")) != KP_SUCCESS) {
 			goto out;
 		}
 	}

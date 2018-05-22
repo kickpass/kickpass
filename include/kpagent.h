@@ -44,12 +44,6 @@ struct kp_unsafe {
 
 #define KP_UNSAFE_INIT { .timeout = ((time_t) -1), .path = "", .password = "", .metadata = "" }
 
-struct kp_agent_safe {
-	char path[PATH_MAX]; /* name of the safe */
-	char * const password;      /* plain text password (null terminated) */
-	char * const metadata;      /* plain text metadata (null terminated) */
-};
-
 /* Client side */
 kp_error_t kp_agent_init(struct kp_agent *, const char *);
 kp_error_t kp_agent_connect(struct kp_agent *);
@@ -61,10 +55,8 @@ kp_error_t kp_agent_receive(struct kp_agent *, enum kp_agent_msg_type, void *, s
 kp_error_t kp_agent_close(struct kp_agent *);
 
 /* Server side */
-kp_error_t kp_agent_safe_create(struct kp_agent *, struct kp_agent_safe **);
-kp_error_t kp_agent_store(struct kp_agent *, struct kp_agent_safe *);
-kp_error_t kp_agent_search(struct kp_agent *, char *, struct kp_agent_safe **);
-kp_error_t kp_agent_discard(struct kp_agent *, char *);
-kp_error_t kp_agent_safe_free(struct kp_agent *, struct kp_agent_safe *);
+kp_error_t kp_agent_store(struct kp_agent *, struct kp_unsafe *);
+kp_error_t kp_agent_search(struct kp_agent *, char *);
+kp_error_t kp_agent_discard(struct kp_agent *, char *, bool);
 
 #endif /* KP_KPAGENT_H */

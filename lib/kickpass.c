@@ -16,6 +16,8 @@
 
 #include <sys/stat.h>
 
+#include <assert.h>
+#include <stdarg.h>
 #include <stddef.h>
 #include <stdlib.h>
 
@@ -27,14 +29,13 @@
 
 #include "config.h"
 
-/*
- * Init kickpass with a working directory and its corresponding master password.
- */
 kp_error_t
 kp_init(struct kp_ctx *ctx)
 {
 	const char *home;
 	char **password;
+
+	assert(ctx);
 
 	password = (char **)&ctx->password;
 
@@ -44,16 +45,16 @@ kp_init(struct kp_ctx *ctx)
 	}
 
 	if (strlcpy(ctx->ws_path, home, PATH_MAX) >= PATH_MAX) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 
 	if (strlcat(ctx->ws_path, "/" KP_PATH, PATH_MAX) >= PATH_MAX) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 
-	if (sodium_init() != 0) {
+	if (sodium_init() < 0) {
 		return KP_EINTERNAL;
 	}
 
@@ -76,6 +77,8 @@ kp_init(struct kp_ctx *ctx)
 kp_error_t
 kp_fini(struct kp_ctx *ctx)
 {
+	assert(ctx);
+
 	sodium_free(ctx->password);
 
 	return KP_SUCCESS;
@@ -88,18 +91,21 @@ kp_init_workspace(struct kp_ctx *ctx, const char *sub)
 	struct stat stats;
 	char path[PATH_MAX] = "";
 
+	assert(ctx);
+	assert(sub);
+
 	if (strlcpy(path , ctx->ws_path, PATH_MAX) >= PATH_MAX) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 
 	if (strlcat(path , "/", PATH_MAX) >= PATH_MAX) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 
 	if (strlcat(path , sub, PATH_MAX) >= PATH_MAX) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 
@@ -118,5 +124,36 @@ kp_init_workspace(struct kp_ctx *ctx, const char *sub)
 	}
 
 out:
+	return ret;
+}
+
+const char *
+kp_version_string(void)
+{
+	return KICKPASS_VERSION_STRING;
+}
+
+int
+kp_version_major(void)
+{
+	return KICKPASS_VERSION_MAJOR;
+}
+
+kp_error_t
+kp_password_prompt(struct kp_ctx *ctx, bool confirm, char *password, const char *fmt, ...)
+{
+	kp_error_t ret;
+	va_list ap;
+
+	assert(ctx);
+
+	if (ctx->password_prompt == NULL) {
+		return KP_NOPROMPT;
+	}
+
+	va_start(ap, fmt);
+	ret = ctx->password_prompt(ctx, confirm, password, fmt, ap);
+	va_end(ap);
+
 	return ret;
 }

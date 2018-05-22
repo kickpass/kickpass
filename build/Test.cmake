@@ -18,7 +18,7 @@ include(FindPythonModule)
 
 find_package(Check)
 find_program(VALGRIND_COMMAND valgrind)
-find_package(PythonInterp)
+find_package(PythonInterp 3)
 
 if (VALGRIND_COMMAND)
 	set(VALGRIND_OPTIONS "-q --tool=memcheck --show-reachable=yes --leak-check=full --gen-suppressions=all --track-origins=yes")
@@ -58,7 +58,6 @@ if (PYTHON_EXECUTABLE)
 
 			set(TEST_ENV "")
 			list(APPEND TEST_ENV "PYTHON=${PYTHON_EXECUTABLE}")
-			list(APPEND TEST_ENV "HOME=${CMAKE_CURRENT_BINARY_DIR}/workspace")
 			list(APPEND TEST_ENV "EDITOR_PATH=${CTEST_MODULE_PATH}")
 			if (VALGRIND_COMMAND)
 				list(APPEND TEST_ENV "VALGRIND_COMMAND=${VALGRIND_COMMAND}")

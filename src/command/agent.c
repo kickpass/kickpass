@@ -23,7 +23,6 @@
 
 #include <fcntl.h>
 #include <getopt.h>
-#include <imsg.h>
 #include <signal.h>
 #include <sodium.h>
 #include <stdio.h>
@@ -35,9 +34,10 @@
 
 #include "kickpass.h"
 
-#include "log.h"
 #include "command.h"
+#include "imsg.h"
 #include "kpagent.h"
+#include "log.h"
 
 #ifndef EPROTO
 #define EPROTO ENOPROTOOPT
@@ -68,8 +68,6 @@ static void timeout_discard(evutil_socket_t, short, void *);
 static void dispatch(evutil_socket_t, short, void *);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
 static kp_error_t store(struct agent *, struct kp_unsafe *);
-static kp_error_t search(struct agent *, char *);
-static kp_error_t discard(struct agent *, char *);
 static void       usage(void);
 
 struct kp_cmd kp_cmd_agent = {
@@ -150,7 +148,8 @@ dispatch(evutil_socket_t fd, short events, void *_conn)
 			}
 			/* ensure null termination */
 			((char *)imsg.data)[PATH_MAX-1] = '\0';
-			search(&conn->agent, (char *)imsg.data);
+			kp_agent_search(&conn->agent.kp_agent,
+			                (char *)imsg.data);
 			break;
 		case KP_MSG_DISCARD:
 			if (data_size != PATH_MAX) {
@@ -160,7 +159,8 @@ dispatch(evutil_socket_t fd, short events, void *_conn)
 			}
 			/* ensure null termination */
 			((char *)imsg.data)[PATH_MAX-1] = '\0';
-			discard(&conn->agent, (char *)imsg.data);
+			kp_agent_discard(&conn->agent.kp_agent,
+			                 (char *)imsg.data, false);
 			break;
 		}
 
@@ -342,47 +342,21 @@ out:
 static kp_error_t
 store(struct agent *agent, struct kp_unsafe *unsafe)
 {
-	kp_error_t ret;
 	struct kp_agent *kp_agent = &agent->kp_agent;
-	struct kp_agent_safe *safe;
 	struct timeout *timeout;
 	struct event *timer;
 	struct timeval timeval;
 
-	if ((ret = kp_agent_safe_create(kp_agent, &safe)) != KP_SUCCESS) {
-		return ret;
-	}
-
-	if (strlcpy(safe->path, unsafe->path, PATH_MAX) >= PATH_MAX) {
-		errno = ENOMEM;
-		ret = KP_ERRNO;
-		goto out;
-	}
-	if (strlcpy(safe->password, unsafe->password, KP_PASSWORD_MAX_LEN)
-	    >= KP_PASSWORD_MAX_LEN) {
-		errno = ENOMEM;
-		ret = KP_ERRNO;
-		goto out;
-	}
-	if (strlcpy(safe->metadata, unsafe->metadata, KP_METADATA_MAX_LEN)
-	    >= KP_METADATA_MAX_LEN) {
-		errno = ENOMEM;
-		ret = KP_ERRNO;
-		goto out;
-	}
-
 	if (unsafe->timeout > 0) {
 		if ((timeout = malloc(sizeof(struct timeout))) == NULL) {
 			errno = ENOMEM;
-			ret = KP_ERRNO;
-			goto out;
+			return KP_ERRNO;
 		}
 		timeout->agent = agent;
 		if (strlcpy(timeout->path, unsafe->path,
 		            PATH_MAX) >= PATH_MAX) {
 			errno = ENOMEM;
-			ret = KP_ERRNO;
-			goto out;
+			return KP_ERRNO;
 		}
 		timeval.tv_sec = unsafe->timeout;
 		timeval.tv_usec = 0;
@@ -390,72 +364,7 @@ store(struct agent *agent, struct kp_unsafe *unsafe)
 		evtimer_add(timer, &timeval);
 	}
 
-	return kp_agent_store(kp_agent, safe);
-
-out:
-	kp_agent_safe_free(kp_agent, safe);
-	return ret;
-}
-
-static kp_error_t
-search(struct agent *agent, char *path)
-{
-	kp_error_t ret;
-	struct kp_agent *kp_agent = &agent->kp_agent;
-	struct kp_agent_safe *safe;
-	struct kp_unsafe unsafe = KP_UNSAFE_INIT;
-
-	if ((ret = kp_agent_search(kp_agent, path, &safe)) != KP_SUCCESS) {
-		errno = ENOENT;
-		kp_agent_error(kp_agent, KP_ERRNO);
-		return ret;
-	}
-
-	if (strlcpy(unsafe.path, safe->path, PATH_MAX) >= PATH_MAX) {
-		errno = ENOMEM;
-		kp_agent_error(kp_agent, KP_ERRNO);
-		return KP_ERRNO;
-	}
-	if (strlcpy(unsafe.password, safe->password, KP_PASSWORD_MAX_LEN)
-	    >= KP_PASSWORD_MAX_LEN) {
-		errno = ENOMEM;
-		kp_agent_error(kp_agent, KP_ERRNO);
-		return KP_ERRNO;
-	}
-	if (strlcpy(unsafe.metadata, safe->metadata, KP_METADATA_MAX_LEN)
-	    >= KP_METADATA_MAX_LEN) {
-		errno = ENOMEM;
-		kp_agent_error(kp_agent, KP_ERRNO);
-		return KP_ERRNO;
-	}
-
-	if ((ret = kp_agent_send(kp_agent, KP_MSG_SEARCH, &unsafe,
-	                         sizeof(struct kp_unsafe))) != KP_SUCCESS) {
-		kp_warn(ret, "cannot send response");
-	}
-
-	return ret;
-}
-
-static kp_error_t
-discard(struct agent *agent, char *path)
-{
-	kp_error_t ret;
-	struct kp_agent *kp_agent = &agent->kp_agent;
-	bool result;
-
-	if ((ret = kp_agent_discard(kp_agent, path)) != KP_SUCCESS) {
-		kp_agent_error(kp_agent, ret);
-		return ret;
-	}
-	result = true;
-
-	if ((ret = kp_agent_send(kp_agent, KP_MSG_DISCARD, &result,
-	                         sizeof(bool))) != KP_SUCCESS) {
-		kp_warn(ret, "cannot send response");
-	}
-
-	return ret;
+	return kp_agent_store(kp_agent, unsafe);
 }
 
 static void
@@ -464,7 +373,7 @@ timeout_discard(evutil_socket_t fd, short events, void *_timeout)
 	struct timeout *timeout = _timeout;
 	struct kp_agent *kp_agent = &timeout->agent->kp_agent;
 
-	kp_agent_discard(kp_agent, timeout->path);
+	kp_agent_discard(kp_agent, timeout->path, true);
 
 	free(timeout);
 }

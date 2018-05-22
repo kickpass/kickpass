@@ -21,7 +21,7 @@
 #include "../lib/storage.c"
 #include "../lib/safe.c"
 
-START_TEST(test_safe_get_path)
+START_TEST(test_safe_init)
 {
 	/* Given */
 	struct kp_ctx  ctx;
@@ -29,12 +29,12 @@ START_TEST(test_safe_get_path)
 	char path[PATH_MAX];
 
 	strlcpy(ctx.ws_path, "/home/user/.kickpass", PATH_MAX);
-	strlcpy(safe.name, "dir/safe", PATH_MAX);
 
 	/* When */
-	kp_safe_get_path(&ctx, &safe, path, PATH_MAX);
+	kp_safe_init(&ctx, &safe, "dir/safe");
 
 	/* Then */
+	kp_safe_get_path(&ctx, &safe, path, PATH_MAX);
 	ck_assert_str_eq(path, "/home/user/.kickpass/dir/safe");
 }
 END_TEST
@@ -46,7 +46,7 @@ main(int argc, char **argv)
 
 	Suite *suite = suite_create("safe_test_suite");
 	TCase *tcase = tcase_create("case");
-	tcase_add_test(tcase, test_safe_get_path);
+	tcase_add_test(tcase, test_safe_init);
 	suite_add_tcase(suite, tcase);
 
 	SRunner *runner = srunner_create(suite);

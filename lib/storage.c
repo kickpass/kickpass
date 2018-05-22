@@ -14,6 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/stat.h>
 #include <sys/types.h>
 #ifndef __linux__
 #include <sys/endian.h>
@@ -25,8 +26,9 @@
 #include <stdint.h>
 
 #include <assert.h>
-#include <sodium.h>
+#include <fcntl.h>
 #include <locale.h>
+#include <sodium.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -60,19 +62,20 @@ struct kp_storage_header {
 #define KP_STORAGE_HEADER_INIT { 0, 0, 0, 0, { 0 }, { 0 } }
 
 static void kp_storage_header_pack(const struct kp_storage_header *,
-		unsigned char *);
+                                   unsigned char *);
 static void kp_storage_header_unpack(struct kp_storage_header *,
-		const unsigned char *);
+                                     const unsigned char *);
 static kp_error_t kp_storage_encrypt(struct kp_ctx *,
-		struct kp_storage_header *,
-		const unsigned char *, unsigned long long,
-		const unsigned char *, unsigned long long,
-		unsigned char *, unsigned long long *);
+                                     struct kp_storage_header *,
+                                     const unsigned char *, unsigned long long,
+                                     const unsigned char *, unsigned long long,
+                                     unsigned char *, unsigned long long *);
 static kp_error_t kp_storage_decrypt(struct kp_ctx *,
-		struct kp_storage_header *,
-		const unsigned char *, unsigned long long,
-		unsigned char *, unsigned long long *,
-		const unsigned char *, unsigned long long);
+                                     struct kp_storage_header *,
+                                     const unsigned char *, unsigned long long,
+                                     unsigned char *, unsigned long long *,
+                                     const unsigned char *,
+                                     unsigned long long);
 
 #define READ_HEADER(s, packed, field) do {\
 	memcpy(&(field), (packed), (s)/8);\
@@ -88,7 +91,7 @@ static kp_error_t kp_storage_decrypt(struct kp_ctx *,
 
 static void
 kp_storage_header_pack(const struct kp_storage_header *header,
-		unsigned char *packed)
+                       unsigned char *packed)
 {
 	assert(header);
 	assert(packed);
@@ -104,7 +107,7 @@ kp_storage_header_pack(const struct kp_storage_header *header,
 
 static void
 kp_storage_header_unpack(struct kp_storage_header *header,
-		const unsigned char *packed)
+                         const unsigned char *packed)
 {
 	assert(header);
 	assert(packed);
@@ -121,24 +124,28 @@ kp_storage_header_unpack(struct kp_storage_header *header,
 
 static kp_error_t
 kp_storage_encrypt(struct kp_ctx *ctx, struct kp_storage_header *header,
-		const unsigned char *packed_header, unsigned long long header_size,
-		const unsigned char *plain, unsigned long long plain_size,
-		unsigned char *cipher, unsigned long long *cipher_size)
+                   const unsigned char *packed_header,
+                   unsigned long long header_size, const unsigned char *plain,
+                   unsigned long long plain_size, unsigned char *cipher,
+                   unsigned long long *cipher_size)
 {
 	unsigned char key[crypto_aead_chacha20poly1305_KEYBYTES];
 
 	if (crypto_pwhash_scryptsalsa208sha256(key,
-			crypto_aead_chacha20poly1305_KEYBYTES,
-			ctx->password, strlen(ctx->password),
-			header->salt, header->opslimit, header->memlimit) != 0) {
+	                                       crypto_aead_chacha20poly1305_KEYBYTES,
+	                                       ctx->password,
+	                                       strlen(ctx->password),
+	                                       header->salt, header->opslimit,
+	                                       header->memlimit) != 0) {
 		errno = ENOMEM;
 		return KP_ERRNO;
 	}
 
 	if (crypto_aead_chacha20poly1305_encrypt(cipher, cipher_size,
-				plain, plain_size,
-				packed_header, header_size,
-				NULL, header->nonce, key) != 0) {
+	                                         plain, plain_size,
+	                                         packed_header, header_size,
+	                                         NULL, header->nonce,
+	                                         key) != 0) {
 		return KP_EENCRYPT;
 	}
 
@@ -146,24 +153,27 @@ kp_storage_encrypt(struct kp_ctx *ctx, struct kp_storage_header *header,
 }
 static kp_error_t
 kp_storage_decrypt(struct kp_ctx *ctx, struct kp_storage_header *header,
-		const unsigned char *packed_header, unsigned long long header_size,
-		unsigned char *plain, unsigned long long *plain_size,
-		const unsigned char *cipher, unsigned long long cipher_size)
+                   const unsigned char *packed_header,
+                   unsigned long long header_size, unsigned char *plain,
+                   unsigned long long *plain_size, const unsigned char *cipher,
+                   unsigned long long cipher_size)
 {
 	unsigned char key[crypto_aead_chacha20poly1305_KEYBYTES];
 
 	if (crypto_pwhash_scryptsalsa208sha256(key,
-			crypto_aead_chacha20poly1305_KEYBYTES,
-			ctx->password, strlen(ctx->password),
-			header->salt, header->opslimit, header->memlimit) != 0) {
+	                                       crypto_aead_chacha20poly1305_KEYBYTES,
+	                                       ctx->password,
+	                                       strlen(ctx->password),
+	                                       header->salt, header->opslimit,
+	                                       header->memlimit) != 0) {
 		errno = ENOMEM;
 		return KP_ERRNO;
 	}
 
 	if (crypto_aead_chacha20poly1305_decrypt(plain, plain_size,
-				NULL, cipher, cipher_size,
-				packed_header, header_size,
-				header->nonce, key) != 0) {
+	                                         NULL, cipher, cipher_size,
+	                                         packed_header, header_size,
+	                                         header->nonce, key) != 0) {
 		return KP_EDECRYPT;
 	}
 
@@ -174,15 +184,28 @@ kp_error_t
 kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 {
 	kp_error_t ret = KP_SUCCESS;
+	int cipher_fd;
 	unsigned char *cipher = NULL, *plain = NULL;
 	unsigned long long cipher_size, plain_size;
 	struct kp_storage_header header = KP_STORAGE_HEADER_INIT;
 	unsigned char packed_header[KP_STORAGE_HEADER_SIZE];
 	size_t password_len, metadata_len;
+	char path[PATH_MAX];
 
 	assert(ctx);
 	assert(safe);
 	assert(safe->open == true);
+
+	if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
+		return ret;
+	}
+
+	cipher_fd = open(path, O_WRONLY | O_NONBLOCK | O_CREAT,
+	                 S_IRUSR | S_IWUSR);
+	if (cipher_fd < 0) {
+		ret = KP_ERRNO;
+		goto out;
+	}
 
 	password_len = strlen(safe->password);
 	assert(password_len < KP_PASSWORD_MAX_LEN);
@@ -190,12 +213,14 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 	assert(metadata_len < KP_METADATA_MAX_LEN);
 
 	/* Ensure we are at the beginning of the safe */
-	if (lseek(safe->cipher, 0, SEEK_SET) != 0) {
-		return errno;
+	if (lseek(cipher_fd, 0, SEEK_SET) != 0) {
+		ret = KP_ERRNO;
+		goto out;
 	}
 
-	if (ftruncate(safe->cipher, 0) != 0) {
-		return errno;
+	if (ftruncate(cipher_fd, 0) != 0) {
+		ret = KP_ERRNO;
+		goto out;
 	}
 
 	/* construct full plain */
@@ -204,13 +229,15 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 	plain = sodium_malloc(plain_size);
 	strncpy((char *)plain, (char *)safe->password, password_len);
 	plain[password_len] = '\0';
-	strncpy((char *)&plain[password_len+1], (char *)safe->metadata, metadata_len);
+	strncpy((char *)&plain[password_len+1], (char *)safe->metadata,
+	        metadata_len);
 	plain[plain_size-1] = '\0';
 
 	/* alloc cipher to max size */
 	cipher = malloc(plain_size+crypto_aead_chacha20poly1305_ABYTES);
 	if (!cipher) {
-		ret = ENOMEM;
+		errno = ENOMEM;
+		ret = KP_ERRNO;
 		goto out;
 	}
 
@@ -225,26 +252,25 @@ kp_storage_save(struct kp_ctx *ctx, struct kp_safe *safe)
 	kp_storage_header_pack(&header, packed_header);
 
 	if ((ret = kp_storage_encrypt(ctx, &header,
-					packed_header, KP_STORAGE_HEADER_SIZE,
-					plain, plain_size,
-					cipher, &cipher_size))
-		!= KP_SUCCESS) {
+	                              packed_header, KP_STORAGE_HEADER_SIZE,
+	                              plain, plain_size, cipher, &cipher_size))
+	    != KP_SUCCESS) {
 		goto out;
 	}
 
-	if (write(safe->cipher, packed_header, KP_STORAGE_HEADER_SIZE)
-			< KP_STORAGE_HEADER_SIZE) {
-		ret = errno;
+	if (write(cipher_fd, packed_header, KP_STORAGE_HEADER_SIZE)
+	    < KP_STORAGE_HEADER_SIZE) {
+		ret = KP_ERRNO;
 		goto out;
 	}
 
-	if (write(safe->cipher, cipher, cipher_size)
-			< cipher_size) {
-		ret = errno;
+	if (write(cipher_fd, cipher, cipher_size) < cipher_size) {
+		ret = KP_ERRNO;
 		goto out;
 	}
 
 out:
+	close(cipher_fd);
 	sodium_free(plain);
 	free(cipher);
 
@@ -255,21 +281,32 @@ kp_error_t
 kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 {
 	kp_error_t ret = KP_SUCCESS;
+	int cipher_fd;
 	unsigned char *cipher = NULL, *plain = NULL;
 	unsigned long long cipher_size, plain_size;
 	struct kp_storage_header header = KP_STORAGE_HEADER_INIT;
 	unsigned char packed_header[KP_STORAGE_HEADER_SIZE];
 	size_t password_len;
+	char path[PATH_MAX];
 
 	assert(ctx);
 	assert(safe);
-	assert(safe->open == false);
+
+	if ((ret = kp_safe_get_path(ctx, safe, path, PATH_MAX)) != KP_SUCCESS) {
+		return ret;
+	}
+
+	cipher_fd = open(path, O_RDONLY | O_NONBLOCK);
+	if (cipher_fd < 0) {
+		ret = KP_ERRNO;
+		goto out;
+	}
 
 	errno = 0;
-	if (read(safe->cipher, packed_header, KP_STORAGE_HEADER_SIZE)
-			!= KP_STORAGE_HEADER_SIZE) {
+	if (read(cipher_fd, packed_header, KP_STORAGE_HEADER_SIZE)
+	    != KP_STORAGE_HEADER_SIZE) {
 		if (errno != 0) {
-			ret = errno;
+			ret = KP_ERRNO;
 		} else {
 			ret = KP_INVALID_STORAGE;
 		}
@@ -283,8 +320,9 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 
 	/* alloc cipher to max size */
 	cipher = malloc(KP_PLAIN_MAX_SIZE+crypto_aead_chacha20poly1305_ABYTES);
-	cipher_size = read(safe->cipher, cipher,
-			KP_PLAIN_MAX_SIZE+crypto_aead_chacha20poly1305_ABYTES);
+	cipher_size = read(cipher_fd, cipher,
+	                   KP_PLAIN_MAX_SIZE
+	                   +crypto_aead_chacha20poly1305_ABYTES);
 
 	if (cipher_size <= crypto_aead_chacha20poly1305_ABYTES) {
 		ret = KP_INVALID_STORAGE;
@@ -292,16 +330,17 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 	}
 
 	if (cipher_size - crypto_aead_chacha20poly1305_ABYTES
-			> KP_PLAIN_MAX_SIZE) {
-		ret = ENOMEM;
+	    > KP_PLAIN_MAX_SIZE) {
+		errno = ENOMEM;
+		ret = KP_ERRNO;
 		goto out;
 	}
 
 	if ((ret = kp_storage_decrypt(ctx, &header,
-					packed_header, KP_STORAGE_HEADER_SIZE,
-					plain, &plain_size,
-					cipher, cipher_size))
-			!= KP_SUCCESS) {
+	                              packed_header, KP_STORAGE_HEADER_SIZE,
+	                              plain, &plain_size,
+	                              cipher, cipher_size))
+	    != KP_SUCCESS) {
 		goto out;
 	}
 
@@ -314,9 +353,8 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 	/* ensure null termination */
 	safe->metadata[KP_METADATA_MAX_LEN-1] = '\0';
 
-	safe->open = true;
-
 out:
+	close(cipher_fd);
 	sodium_free(plain);
 	free(cipher);
 

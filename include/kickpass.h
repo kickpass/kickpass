@@ -22,13 +22,15 @@
 #include <sys/uio.h>
 #include <sys/un.h>
 
-#include <imsg.h>
 #include <limits.h>
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdarg.h>
+
+#include "kickpass_config.h"
 
 #include "error.h"
-#include "kickpass_config.h"
+#include "imsg.h"
 
 #define KP_PASSWORD_MAX_LEN 4096
 #define KP_METADATA_MAX_LEN 4096
@@ -43,7 +45,7 @@ struct kp_agent {
 struct kp_ctx {
 	char ws_path[PATH_MAX];
 	struct kp_agent agent;
-	kp_error_t (*password_prompt)(struct kp_ctx *, bool, char *, const char *, ...) __attribute__((format(printf, 4, 5)));
+	kp_error_t (*password_prompt)(struct kp_ctx *, bool, char *, const char *, va_list ap);
 	char * const password;
 	struct {
 		long long unsigned opslimit;
@@ -54,5 +56,8 @@ struct kp_ctx {
 kp_error_t kp_init(struct kp_ctx *);
 kp_error_t kp_fini(struct kp_ctx *);
 kp_error_t kp_init_workspace(struct kp_ctx *, const char *);
+const char *kp_version_string(void);
+int kp_version_major(void);
+kp_error_t kp_password_prompt(struct kp_ctx *, bool, char *, const char *, ...) __attribute__((format(printf, 4, 5)));
 
 #endif /* KP_KICKPASS_H */

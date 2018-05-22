@@ -22,7 +22,6 @@
 #include <sys/un.h>
 
 #include <assert.h>
-#include <imsg.h>
 #include <sodium.h>
 #include <stdlib.h>
 #include <string.h>
@@ -31,6 +30,7 @@
 #include "kickpass.h"
 
 #include "error.h"
+#include "imsg.h"
 #include "kpagent.h"
 
 #define SOCKET_BACKLOG 128
@@ -39,6 +39,12 @@
 #ifndef __unused
 #define __unused __attribute__((unused))
 #endif
+
+struct kp_agent_safe {
+	char path[PATH_MAX]; /* name of the safe */
+	char * const password;      /* plain text password (null terminated) */
+	char * const metadata;      /* plain text metadata (null terminated) */
+};
 
 struct kp_store {
 	RB_ENTRY(kp_store) tree;
@@ -49,6 +55,9 @@ static int store_cmp(struct kp_store *, struct kp_store *);
 
 RB_HEAD(storage, kp_store) storage = RB_INITIALIZER(&storage);
 RB_PROTOTYPE_STATIC(storage, kp_store, tree, store_cmp);
+
+static kp_error_t kp_agent_safe_create(struct kp_agent *, struct kp_agent_safe **);
+static kp_error_t kp_agent_safe_free(struct kp_agent *, struct kp_agent_safe *);
 
 kp_error_t
 kp_agent_init(struct kp_agent *agent, const char *socket_path)
@@ -165,27 +174,29 @@ kp_agent_receive(struct kp_agent *agent, enum kp_agent_msg_type type, void *data
 {
 	kp_error_t ret;
 	struct imsg imsg;
+	ssize_t ssize = 0;
 
 	assert(agent);
 
-	/* Try to get one from ibuf */
-	if (imsg_get(&agent->ibuf, &imsg) > 0) {
-		goto available;
-	}
+	do {
+		/* Try to get one from ibuf */
+		if ((ssize = imsg_get(&agent->ibuf, &imsg)) > 0) {
+			continue;
+		}
 
-	/* Nothing in buf try to read from conn */
-	if (imsg_read(&agent->ibuf) < 0) {
-		imsg_clear(&agent->ibuf);
-		/* XXX clean conn */
-		return KP_ERRNO;
-	}
+		/* Nothing in buf try to read from conn */
+		if (imsg_read(&agent->ibuf) <= 0) {
+			imsg_clear(&agent->ibuf);
+			/* XXX clean conn */
+			return KP_ERRNO;
+		}
 
-	/* Try to get one from ibuf */
-	if (imsg_get(&agent->ibuf, &imsg) < 0) {
-		return KP_ERRNO;
-	}
+		/* Try to get one from ibuf */
+		if ((ssize = imsg_get(&agent->ibuf, &imsg)) < 0) {
+			return KP_ERRNO;
+		}
+	} while (ssize <= 0);
 
-available:
 	if (imsg.hdr.type > KP_MSG_ERROR) {
 		/* XXX report real error */
 		ret = KP_INVALID_MSG;
@@ -235,7 +246,7 @@ kp_agent_close(struct kp_agent *agent)
 	return KP_SUCCESS;
 }
 
-kp_error_t
+static kp_error_t
 kp_agent_safe_create(struct kp_agent *agent, struct kp_agent_safe **_safe)
 {
 	struct kp_agent_safe *safe;
@@ -259,7 +270,7 @@ kp_agent_safe_create(struct kp_agent *agent, struct kp_agent_safe **_safe)
 	return KP_SUCCESS;
 }
 
-kp_error_t
+static kp_error_t
 kp_agent_safe_free(struct kp_agent *agent, struct kp_agent_safe *safe)
 {
 	assert(safe);
@@ -271,13 +282,38 @@ kp_agent_safe_free(struct kp_agent *agent, struct kp_agent_safe *safe)
 }
 
 kp_error_t
-kp_agent_store(struct kp_agent *agent, struct kp_agent_safe *safe)
+kp_agent_store(struct kp_agent *agent, struct kp_unsafe *unsafe)
 {
+	kp_error_t ret;
 	struct kp_store *store, *existing;
+	struct kp_agent_safe *safe;
+
+	if ((ret = kp_agent_safe_create(agent, &safe)) != KP_SUCCESS) {
+		return ret;
+	}
+
+	if (strlcpy(safe->path, unsafe->path, PATH_MAX) >= PATH_MAX) {
+		errno = ENOMEM;
+		ret = KP_ERRNO;
+		goto out;
+	}
+	if (strlcpy(safe->password, unsafe->password, KP_PASSWORD_MAX_LEN)
+	    >= KP_PASSWORD_MAX_LEN) {
+		errno = ENOMEM;
+		ret = KP_ERRNO;
+		goto out;
+	}
+	if (strlcpy(safe->metadata, unsafe->metadata, KP_METADATA_MAX_LEN)
+	    >= KP_METADATA_MAX_LEN) {
+		errno = ENOMEM;
+		ret = KP_ERRNO;
+		goto out;
+	}
 
 	if ((store = malloc(sizeof(struct kp_store))) == NULL) {
 		errno = ENOMEM;
-		return KP_ERRNO;
+		ret = KP_ERRNO;
+		goto out;
 	}
 
 	store->safe = safe;
@@ -288,54 +324,90 @@ kp_agent_store(struct kp_agent *agent, struct kp_agent_safe *safe)
 		existing->safe = safe;
 	}
 
-	return KP_SUCCESS;
+	ret = KP_SUCCESS;
+
+out:
+	return ret;
 }
 
 kp_error_t
-kp_agent_discard(struct kp_agent *agent, char *path)
+kp_agent_discard(struct kp_agent *agent, char *path, bool silent)
 {
+	kp_error_t ret;
 	struct kp_store needle, *store;
 	struct kp_agent_safe safe;
+	bool result = true;
 
 	if (strlcpy(safe.path, path, PATH_MAX) > PATH_MAX) {
-		errno = ENOMEM;
-		return KP_ERRNO;
+		errno = ENAMETOOLONG;
+		ret = KP_ERRNO;
+		goto failure;
 	}
 	needle.safe = &safe;
 
 	store = RB_FIND(storage, &storage, &needle);
 	if (store == NULL) {
 		errno = ENOENT;
-		return KP_ERRNO;
+		ret = KP_ERRNO;
+		goto failure;
 	}
 
 	kp_agent_safe_free(agent, store->safe);
 	RB_REMOVE(storage, &storage, store);
 
-	return KP_SUCCESS;
+	if (silent) return KP_SUCCESS;
+	return kp_agent_send(agent, KP_MSG_DISCARD, &result, sizeof(bool));
+
+failure:
+	kp_agent_error(agent, ret);
+	return ret;
 }
 
 kp_error_t
-kp_agent_search(struct kp_agent *agent, char *path, struct kp_agent_safe **_safe)
+kp_agent_search(struct kp_agent *agent, char *path)
 {
+	kp_error_t ret;
 	struct kp_store needle, *store;
 	struct kp_agent_safe safe;
+	struct kp_unsafe unsafe = KP_UNSAFE_INIT;
 
 	if (strlcpy(safe.path, path, PATH_MAX) > PATH_MAX) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 	needle.safe = &safe;
 
 	store = RB_FIND(storage, &storage, &needle);
 	if (store == NULL) {
-		*_safe = NULL;
 		errno = ENOENT;
-		return KP_ERRNO;
+		ret = KP_ERRNO;
+		goto failure;
 	}
-	*_safe = store->safe;
 
-	return KP_SUCCESS;
+	if (strlcpy(unsafe.path, store->safe->path, PATH_MAX) >= PATH_MAX) {
+		errno = ENOMEM;
+		ret = KP_ERRNO;
+		goto failure;
+	}
+	if (strlcpy(unsafe.password, store->safe->password, KP_PASSWORD_MAX_LEN)
+	    >= KP_PASSWORD_MAX_LEN) {
+		errno = ENOMEM;
+		ret = KP_ERRNO;
+		goto failure;
+	}
+	if (strlcpy(unsafe.metadata, store->safe->metadata, KP_METADATA_MAX_LEN)
+	    >= KP_METADATA_MAX_LEN) {
+		errno = ENOMEM;
+		ret = KP_ERRNO;
+		goto failure;
+	}
+
+	return kp_agent_send(agent, KP_MSG_SEARCH, &unsafe,
+	                         sizeof(struct kp_unsafe));
+
+failure:
+	kp_agent_error(agent, ret);
+	return ret;
 }
 
 static int

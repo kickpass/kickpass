@@ -41,6 +41,15 @@ else()
 endif()
 message(STATUS "Kickpass version: ${KickPass_VERSION_MAJOR}.${KickPass_VERSION_MINOR}.${KickPass_VERSION_PATCH}")
 
+set(CMAKE_SKIP_BUILD_RPATH  FALSE)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
+if("${isSystemDir}" STREQUAL "-1")
+       set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+endif()
+
 include_directories("${PROJECT_BINARY_DIR}/include/")
 include_directories("${PROJECT_SOURCE_DIR}/include/")
 include_directories("${PROJECT_SOURCE_DIR}/src/")
@@ -66,20 +75,21 @@ set(SRCS
 find_package(Sodium 1.0.0 REQUIRED)
 message(STATUS "Libsodium version: ${SODIUM_VERSION}")
 include_directories(${SODIUM_INCLUDE_DIRS})
-set(LIBS ${LIBS} ${SODIUM_LIBRARIES})
+set(LIB_LIBS ${LIB_LIBS} ${SODIUM_LIBRARIES})
 
-check_library_exists(c readpassphrase "readpassphrase.h" HAVE_READPASSPHRASE)
-if (NOT HAVE_READPASSPHRASE)
+check_library_exists(c readpassphrase "readpassphrase.h" HAS_READPASSPHRASE)
+if (NOT HAS_READPASSPHRASE)
 	find_package(BSD REQUIRED)
 	include_directories(${BSD_INCLUDE_DIRS}/bsd)
 	set(LIBS ${LIBS} ${BSD_LIBRARIES})
+	set(LIB_LIBS ${LIB_LIBS} ${BSD_LIBRARIES})
 	# Add _GNU_SOURCE for asprintf
 	add_definitions(-DLIBBSD_OVERLAY -D_GNU_SOURCE)
 endif()
 
-check_library_exists(util imsg_init "imsg.h" HAVE_IMSG)
-if (HAVE_IMSG)
-	set(LIBS ${LIBS} util)
+check_library_exists(util imsg_init "imsg.h" HAS_IMSG)
+if (HAS_IMSG)
+	set(LIB_LIBS ${LIB_LIBS} util)
 else()
 	add_library(imsg STATIC
 		${CMAKE_SOURCE_DIR}/compat/bsd/imsg-buffer.c
@@ -88,7 +98,11 @@ else()
 	)
 
 	include_directories(${CMAKE_SOURCE_DIR}/compat/bsd/)
-	set(LIBS ${LIBS} imsg)
+	set_target_properties(imsg PROPERTIES
+		POSITION_INDEPENDENT_CODE ON
+	)
+	set(LIB_LIBS ${LIB_LIBS} imsg)
+	set(PUBLIC_HEADERS ${PUBLIC_HEADERS} ${CMAKE_SOURCE_DIR}/compat/bsd/imsg.h)
 endif()
 
 find_package(Event2 REQUIRED)
@@ -128,11 +142,23 @@ add_library(libkickpass SHARED
 	lib/kpagent.c
 )
 
+file(GLOB PUBLIC_HEADERS
+	${PROJECT_SOURCE_DIR}/include/*.h
+	${PROJECT_BINARY_DIR}/include/*.h
+	${PUBLIC_HEADERS}
+)
+
 set_target_properties(libkickpass PROPERTIES
 	VERSION ${KickPass_VERSION_MAJOR}.${KickPass_VERSION_MINOR}.${KickPass_VERSION_PATCH}
-	SOVERSION ${KickPass_VERSION_MAJOR})
+	SOVERSION ${KickPass_VERSION_MAJOR}
+	PUBLIC_HEADER "${PUBLIC_HEADERS}"
+	OUTPUT_NAME kickpass
+	POSITION_INDEPENDENT_CODE ON
+)
 set_target_properties(libkickpass PROPERTIES OUTPUT_NAME kickpass)
 set_target_properties(libkickpass PROPERTIES C_STANDARD 99)
+
+target_link_libraries(libkickpass ${LIB_LIBS})
 
 target_link_libraries(kickpass libkickpass)
 
@@ -152,7 +178,11 @@ set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Werror")
 
 # Configure install
 
-install(TARGETS kickpass libkickpass RUNTIME DESTINATION bin LIBRARY DESTINATION lib)
+install(TARGETS kickpass libkickpass
+	RUNTIME DESTINATION bin
+	LIBRARY DESTINATION lib
+	PUBLIC_HEADER DESTINATION include/kickpass
+)
 install(FILES manual/kickpass.1 DESTINATION share/man/man1/)
 install(FILES extra/completion/zsh/_kickpass DESTINATION share/zsh/site-functions/)
 
