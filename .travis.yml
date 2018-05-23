@@ -3,9 +3,15 @@ compiler:
   - clang
   - gcc
 dist: trusty
+addons:
+  apt:
+    packages:
+      - check
+      - libevent-dev
+      - valgrind
+      - python3
+      - python3-pip
 install:
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq check libevent-dev valgrind
   - sudo pip3 install -r requirements.txt
   - cd ~/build
   - wget https://github.com/jedisct1/libsodium/releases/download/1.0.7/libsodium-1.0.7.tar.gz
