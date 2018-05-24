@@ -29,6 +29,7 @@ static const char *errstr[] = {
 	"invalid message",
 	"",
 	"no prompt set in ctx",
+	"no workspace",
 };
 
 const char *
