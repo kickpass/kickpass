@@ -237,25 +237,29 @@ command(struct kp_ctx *ctx, int argc, char **argv)
 		cmd = find_command(argv[optind]);
 	}
 
-	ret = kp_init(ctx);
-	if (ret == KP_ENOWORKSPACE) {
-		if (strncmp(argv[optind], "init", 5) != 0) {
-			kp_errx(KP_EINPUT, "No workspace, first run "
-			    "`%s init`", __progname);
+	if (cmd != &kp_cmd_init) {
+		ret = kp_init(ctx);
+		if (ret == KP_ENOWORKSPACE) {
+			kp_errx(ret, "No workspace, first run `%s init`",
+			        __progname);
+		} else if (ret != KP_SUCCESS) {
+			kp_err(ret,
+			       "An error occured while opening the workspace");
 		}
-	} else if (ret != KP_SUCCESS) {
-		kp_err(KP_EINPUT, "An error occured while opening the workspace");
 	}
 
 	/* Try to connect to agent */
 	if ((socket_path = getenv(KP_AGENT_SOCKET_ENV)) != NULL) {
-		if ((ret = kp_agent_init(&ctx->agent, socket_path)) != KP_SUCCESS) {
-			kp_warn(ret, "cannot connect to agent socket %s", socket_path);
+		if ((ret = kp_agent_init(&ctx->agent, socket_path))
+		    != KP_SUCCESS) {
+			kp_warn(ret, "cannot connect to agent socket %s",
+			        socket_path);
 			return ret;
 		}
 
 		if ((ret = kp_agent_connect(&ctx->agent)) != KP_SUCCESS) {
-			kp_warn(ret, "cannot connect to agent socket %s", socket_path);
+			kp_warn(ret, "cannot connect to agent socket %s",
+			        socket_path);
 			return ret;
 		}
 	}
