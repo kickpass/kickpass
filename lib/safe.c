@@ -273,7 +273,7 @@ kp_safe_rename(struct kp_ctx *ctx, struct kp_safe *safe, const char *name)
 	assert(name);
 
 	if (strlcpy(oldname, safe->name, PATH_MAX) >= PATH_MAX) {
-		errno = ENOMEM;
+		errno = ENAMETOOLONG;
 		return KP_ERRNO;
 	}
 
@@ -379,7 +379,7 @@ kp_safe_mkdir(struct kp_ctx *ctx, const char *name)
 
 	if (strlcpy(path, name, PATH_MAX) >= PATH_MAX) {
 		errno = ENOMEM;
-		return (KP_ERRNO);
+		return KP_ERRNO;
 	}
 
 	rdir = path;
