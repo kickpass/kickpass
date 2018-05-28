@@ -237,11 +237,12 @@ command(struct kp_ctx *ctx, int argc, char **argv)
 		cmd = find_command(argv[optind]);
 	}
 
+	ret = kp_init(ctx);
 	if (cmd != &kp_cmd_init) {
-		ret = kp_init(ctx);
-		if (ret == KP_ENOWORKSPACE) {
-			kp_errx(ret, "No workspace, first run `%s init`",
-			        __progname);
+		ret = kp_open(ctx);
+		if (ret == KP_ERRNO && errno == ENOENT) {
+			kp_err(ret, "No workspace, first run `%s init`",
+			       __progname);
 		} else if (ret != KP_SUCCESS) {
 			kp_err(ret,
 			       "An error occured while opening the workspace");

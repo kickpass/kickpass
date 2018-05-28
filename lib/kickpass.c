@@ -73,11 +73,14 @@ kp_init(struct kp_ctx *ctx)
 
 	ctx->agent.connected = false;
 
+	return KP_SUCCESS;
+}
+
+kp_error_t
+kp_open(struct kp_ctx *ctx)
+{
 	if ((ctx->ws_fd = open(ctx->ws_path, O_DIRECTORY|O_CLOEXEC)) < 0) {
-		if (errno == ENOENT)
-			return KP_ENOWORKSPACE;
-		else
-			return KP_ERRNO;
+		return KP_ERRNO;
 	}
 
 	return KP_SUCCESS;

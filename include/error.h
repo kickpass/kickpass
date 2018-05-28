@@ -31,7 +31,6 @@
 #define KP_INVALID_MSG      9
 #define KP_EXIT             10
 #define KP_NOPROMPT         11
-#define KP_ENOWORKSPACE     12
 
 typedef int kp_error_t;
 
