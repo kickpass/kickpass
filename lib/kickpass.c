@@ -21,9 +21,11 @@
 #include <stddef.h>
 #include <stdlib.h>
 
+#include <fcntl.h>
 #include <readpassphrase.h>
 #include <sodium.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "kickpass.h"
 
@@ -70,6 +72,16 @@ kp_init(struct kp_ctx *ctx)
 	ctx->cfg.opslimit = crypto_pwhash_scryptsalsa208sha256_OPSLIMIT_SENSITIVE/5;
 
 	ctx->agent.connected = false;
+
+	return KP_SUCCESS;
+}
+
+kp_error_t
+kp_open(struct kp_ctx *ctx)
+{
+	if ((ctx->ws_fd = open(ctx->ws_path, O_DIRECTORY|O_CLOEXEC)) < 0) {
+		return KP_ERRNO;
+	}
 
 	return KP_SUCCESS;
 }
@@ -123,6 +135,9 @@ kp_init_workspace(struct kp_ctx *ctx, const char *sub)
 		goto out;
 	}
 
+	if ((ctx->ws_fd = open(ctx->ws_path, O_DIRECTORY|O_CLOEXEC)) < 0) {
+		ret = KP_ERRNO;
+	}
 out:
 	return ret;
 }
