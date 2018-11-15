@@ -113,7 +113,7 @@ parse_opt(struct kp_ctx *ctx, int argc, char **argv)
 
 	if (!password && metadata) {
 		kp_warnx(KP_EINPUT, "Opening only metadata is default behavior."
-				"You can ommit option.");
+				"You can omit option.");
 	}
 
 	/* Default open only metadata */
