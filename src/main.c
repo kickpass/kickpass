@@ -14,6 +14,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/ptrace.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
 #include <getopt.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -46,6 +50,7 @@
 
 static int        cmd_search(const void *, const void *);
 static int        cmd_sort(const void *, const void *);
+static kp_error_t hardenize(void);
 static kp_error_t command(struct kp_ctx *, int, char **);
 static kp_error_t help(struct kp_ctx *, int, char **);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
@@ -122,6 +127,8 @@ main(int argc, char **argv)
 	int ret;
 	struct kp_ctx ctx;
 
+	hardenize();
+
 	if ((ret = parse_opt(&ctx, argc, argv)) != KP_SUCCESS) {
 		goto out;
 	}
@@ -136,6 +143,28 @@ out:
 	kp_fini(&ctx);
 
 	return ret;
+}
+
+static kp_error_t
+hardenize(void)
+{
+	int status;
+	pid_t child;
+
+	child = fork();
+
+	switch (child) {
+	case 0:
+		ptrace(PTRACE_TRACEME);
+		break;
+	case -1:
+		return KP_ERRNO;
+	default:
+		waitpid(child, &status, 0);
+		exit(WEXITSTATUS(status));
+	}
+
+	return KP_SUCCESS;
 }
 
 /*
