@@ -50,7 +50,9 @@
 
 static int        cmd_search(const void *, const void *);
 static int        cmd_sort(const void *, const void *);
+#ifdef HARDENIZE
 static kp_error_t hardenize(void);
+#endif
 static kp_error_t command(struct kp_ctx *, int, char **);
 static kp_error_t help(struct kp_ctx *, int, char **);
 static kp_error_t parse_opt(struct kp_ctx *, int, char **);
@@ -127,7 +129,9 @@ main(int argc, char **argv)
 	int ret;
 	struct kp_ctx ctx;
 
+#ifdef HARDENIZE
 	hardenize();
+#endif
 
 	if ((ret = parse_opt(&ctx, argc, argv)) != KP_SUCCESS) {
 		goto out;
@@ -145,6 +149,7 @@ out:
 	return ret;
 }
 
+#ifdef HARDENIZE
 static kp_error_t
 hardenize(void)
 {
@@ -166,6 +171,7 @@ hardenize(void)
 
 	return KP_SUCCESS;
 }
+#endif
 
 /*
  * Setup best prompt for password.

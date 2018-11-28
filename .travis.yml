@@ -24,4 +24,4 @@ install:
 script:
   - mkdir ~/build/kickpass-build
   - cd ~/build/kickpass-build
-  - cmake -DBUILD=Debug $TRAVIS_BUILD_DIR && make && make test ARGS="-V"
+  - cmake -DBUILD=Debug -DHARDENIZE=OFF $TRAVIS_BUILD_DIR && make && make test ARGS="-V"

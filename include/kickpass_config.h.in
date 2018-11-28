@@ -25,6 +25,8 @@
 
 #define KP_PATH ".kickpass"
 
+#cmakedefine HARDENIZE
+
 #cmakedefine HAS_X11
 #cmakedefine HAS_IMSG
 
