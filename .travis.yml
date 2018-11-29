@@ -2,6 +2,9 @@ language: c
 compiler:
   - clang
   - gcc
+env:
+  - HARDENIZE=OFF
+  - HARDENIZE=ON
 dist: trusty
 addons:
   apt:
@@ -24,4 +27,4 @@ install:
 script:
   - mkdir ~/build/kickpass-build
   - cd ~/build/kickpass-build
-  - cmake -DBUILD=Debug -DHARDENIZE=OFF $TRAVIS_BUILD_DIR && make && make test ARGS="-V"
+  - cmake -DBUILD=Debug -DHARDENIZE=$HARDENIZE $TRAVIS_BUILD_DIR && make && make test ARGS="-V"
