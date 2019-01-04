@@ -32,6 +32,17 @@
 #include "config.h"
 
 kp_error_t
+kp_alloc(struct kp_ctx **ctx)
+{
+	*ctx = malloc(sizeof(struct kp_ctx));
+	if (*ctx == NULL) {
+		return KP_ERRNO;
+	}
+
+	return KP_SUCCESS;
+}
+
+kp_error_t
 kp_init(struct kp_ctx *ctx)
 {
 	const char *home;

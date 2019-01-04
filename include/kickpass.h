@@ -54,6 +54,7 @@ struct kp_ctx {
 	} cfg;
 };
 
+kp_error_t kp_alloc(struct kp_ctx **);
 kp_error_t kp_init(struct kp_ctx *);
 kp_error_t kp_open(struct kp_ctx *);
 kp_error_t kp_fini(struct kp_ctx *);
