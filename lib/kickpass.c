@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 
 #include <assert.h>
+#include <dirent.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -95,6 +96,88 @@ kp_open(struct kp_ctx *ctx)
 	}
 
 	return KP_SUCCESS;
+}
+
+kp_error_t
+kp_list(struct kp_ctx *ctx, char ***safes, int *nsafes, char *root)
+{
+	kp_error_t ret = KP_SUCCESS;
+	DIR *dirp;
+	struct dirent *dirent;
+	char rootpath[PATH_MAX];
+
+	if (strlcpy(rootpath, ctx->ws_path, PATH_MAX) >= PATH_MAX) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+
+	if (strlcat(rootpath, "/", PATH_MAX) >= PATH_MAX) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+	if (strlcat(rootpath, root,  PATH_MAX) >= PATH_MAX) {
+		errno = ENOMEM;
+		return KP_ERRNO;
+	}
+
+	if ((dirp = opendir(rootpath)) == NULL) {
+		ret = KP_ERRNO;
+		return ret;
+	}
+
+	while ((dirent = readdir(dirp)) != NULL) {
+		char path[PATH_MAX];
+		if (dirent->d_name[0] == '.'
+				|| (dirent->d_type != DT_REG
+				&& dirent->d_type != DT_DIR)) {
+			continue;
+		}
+
+		if (strlcpy(path, rootpath, PATH_MAX) >= PATH_MAX) {
+			errno = ENOMEM;
+			ret = KP_ERRNO;
+			goto out;
+		}
+
+		if (strlcat(path, "/", PATH_MAX) >= PATH_MAX) {
+			errno = ENOMEM;
+			ret = KP_ERRNO;
+			goto out;
+		}
+
+		if (strlcat(path, dirent->d_name, PATH_MAX) >= PATH_MAX) {
+			errno = ENOMEM;
+			ret = KP_ERRNO;
+			goto out;
+		}
+
+		switch (dirent->d_type) {
+		case DT_REG:
+			if ((*safes = reallocarray(*safes, *nsafes + 1, sizeof(char *)))
+					== NULL) {
+				errno = ENOMEM;
+				ret = KP_ERRNO;
+				goto out;
+			}
+
+			(*safes)[*nsafes] = strndup(path + strlen(ctx->ws_path) + 1, PATH_MAX);
+			if ((*safes)[*nsafes] == NULL) {
+				errno = ENOMEM;
+				ret = KP_ERRNO;
+				goto out;
+			}
+
+			(*nsafes)++;
+			break;
+		case DT_DIR:
+			ret = kp_list(ctx, safes, nsafes, path + strlen(ctx->ws_path) + 1);
+		}
+	}
+
+out:
+	closedir(dirp);
+
+	return ret;
 }
 
 kp_error_t
