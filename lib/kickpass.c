@@ -182,6 +182,12 @@ out:
 	return ret;
 }
 
+struct kp_agent *
+kp_get_agent(struct kp_ctx *ctx)
+{
+	return &ctx->agent;
+}
+
 kp_error_t
 kp_fini(struct kp_ctx *ctx)
 {
