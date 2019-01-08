@@ -74,7 +74,7 @@ list_dir(struct kp_ctx *ctx, char *root, char *indent, bool print_path)
 	if (print_path) {
 		printf("%s/\n", root + strlen(ctx->ws_path) + 1);
 	}
-	ignore = strlen(root) + 1;
+	ignore = strlen(root);
 	for (i = 0; i < nsafes; i++) {
 		printf("%s%s\n", indent, safes[i] + ignore);
 	}

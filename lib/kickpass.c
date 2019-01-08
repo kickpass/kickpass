@@ -111,13 +111,15 @@ kp_list(struct kp_ctx *ctx, char ***safes, int *nsafes, char *root)
 		return KP_ERRNO;
 	}
 
-	if (strlcat(rootpath, "/", PATH_MAX) >= PATH_MAX) {
-		errno = ENOMEM;
-		return KP_ERRNO;
-	}
-	if (strlcat(rootpath, root,  PATH_MAX) >= PATH_MAX) {
-		errno = ENOMEM;
-		return KP_ERRNO;
+	if (strlen(root) > 0) {
+		if (strlcat(rootpath, "/", PATH_MAX) >= PATH_MAX) {
+			errno = ENOMEM;
+			return KP_ERRNO;
+		}
+		if (strlcat(rootpath, root,  PATH_MAX) >= PATH_MAX) {
+			errno = ENOMEM;
+			return KP_ERRNO;
+		}
 	}
 
 	if ((dirp = opendir(rootpath)) == NULL) {
