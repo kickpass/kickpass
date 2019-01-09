@@ -85,6 +85,9 @@ kp_init(struct kp_ctx *ctx)
 
 	ctx->agent.connected = false;
 
+	ctx->password_prompt = NULL;
+	ctx->cb_param = NULL;
+
 	return KP_SUCCESS;
 }
 
@@ -94,6 +97,16 @@ kp_open(struct kp_ctx *ctx)
 	if ((ctx->ws_fd = open(ctx->ws_path, O_DIRECTORY|O_CLOEXEC)) < 0) {
 		return KP_ERRNO;
 	}
+
+	return KP_SUCCESS;
+}
+
+kp_error_t
+kp_set_password_prompt(struct kp_ctx *ctx, password_prompt_cb password_prompt,
+                       void *cb_param)
+{
+	ctx->password_prompt = password_prompt;
+	ctx->cb_param = cb_param;
 
 	return KP_SUCCESS;
 }
@@ -257,7 +270,8 @@ kp_version_major(void)
 }
 
 kp_error_t
-kp_password_prompt(struct kp_ctx *ctx, bool confirm, char *password, const char *fmt, ...)
+kp_password_prompt(struct kp_ctx *ctx, bool confirm, char *password,
+                   const char *fmt, ...)
 {
 	kp_error_t ret;
 	va_list ap;
@@ -269,7 +283,8 @@ kp_password_prompt(struct kp_ctx *ctx, bool confirm, char *password, const char 
 	}
 
 	va_start(ap, fmt);
-	ret = ctx->password_prompt(ctx, confirm, password, fmt, ap);
+	ret = ctx->password_prompt(ctx, ctx->cb_param, confirm, password, fmt,
+	                           ap);
 	va_end(ap);
 
 	return ret;

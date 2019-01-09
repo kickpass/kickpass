@@ -37,7 +37,7 @@
 
 
 kp_error_t
-kp_askpass(struct kp_ctx *ctx, bool confirm, char *password, const char *fmt, va_list ap)
+kp_askpass(struct kp_ctx *ctx, void *cb_param, bool confirm, char *password, const char *fmt, va_list ap)
 {
 	kp_error_t ret = KP_SUCCESS;
 	char *prompt_fmt = NULL, *prompt = NULL;
@@ -130,7 +130,7 @@ out:
 }
 
 kp_error_t
-kp_readpass(struct kp_ctx *ctx, bool confirm, char *password, const char *fmt, va_list ap)
+kp_readpass(struct kp_ctx *ctx, void *cb_param, bool confirm, char *password, const char *fmt, va_list ap)
 {
 	kp_error_t ret = KP_SUCCESS;
 	char *prompt_fmt = NULL, *prompt = NULL;

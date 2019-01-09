@@ -42,11 +42,16 @@ struct kp_agent {
 	bool connected;
 };
 
+struct kp_ctx;
+
+typedef kp_error_t (*password_prompt_cb)(struct kp_ctx *, void *, bool, char *, const char *, va_list ap);
+
 struct kp_ctx {
 	int ws_fd;
 	char ws_path[PATH_MAX];
 	struct kp_agent agent;
-	kp_error_t (*password_prompt)(struct kp_ctx *, bool, char *, const char *, va_list ap);
+	password_prompt_cb password_prompt;
+	void *cb_param;
 	char * const password;
 	struct {
 		long long unsigned opslimit;
@@ -56,6 +61,7 @@ struct kp_ctx {
 
 kp_error_t kp_alloc(struct kp_ctx **);
 kp_error_t kp_init(struct kp_ctx *);
+kp_error_t kp_set_password_prompt(struct kp_ctx *, password_prompt_cb, void *);
 kp_error_t kp_open(struct kp_ctx *);
 kp_error_t kp_list(struct kp_ctx *, char ***, int *, char *);
 struct kp_agent * kp_get_agent(struct kp_ctx *);

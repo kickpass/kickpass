@@ -150,9 +150,9 @@ setup_prompt(struct kp_ctx *ctx)
 	tty = ctermid(NULL);
 	fd = open(tty, O_RDWR);
 	if (isatty(fd)) {
-		ctx->password_prompt = kp_readpass;
+		kp_set_password_prompt(ctx, kp_readpass, NULL);
 	} else {
-		ctx->password_prompt = kp_askpass;
+		kp_set_password_prompt(ctx, kp_askpass, NULL);
 	}
 
 	close(fd);
