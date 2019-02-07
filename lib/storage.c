@@ -289,8 +289,7 @@ kp_storage_open(struct kp_ctx *ctx, struct kp_safe *safe)
 
 	cipher_fd = openat(ctx->ws_fd, safe->name, O_RDONLY | O_NONBLOCK);
 	if (cipher_fd < 0) {
-		ret = KP_ERRNO;
-		goto out;
+		return KP_ERRNO;
 	}
 
 	errno = 0;

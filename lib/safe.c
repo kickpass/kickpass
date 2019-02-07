@@ -86,7 +86,7 @@ kp_safe_open(struct kp_ctx *ctx, struct kp_safe *safe, int flags)
 	if (KP_CREATE & flags) {
 		/* Ensure path to safe exists */
 		if ((ret = kp_safe_mkdir(ctx, safe->name)) != KP_SUCCESS) {
-			return ret;
+			goto fail;
 		}
 	}
 
@@ -120,12 +120,14 @@ kp_safe_open(struct kp_ctx *ctx, struct kp_safe *safe, int flags)
 		if (strlcpy(safe->password, unsafe.password,
 		            KP_PASSWORD_MAX_LEN) >= KP_PASSWORD_MAX_LEN) {
 			errno = ENOMEM;
-			return KP_ERRNO;
+			ret = KP_ERRNO;
+			goto fail;
 		}
 		if (strlcpy(safe->metadata, unsafe.metadata,
 		            KP_METADATA_MAX_LEN) >= KP_METADATA_MAX_LEN) {
 			errno = ENOMEM;
-			return KP_ERRNO;
+			ret = KP_ERRNO;
+			goto fail;
 		}
 
 		return KP_SUCCESS;
@@ -133,15 +135,28 @@ kp_safe_open(struct kp_ctx *ctx, struct kp_safe *safe, int flags)
 
 fallback:
 	if (ctx->password[0] == '\0') {
-		kp_error_t ret;
 		if ((ret = kp_password_prompt(ctx, false,
 		                              (char *)ctx->password,
 		                              "master")) != KP_SUCCESS) {
-			return ret;
+			goto fail;
 		}
 	}
 
-	return kp_storage_open(ctx, safe);
+	ret = kp_storage_open(ctx, safe);
+	if (ret != KP_SUCCESS) {
+		goto fail;
+	}
+
+	return KP_SUCCESS;
+
+fail:
+	sodium_free(*password);
+	sodium_free(*metadata);
+	*password = NULL;
+	*metadata = NULL;
+	safe->open = false;
+
+	return ret;
 }
 
 kp_error_t
