@@ -62,6 +62,7 @@ struct kp_ctx {
 kp_error_t kp_alloc(struct kp_ctx **);
 kp_error_t kp_init(struct kp_ctx *);
 kp_error_t kp_set_password_prompt(struct kp_ctx *, password_prompt_cb, void *);
+kp_error_t kp_set_password(struct kp_ctx *, const char *);
 kp_error_t kp_open(struct kp_ctx *);
 kp_error_t kp_list(struct kp_ctx *, char ***, int *, char *);
 struct kp_agent * kp_get_agent(struct kp_ctx *);

@@ -112,6 +112,22 @@ kp_set_password_prompt(struct kp_ctx *ctx, password_prompt_cb password_prompt,
 }
 
 kp_error_t
+kp_set_password(struct kp_ctx *ctx, const char *new_password)
+{
+	char **password = (char **)&ctx->password;
+
+	sodium_memzero(*password, KP_PASSWORD_MAX_LEN);
+
+	if (strlcpy(*password, new_password, KP_PASSWORD_MAX_LEN)
+	    >= KP_PASSWORD_MAX_LEN) {
+		errno = ENAMETOOLONG;
+		return KP_ERRNO;
+	}
+
+	return KP_SUCCESS;
+}
+
+kp_error_t
 kp_list(struct kp_ctx *ctx, char ***safes, int *nsafes, char *root)
 {
 	kp_error_t ret = KP_SUCCESS;
