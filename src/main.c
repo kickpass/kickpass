@@ -126,6 +126,10 @@ main(int argc, char **argv)
 		goto out;
 	}
 
+	if ((ret = kp_init(&ctx)) != KP_SUCCESS) {
+		goto out;
+	}
+
 	if ((ret = setup_prompt(&ctx)) != KP_SUCCESS) {
 		goto out;
 	}
@@ -237,7 +241,6 @@ command(struct kp_ctx *ctx, int argc, char **argv)
 		cmd = find_command(argv[optind]);
 	}
 
-	ret = kp_init(ctx);
 	if (cmd != &kp_cmd_init) {
 		ret = kp_open(ctx);
 		if (ret == KP_ERRNO && errno == ENOENT) {
