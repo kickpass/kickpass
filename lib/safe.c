@@ -93,8 +93,9 @@ kp_safe_open(struct kp_ctx *ctx, struct kp_safe *safe, int flags)
 	/* Either safe exist or we want to create it */
 	if ((fstatat(ctx->ws_fd, safe->name, &stats, 0) == 0)
 	    == (bool)(KP_CREATE & flags)) {
+		ret = KP_ERRNO;
 		errno = (KP_CREATE & flags) ? EEXIST : ENOENT;
-		return KP_ERRNO;
+		goto fail;
 	}
 
 	if (KP_CREATE & flags) {
