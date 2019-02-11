@@ -72,9 +72,12 @@ list_dir(struct kp_ctx *ctx, char *root, char *indent, bool print_path)
 	qsort(safes, nsafes, sizeof(char *), path_sort);
 
 	if (print_path) {
-		printf("%s/\n", root + strlen(ctx->ws_path) + 1);
+		printf("%s/\n", root);
 	}
 	ignore = strlen(root);
+	if (ignore > 0) {
+		ignore++; /* Ignore dir separator */
+	}
 	for (i = 0; i < nsafes; i++) {
 		printf("%s%s\n", indent, safes[i] + ignore);
 	}
