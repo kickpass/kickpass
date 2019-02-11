@@ -23,6 +23,7 @@ set(CTEST_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build)
 project(KickPass C)
 
 include(CheckLibraryExists)
+include(CheckFunctionExists)
 
 include(GetGitRevisionDescription)
 git_describe(KickPass_VERSION "--always")
@@ -103,6 +104,18 @@ else()
 	)
 	set(LIB_LIBS ${LIB_LIBS} imsg)
 	set(PUBLIC_HEADERS ${PUBLIC_HEADERS} ${CMAKE_SOURCE_DIR}/compat/bsd/imsg.h)
+endif()
+
+check_function_exists("reallocarray" HAS_REALLOCARRAY)
+if (NOT HAS_REALLOCARRAY)
+	add_library(reallocarray STATIC
+		${CMAKE_SOURCE_DIR}/compat/bsd/reallocarray.c
+	)
+	include_directories(${CMAKE_SOURCE_DIR}/compat/bsd/)
+	set_target_properties(reallocarray PROPERTIES
+		POSITION_INDEPENDENT_CODE ON
+	)
+	set(LIB_LIBS ${LIB_LIBS} reallocarray)
 endif()
 
 find_package(Event2 REQUIRED)
