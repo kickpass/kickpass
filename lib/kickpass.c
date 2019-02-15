@@ -28,6 +28,10 @@
 #include <string.h>
 #include <unistd.h>
 
+#ifndef reallocarray
+#include "reallocarray.h"
+#endif
+
 #include "kickpass.h"
 
 #include "config.h"

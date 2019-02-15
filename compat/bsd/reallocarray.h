@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Paul Fariello <paul@fariello.eu>
+ * Copyright (c) 2008 Otto Moerbeek <otto@drijf.net>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,19 +14,4 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#ifndef KP_KICKPASS_CONFIG_H
-#define KP_KICKPASS_CONFIG_H
-
-#define KICKPASS_VERSION_MAJOR @KickPass_VERSION_MAJOR@
-#define KICKPASS_VERSION_MINOR @KickPass_VERSION_MINOR@
-#define KICKPASS_VERSION_PATCH @KickPass_VERSION_PATCH@
-
-#define KICKPASS_VERSION_STRING "@KickPass_VERSION_MAJOR@.@KickPass_VERSION_MINOR@.@KickPass_VERSION_PATCH@"
-
-#define KP_PATH ".kickpass"
-
-#cmakedefine HAS_X11
-#cmakedefine HAS_IMSG
-#cmakedefine HAS_REALLOCARRAY
-
-#endif /* KP_KICKPASS_CONFIG_H */
+void *reallocarray(void *, size_t, size_t);
