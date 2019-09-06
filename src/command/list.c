@@ -29,6 +29,10 @@
 #include "list.h"
 #include "log.h"
 
+#ifndef HAS_REALLOCARRAY
+#include "reallocarray.h"
+#endif
+
 static kp_error_t list(struct kp_ctx *, int, char **);
 static kp_error_t list_dir(struct kp_ctx *, char *, char *, bool);
 static kp_error_t list_dir_r(char ***, int *, char *);

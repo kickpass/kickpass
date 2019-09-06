@@ -16,11 +16,6 @@
 
 #include <sys/stat.h>
 #include <sys/types.h>
-#ifndef __linux__
-#include <sys/endian.h>
-#else
-#include <endian.h>
-#endif
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -39,11 +34,27 @@
 
 static uint16_t kp_storage_version = 0x0001;
 
-#ifndef betoh16
+#if defined(__linux__)
+
+#include <endian.h>
+
 #define betoh16 be16toh
-#endif
-#ifndef betoh64
 #define betoh64 be64toh
+
+#elif defined(__APPLE__)
+
+#include <machine/endian.h>
+#include <libkern/OSByteOrder.h>
+
+#define betoh16 OSSwapBigToHostInt16
+#define betoh64 OSSwapBigToHostInt64
+#define htobe16 OSSwapHostToBigInt16
+#define htobe64 OSSwapHostToBigInt64
+
+#else
+
+#include <sys/endian.h>
+
 #endif
 
 #define KP_STORAGE_SALT_SIZE   crypto_pwhash_scryptsalsa208sha256_SALTBYTES

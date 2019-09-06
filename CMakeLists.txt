@@ -105,6 +105,12 @@ else()
 	set(PUBLIC_HEADERS ${PUBLIC_HEADERS} ${CMAKE_SOURCE_DIR}/compat/bsd/imsg.h)
 endif()
 
+check_library_exists(c reallocarray "stdlib.h" HAS_REALLOCARRAY)
+if (NOT HAS_REALLOCARRAY)
+	set(SRCS ${SRCS} compat/bsd/reallocarray.c)
+	include_directories(${CMAKE_SOURCE_DIR}/compat/bsd/)
+endif()
+
 find_package(Event2 REQUIRED)
 include_directories(${EVENT2_INCLUDE_DIRS})
 set(LIBS ${LIBS} ${EVENT2_LIBRARIES})
